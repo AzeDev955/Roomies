@@ -1,5 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
 
@@ -31,4 +32,33 @@ export const register: express.RequestHandler = async (req, res) => {
 
   const { password_hash: _omit, ...usuarioSinPassword } = usuario;
   res.status(201).json(usuarioSinPassword);
+};
+
+export const login: express.RequestHandler = async (req, res) => {
+  const { email, password } = req.body as { email: string; password: string };
+
+  const usuario = await prisma.usuario.findUnique({
+    where: { email },
+  });
+
+  if (!usuario) {
+    res.status(401).json({ error: 'Credenciales inválidas.' });
+    return;
+  }
+
+  const passwordOk = await bcrypt.compare(password, usuario.password_hash);
+
+  if (!passwordOk) {
+    res.status(401).json({ error: 'Credenciales inválidas.' });
+    return;
+  }
+
+  const token = jwt.sign(
+    { id: usuario.id, rol: usuario.rol },
+    process.env['JWT_SECRET']!,
+    { expiresIn: '7d' }
+  );
+
+  const { password_hash: _omit, ...usuarioSinPassword } = usuario;
+  res.status(200).json({ token, usuario: usuarioSinPassword });
 };
