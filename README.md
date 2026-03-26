@@ -54,3 +54,20 @@ El proyecto está dividido en dos repositorios/carpetas principales:
 
 ---
 *Desarrollado con ☕ y código.*
+
+## 📋 Registro de Desarrollo (Changelog)
+
+### 2026-03-26 — Issue #4: Inicialización del Backend y Base de Datos
+
+**Épica 1 — Setup inicial del proyecto**
+
+- Inicializado proyecto Node.js con `npm init` en carpeta `backend/`.
+- Instaladas dependencias de producción: `express`, `cors`, `dotenv`.
+- Instaladas dependencias de desarrollo: `typescript`, `@types/node`, `@types/express`, `ts-node`, `nodemon`.
+- Generado `tsconfig.json` con target ES2020, módulo CommonJS y `strict: true`.
+- Inicializado Prisma ORM v7 (`npx prisma init`) con proveedor PostgreSQL.
+- Definido el esquema de base de datos en `prisma/schema.prisma`:
+  - Enums: `RolUsuario` (CASERO, INQUILINO), `EstadoIncidencia` (PENDIENTE, EN_PROCESO, RESUELTA).
+  - Modelos: `Usuario`, `Vivienda`, `Habitacion` (inquilino_id opcional), `Incidencia` (estado default PENDIENTE, fecha_creacion default now).
+- Creado servidor Express básico en `src/index.ts` con endpoint `GET /ping → pong` en puerto 3000.
+- **Nota:** No se han ejecutado migraciones. Pendiente configuración de BD en `.env`.
