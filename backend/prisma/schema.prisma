@@ -22,7 +22,7 @@ model Usuario {
   id            Int          @id @default(autoincrement())
   nombre        String
   apellidos     String
-  dni           String
+  dni           String       @unique
   email         String       @unique
   password_hash String
   telefono      String?
