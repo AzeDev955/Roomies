@@ -54,3 +54,7 @@ El proyecto está dividido en dos repositorios/carpetas principales:
 
 ---
 *Desarrollado con ☕ y código.*
+
+## 📋 Registro de Desarrollo
+
+El historial de cambios por issue/épica está en [`docs/changelog/`](docs/changelog/).
