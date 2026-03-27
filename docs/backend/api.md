@@ -107,3 +107,45 @@ Devuelve el payload del token activo. No consulta la base de datos.
   "rol": "CASERO"
 }
 ```
+
+---
+
+## Viviendas (`/viviendas`)
+
+### POST `/viviendas`
+
+Crea una nueva vivienda. Solo accesible para usuarios con rol `CASERO`.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `alias_nombre` | string | Sí | Nombre identificativo de la vivienda |
+| `direccion` | string | Sí | Dirección completa |
+| `codigo_postal` | string | Sí | Código postal |
+| `ciudad` | string | Sí | Ciudad |
+| `provincia` | string | Sí | Provincia |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Vivienda creada. Devuelve el objeto completo de la vivienda. |
+| `400` | Falta alguno de los campos obligatorios. |
+| `401` | Sin token. |
+| `403` | El usuario tiene rol `INQUILINO`. |
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "id": 1,
+  "casero_id": 1,
+  "alias_nombre": "Piso Centro",
+  "direccion": "Calle Mayor 10, 3ºB",
+  "codigo_postal": "28013",
+  "ciudad": "Madrid",
+  "provincia": "Madrid"
+}
+```
