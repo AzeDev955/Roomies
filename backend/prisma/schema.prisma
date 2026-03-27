@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RolUsuario {
+  CASERO
+  INQUILINO
+}
+
+enum EstadoIncidencia {
+  PENDIENTE
+  EN_PROCESO
+  RESUELTA
+}
+
+model Usuario {
+  id            Int          @id @default(autoincrement())
+  nombre        String
+  apellidos     String
+  dni           String       @unique
+  email         String       @unique
+  password_hash String
+  telefono      String?
+  rol           RolUsuario
+  viviendas     Vivienda[]
+  habitaciones  Habitacion[]
+  incidencias   Incidencia[]
+}
+
+model Vivienda {
+  id            Int          @id @default(autoincrement())
+  casero_id     Int
+  casero        Usuario      @relation(fields: [casero_id], references: [id])
+  alias_nombre  String
+  direccion     String
+  codigo_postal String
+  ciudad        String
+  provincia     String
+  habitaciones  Habitacion[]
+  incidencias   Incidencia[]
+}
+
+model Habitacion {
+  id                Int       @id @default(autoincrement())
+  vivienda_id       Int
+  vivienda          Vivienda  @relation(fields: [vivienda_id], references: [id])
+  inquilino_id      Int?
+  inquilino         Usuario?  @relation(fields: [inquilino_id], references: [id])
+  nombre            String
+  codigo_invitacion String    @unique
+}
+
+model Incidencia {
+  id             Int              @id @default(autoincrement())
+  vivienda_id    Int
+  vivienda       Vivienda         @relation(fields: [vivienda_id], references: [id])
+  creador_id     Int
+  creador        Usuario          @relation(fields: [creador_id], references: [id])
+  titulo         String
+  descripcion    String
+  estado         EstadoIncidencia @default(PENDIENTE)
+  fecha_creacion DateTime         @default(now())
+}
