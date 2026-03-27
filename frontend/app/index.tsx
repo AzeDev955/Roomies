@@ -1,6 +1,6 @@
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { styles } from './index.styles';
+import { styles } from '../styles/index.styles';
 
 export default function LoginScreen() {
   const router = useRouter();

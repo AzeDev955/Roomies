@@ -27,8 +27,9 @@ frontend/
   app/
     _layout.tsx           # Layout raíz (Stack navigator)
     index.tsx             # Pantalla de Login
-    index.styles.ts       # Estilos de Login
     home.tsx              # Pantalla de Home
+  styles/
+    index.styles.ts       # Estilos de Login
     home.styles.ts        # Estilos de Home
 ```
 
@@ -36,18 +37,19 @@ frontend/
 
 ### Estilos modulares
 
-Todos los componentes y pantallas tienen sus estilos en un archivo `.styles.ts` adyacente.
-Nunca se usa `StyleSheet.create` dentro del propio componente.
+Los estilos viven en `styles/` (fuera de `app/`), con el mismo nombre que la pantalla.
+Expo Router trata todos los archivos de `app/` como rutas, por lo que los `.styles.ts`
+no pueden estar dentro de esa carpeta.
 
 ```
-MiComponente.tsx          # Solo lógica y JSX
-MiComponente.styles.ts    # Solo StyleSheet.create + export { styles }
+app/MiPantalla.tsx              # Solo lógica y JSX
+styles/MiPantalla.styles.ts     # Solo StyleSheet.create + export { styles }
 ```
 
 El componente importa los estilos así:
 
 ```tsx
-import { styles } from './MiComponente.styles';
+import { styles } from '../styles/MiPantalla.styles';
 ```
 
 ## Decisiones de arquitectura
