@@ -29,7 +29,7 @@ El proyecto está dividido en dos repositorios/carpetas principales:
 - [ ] Recordatorios de pago automáticos.
 - [ ] Chat integrado Inquilino <-> Casero.
 - [ ] Tablón de anuncios para la vivienda.
-
+- [ ] Formulario para envio a posible inquilino.
 ## ⚙️ Instalación y Configuración Local
 
 *(Nota: Estas instrucciones se irán actualizando conforme el proyecto avance)*
