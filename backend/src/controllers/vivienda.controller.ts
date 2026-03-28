@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
-import { RolUsuario } from '../generated/prisma/client';
+import { RolUsuario, TipoHabitacion } from '../generated/prisma/client';
+import { generarCodigoInvitacion } from '../utils/generarCodigo';
 
 export const crearVivienda: express.RequestHandler = async (req, res) => {
   if (req.usuario!.rol !== RolUsuario.CASERO) {
@@ -33,4 +34,42 @@ export const crearVivienda: express.RequestHandler = async (req, res) => {
   });
 
   res.status(201).json(vivienda);
+};
+
+export const crearHabitacion: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+
+  const { nombre, tipo, es_habitable, metros_cuadrados } = req.body as {
+    nombre: string;
+    tipo?: TipoHabitacion;
+    es_habitable?: boolean;
+    metros_cuadrados?: number;
+  };
+
+  if (!nombre) {
+    res.status(400).json({ error: 'nombre es obligatorio.' });
+    return;
+  }
+
+  const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(403).json({ error: 'No tienes permiso para añadir habitaciones a esta vivienda.' });
+    return;
+  }
+
+  const habitable = es_habitable !== false;
+  const codigo_invitacion = habitable ? await generarCodigoInvitacion() : null;
+
+  const habitacion = await prisma.habitacion.create({
+    data: {
+      vivienda_id: viviendaId,
+      nombre,
+      tipo: tipo ?? TipoHabitacion.DORMITORIO,
+      es_habitable: habitable,
+      metros_cuadrados: metros_cuadrados ?? null,
+      codigo_invitacion,
+    },
+  });
+
+  res.status(201).json(habitacion);
 };
