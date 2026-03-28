@@ -3,6 +3,14 @@ import { prisma } from '../lib/prisma';
 import { RolUsuario, TipoHabitacion } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
 
+export const listarViviendas: express.RequestHandler = async (req, res) => {
+  const viviendas = await prisma.vivienda.findMany({
+    where: { casero_id: req.usuario!.id },
+    include: { habitaciones: true },
+  });
+  res.status(200).json(viviendas);
+};
+
 export const crearVivienda: express.RequestHandler = async (req, res) => {
   if (req.usuario!.rol !== RolUsuario.CASERO) {
     res.status(403).json({ error: 'Solo los caseros pueden crear viviendas.' });
