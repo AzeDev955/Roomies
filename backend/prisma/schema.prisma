@@ -18,6 +18,14 @@ enum EstadoIncidencia {
   RESUELTA
 }
 
+enum TipoHabitacion {
+  DORMITORIO
+  BANO
+  COCINA
+  SALON
+  OTRO
+}
+
 model Usuario {
   id            Int          @id @default(autoincrement())
   nombre        String
@@ -46,13 +54,16 @@ model Vivienda {
 }
 
 model Habitacion {
-  id                Int       @id @default(autoincrement())
+  id                Int            @id @default(autoincrement())
   vivienda_id       Int
-  vivienda          Vivienda  @relation(fields: [vivienda_id], references: [id])
+  vivienda          Vivienda       @relation(fields: [vivienda_id], references: [id])
   inquilino_id      Int?
-  inquilino         Usuario?  @relation(fields: [inquilino_id], references: [id])
+  inquilino         Usuario?       @relation(fields: [inquilino_id], references: [id])
   nombre            String
-  codigo_invitacion String    @unique
+  tipo              TipoHabitacion @default(DORMITORIO)
+  es_habitable      Boolean        @default(true)
+  metros_cuadrados  Float?
+  codigo_invitacion String?        @unique
 }
 
 model Incidencia {

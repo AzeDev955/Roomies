@@ -149,3 +149,66 @@ Crea una nueva vivienda. Solo accesible para usuarios con rol `CASERO`.
   "provincia": "Madrid"
 }
 ```
+
+---
+
+### POST `/viviendas/:id/habitaciones`
+
+Añade una habitación a una vivienda. Solo el casero propietario de la vivienda puede añadir habitaciones.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID de la vivienda |
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `nombre` | string | Sí | Nombre descriptivo de la habitación |
+| `tipo` | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` | No | Default: `DORMITORIO` |
+| `es_habitable` | boolean | No | Si es habitable por un inquilino. Default: `true` |
+| `metros_cuadrados` | number | No | Superficie en m² |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Habitación creada. Devuelve el objeto completo. |
+| `400` | Falta `nombre`. |
+| `401` | Sin token. |
+| `403` | La vivienda no pertenece al casero logueado. |
+
+> Si `es_habitable: true` se genera automáticamente un `codigo_invitacion` con formato `ROOM-XXXX`.
+> Si `es_habitable: false` (zona común), `codigo_invitacion` es `null`.
+
+**Ejemplo respuesta 201 (dormitorio):**
+```json
+{
+  "id": 1,
+  "vivienda_id": 1,
+  "inquilino_id": null,
+  "nombre": "Habitación 1",
+  "tipo": "DORMITORIO",
+  "es_habitable": true,
+  "metros_cuadrados": 12.5,
+  "codigo_invitacion": "ROOM-AB3X"
+}
+```
+
+**Ejemplo respuesta 201 (zona común):**
+```json
+{
+  "id": 2,
+  "vivienda_id": 1,
+  "inquilino_id": null,
+  "nombre": "Cocina",
+  "tipo": "COCINA",
+  "es_habitable": false,
+  "metros_cuadrados": null,
+  "codigo_invitacion": null
+}
+```
