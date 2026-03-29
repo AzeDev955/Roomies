@@ -182,7 +182,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
 | `401` | Sin token. |
 | `403` | La vivienda no pertenece al casero logueado. |
 
-> Si `es_habitable: true` se genera automáticamente un `codigo_invitacion` con formato `ROOM-XXXX`.
+> Si `es_habitable: true` se genera automáticamente un `codigo_invitacion` con formato `ROOM-XXXXXX` (6 caracteres alfanuméricos).
 > Si `es_habitable: false` (zona común), `codigo_invitacion` es `null`.
 
 **Ejemplo respuesta 201 (dormitorio):**
@@ -195,7 +195,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "tipo": "DORMITORIO",
   "es_habitable": true,
   "metros_cuadrados": 12.5,
-  "codigo_invitacion": "ROOM-AB3X"
+  "codigo_invitacion": "ROOM-AB3X7K"
 }
 ```
 
@@ -227,7 +227,7 @@ Permite a un inquilino unirse a una habitación usando su código de invitación
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `codigo_invitacion` | string | Sí | Código `ROOM-XXXX` de la habitación |
+| `codigo_invitacion` | string | Sí | Código `ROOM-XXXXXX` de la habitación |
 
 **Respuestas:**
 
@@ -250,7 +250,7 @@ Permite a un inquilino unirse a una habitación usando su código de invitación
     "tipo": "DORMITORIO",
     "es_habitable": true,
     "metros_cuadrados": 12.5,
-    "codigo_invitacion": "ROOM-X7B9",
+    "codigo_invitacion": "ROOM-X7B9K2",
     "vivienda": {
       "id": 1,
       "casero_id": 1,

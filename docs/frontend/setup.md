@@ -32,6 +32,12 @@ frontend/
       viviendas.tsx                  # Lista de viviendas del casero (mock data + FAB)
       vivienda/
         [id].tsx                     # Detalle de vivienda: habitaciones + auth biométrica
+<<<<<<< Updated upstream
+=======
+    inquilino/
+      inicio.tsx                     # Onboarding con input ROOM- fijo + Dashboard con incidencias mock
+      nueva-incidencia.tsx           # Formulario de nueva incidencia con selector de prioridad
+>>>>>>> Stashed changes
   styles/
     index.styles.ts                  # Estilos de Login
     home.styles.ts                   # Estilos de Home
@@ -39,6 +45,12 @@ frontend/
       viviendas.styles.ts            # Estilos de la lista de viviendas
       vivienda/
         detalle.styles.ts            # Estilos del detalle (no [id].styles.ts — evita brackets)
+<<<<<<< Updated upstream
+=======
+    inquilino/
+      inicio.styles.ts               # Estilos + COLORES_PRIORIDAD + ETIQUETAS_ESTADO
+      nueva-incidencia.styles.ts     # Estilos del formulario + COLORES_PRIORIDAD + ETIQUETAS_PRIORIDAD
+>>>>>>> Stashed changes
 ```
 
 ## Convenciones
@@ -95,6 +107,11 @@ const revelarCodigo = async (habitacionId: number) => {
 | `/home` | `app/home.tsx` | Home — botón "Mis Viviendas" |
 | `/casero/viviendas` | `app/casero/viviendas.tsx` | Lista de viviendas con FAB |
 | `/casero/vivienda/:id` | `app/casero/vivienda/[id].tsx` | Detalle con habitaciones y códigos biométricos |
+<<<<<<< Updated upstream
+=======
+| `/inquilino/inicio` | `app/inquilino/inicio.tsx` | Onboarding (sin casa) o Dashboard (con casa) |
+| `/inquilino/nueva-incidencia` | `app/inquilino/nueva-incidencia.tsx` | Formulario: título, descripción, selector de prioridad |
+>>>>>>> Stashed changes
 
 > Las pantallas de detalle e lista usan **mock data** mientras no se integre la API.
 
