@@ -1,8 +1,9 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
-import { RolUsuario, PrioridadIncidencia } from '../generated/prisma/client';
+import { RolUsuario, EstadoIncidencia, PrioridadIncidencia } from '../generated/prisma/client';
 
 const PRIORIDADES_VALIDAS = Object.values(PrioridadIncidencia);
+const ESTADOS_VALIDOS = Object.values(EstadoIncidencia);
 
 export const crearIncidencia: express.RequestHandler = async (req, res) => {
   const { titulo, descripcion, vivienda_id, prioridad } = req.body as {
@@ -91,4 +92,50 @@ export const listarIncidencias: express.RequestHandler = async (req, res) => {
   });
 
   res.status(200).json(incidencias);
+};
+
+export const actualizarEstadoIncidencia: express.RequestHandler = async (req, res) => {
+  const id = parseInt(req.params['id'] as string, 10);
+  const { estado } = req.body as { estado: EstadoIncidencia };
+
+  if (!estado || !ESTADOS_VALIDOS.includes(estado)) {
+    res.status(400).json({ error: 'estado debe ser PENDIENTE, EN_PROCESO o RESUELTA.' });
+    return;
+  }
+
+  const incidencia = await prisma.incidencia.findUnique({
+    where: { id },
+    include: { vivienda: true },
+  });
+
+  if (!incidencia) {
+    res.status(404).json({ error: 'Incidencia no encontrada.' });
+    return;
+  }
+
+  const usuarioId = req.usuario!.id;
+  const rol = req.usuario!.rol;
+
+  if (rol === RolUsuario.CASERO) {
+    if (incidencia.vivienda.casero_id !== usuarioId) {
+      res.status(403).json({ error: 'No tienes permiso para modificar esta incidencia.' });
+      return;
+    }
+  } else {
+    // INQUILINO: debe tener habitación en la misma vivienda
+    const habitacion = await prisma.habitacion.findFirst({
+      where: { vivienda_id: incidencia.vivienda_id, inquilino_id: usuarioId },
+    });
+    if (!habitacion) {
+      res.status(403).json({ error: 'No tienes permiso para modificar esta incidencia.' });
+      return;
+    }
+  }
+
+  const incidenciaActualizada = await prisma.incidencia.update({
+    where: { id },
+    data: { estado },
+  });
+
+  res.status(200).json(incidenciaActualizada);
 };
