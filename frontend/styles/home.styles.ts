@@ -11,4 +11,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonPrimary: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    minWidth: 160,
+    alignItems: 'center',
+  },
 });
