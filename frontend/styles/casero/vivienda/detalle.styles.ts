@@ -38,6 +38,14 @@ export const styles = StyleSheet.create({
     color: '#212529',
   },
   zonaComun: { fontSize: 13, color: '#9e9e9e', fontStyle: 'italic' },
+  codigoOculto: {
+    fontSize: 22,
+    letterSpacing: 4,
+    color: '#9e9e9e',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  revelarTexto: { fontSize: 11, color: '#007AFF', marginTop: 2 },
   fab: {
     position: 'absolute',
     bottom: 24,

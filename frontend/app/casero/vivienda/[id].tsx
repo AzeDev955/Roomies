@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
 
 type Habitacion = {
@@ -62,6 +63,16 @@ const MOCK_VIVIENDA: Vivienda = {
 export default function DetalleViviendaScreen() {
   const { id } = useLocalSearchParams();
   const [vivienda] = useState<Vivienda>(MOCK_VIVIENDA);
+  const [codigosRevelados, setCodigosRevelados] = useState<Record<number, boolean>>({});
+
+  const revelarCodigo = async (habitacionId: number) => {
+    const resultado = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Autentícate para ver el código de invitación',
+    });
+    if (resultado.success) {
+      setCodigosRevelados((prev) => ({ ...prev, [habitacionId]: true }));
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -78,7 +89,14 @@ export default function DetalleViviendaScreen() {
             {habitacion.es_habitable && habitacion.codigo_invitacion ? (
               <View style={styles.codigoContainer}>
                 <Text style={styles.codigoLabel}>Código de invitación</Text>
-                <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
+                {codigosRevelados[habitacion.id] ? (
+                  <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
+                ) : (
+                  <Pressable onPress={() => revelarCodigo(habitacion.id)}>
+                    <Text style={styles.codigoOculto}>••••••••</Text>
+                    <Text style={styles.revelarTexto}>Toca para revelar</Text>
+                  </Pressable>
+                )}
               </View>
             ) : (
               <Text style={styles.zonaComun}>Zona común · Sin código</Text>
