@@ -30,27 +30,65 @@ El proyecto está dividido en dos repositorios/carpetas principales:
 - [ ] Chat integrado Inquilino <-> Casero.
 - [ ] Tablón de anuncios para la vivienda.
 
-## ⚙️ Instalación y Configuración Local
+## ⚙️ Levantar el entorno con Docker (recomendado)
 
-*(Nota: Estas instrucciones se irán actualizando conforme el proyecto avance)*
+La forma más rápida de tener todo funcionando es con Docker Compose.
 
 ### Prerrequisitos
-* [Node.js](https://nodejs.org/) (v18 o superior)
-* [Expo CLI](https://docs.expo.dev/)
-* [PostgreSQL](https://www.postgresql.org/)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+### Pasos
+
+1. Edita `docker-compose.yml` y reemplaza `<TU_IP_LOCAL>` en la variable `EXPO_PUBLIC_API_URL` del servicio `frontend` por la IP de tu máquina en la red local (ej: `192.168.1.50`).
+   * Windows: `ipconfig` → IPv4 de tu adaptador de red
+   * Mac/Linux: `ifconfig` o `ip addr`
+
+2. Levanta todos los servicios:
+   ```bash
+   docker-compose up --build
+   ```
+
+Esto arrancará tres servicios:
+| Servicio | Puerto | Descripción |
+|---|---|---|
+| `db` | 5432 | PostgreSQL 15 con volumen persistente |
+| `backend` | 3000 | API Express — aplica el schema automáticamente al arrancar |
+| `frontend` | 8081 | Metro bundler de Expo — escanea el QR con Expo Go |
+
+> **Dispositivo físico:** el QR de Expo usará la IP de la red del contenedor. Si no conecta, establece la variable `REACT_NATIVE_PACKAGER_HOSTNAME=<TU_IP_LOCAL>` en el servicio `frontend` del compose.
+
+### Seeder (usuarios de prueba)
+
+Con el backend corriendo, ejecuta en otra terminal:
+```bash
+docker-compose exec backend npx prisma db seed
+```
+
+Credenciales creadas:
+| Rol | Email | Contraseña |
+|---|---|---|
+| CASERO | `casero@test.com` | `casero123` |
+| INQUILINO | `inquilino@test.com` | `inquilino123` |
+
+---
+
+## ⚙️ Instalación Manual (sin Docker)
+
+### Prerrequisitos
+* [Node.js](https://nodejs.org/) (v20 o superior)
+* [Expo Go](https://expo.dev/go) en el móvil, o un emulador Android/iOS
+* PostgreSQL accesible (local o Prisma Postgres via `npx prisma dev`)
 
 ### Backend (API)
-1. Navega a la carpeta del backend: `cd backend`
-2. Instala las dependencias: `npm install`
-3. Copia el archivo `.env.example` a `.env` y configura tu conexión a la base de datos.
-4. Ejecuta las migraciones de Prisma: `npx prisma db push`
-5. Inicia el servidor de desarrollo: `npm run dev`
+1. `cd backend && npm install`
+2. Copia `.env.example` a `.env` y configura `DATABASE_URL` con una URL estándar `postgresql://...`
+3. `npx prisma db push`
+4. `npm run dev`
 
 ### Frontend (App)
-1. Navega a la carpeta del frontend: `cd frontend`
-2. Instala las dependencias: `npm install`
-3. Inicia la aplicación de Expo: `npx expo start`
-4. Escanea el código QR con la app **Expo Go** en tu dispositivo físico o usa un emulador.
+1. `cd frontend && npm install`
+2. `npx expo start`
+3. Escanea el código QR con **Expo Go** o pulsa `a` / `i` para el emulador.
 
 ---
 *Desarrollado con ☕ y código.*
