@@ -10,6 +10,9 @@ export default function HomeScreen() {
       <Pressable style={styles.buttonPrimary} onPress={() => router.push('/casero/viviendas')}>
         <Text style={styles.buttonText}>Mis Viviendas</Text>
       </Pressable>
+      <Pressable style={styles.buttonSecondary} onPress={() => router.push('/inquilino/inicio')}>
+        <Text style={styles.buttonText}>Soy Inquilino</Text>
+      </Pressable>
       <Pressable style={styles.button} onPress={() => router.back()}>
         <Text style={styles.buttonText}>Volver</Text>
       </Pressable>

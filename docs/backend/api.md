@@ -182,7 +182,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
 | `401` | Sin token. |
 | `403` | La vivienda no pertenece al casero logueado. |
 
-> Si `es_habitable: true` se genera automáticamente un `codigo_invitacion` con formato `ROOM-XXXX`.
+> Si `es_habitable: true` se genera automáticamente un `codigo_invitacion` con formato `ROOM-XXXXXX` (6 caracteres alfanuméricos).
 > Si `es_habitable: false` (zona común), `codigo_invitacion` es `null`.
 
 **Ejemplo respuesta 201 (dormitorio):**
@@ -195,7 +195,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "tipo": "DORMITORIO",
   "es_habitable": true,
   "metros_cuadrados": 12.5,
-  "codigo_invitacion": "ROOM-AB3X"
+  "codigo_invitacion": "ROOM-AB3X7K"
 }
 ```
 
@@ -210,5 +210,215 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "es_habitable": false,
   "metros_cuadrados": null,
   "codigo_invitacion": null
+}
+```
+
+---
+
+## Inquilino (`/inquilino`)
+
+### POST `/inquilino/unirse`
+
+Permite a un inquilino unirse a una habitación usando su código de invitación.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `codigo_invitacion` | string | Sí | Código `ROOM-XXXXXX` de la habitación |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Unión correcta. Devuelve `{ mensaje, habitacion }` con datos de la habitación y su vivienda. |
+| `400` | Falta `codigo_invitacion` o la habitación ya está ocupada. |
+| `403` | El usuario tiene rol `CASERO`. |
+| `404` | El código no corresponde a ninguna habitación. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "mensaje": "Te has unido a la habitación correctamente.",
+  "habitacion": {
+    "id": 1,
+    "vivienda_id": 1,
+    "inquilino_id": 3,
+    "nombre": "Habitación 1",
+    "tipo": "DORMITORIO",
+    "es_habitable": true,
+    "metros_cuadrados": 12.5,
+    "codigo_invitacion": "ROOM-X7B9K2",
+    "vivienda": {
+      "id": 1,
+      "casero_id": 1,
+      "alias_nombre": "Piso Centro",
+      "direccion": "Calle Mayor 10, 3ºB",
+      "codigo_postal": "28013",
+      "ciudad": "Madrid",
+      "provincia": "Madrid"
+    }
+  }
+}
+```
+
+---
+
+## Incidencias (`/incidencias`)
+
+> ### Sistema de prioridades por colores
+>
+> Cada incidencia tiene un campo `prioridad` que clasifica su urgencia:
+>
+> | Valor | Significado |
+> |---|---|
+> | `VERDE` | Sugerencia o mejora (valor por defecto) |
+> | `AMARILLO` | Fallo no urgente |
+> | `ROJO` | Emergencia o rotura grave |
+
+---
+
+### POST `/incidencias`
+
+Crea una nueva incidencia asociada a una vivienda.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- `CASERO`: debe ser propietario de la vivienda (`vivienda.casero_id === usuario.id`)
+- `INQUILINO`: debe tener una habitación asignada en esa vivienda
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `titulo` | string | Sí | Título breve de la incidencia |
+| `descripcion` | string | Sí | Descripción detallada |
+| `vivienda_id` | number | Sí | ID de la vivienda afectada |
+| `prioridad` | `VERDE` \| `AMARILLO` \| `ROJO` | No | Default: `VERDE` |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Incidencia creada. Devuelve el objeto completo. |
+| `400` | Falta `titulo`, `descripcion` o `vivienda_id`, o `prioridad` inválida. |
+| `401` | Sin token. |
+| `403` | Sin pertenencia a la vivienda. |
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "id": 1,
+  "vivienda_id": 1,
+  "creador_id": 3,
+  "titulo": "Grifo roto en el baño",
+  "descripcion": "El grifo del lavabo no cierra bien y gotea constantemente.",
+  "estado": "PENDIENTE",
+  "prioridad": "ROJO",
+  "fecha_creacion": "2026-03-29T10:00:00.000Z"
+}
+```
+
+---
+
+### GET `/incidencias`
+
+Lista las incidencias accesibles para el usuario logueado.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Filtrado por rol:**
+- `CASERO`: ve todas las incidencias de **todas sus viviendas**
+- `INQUILINO`: ve solo las incidencias de la vivienda donde tiene habitación asignada; devuelve `[]` si no tiene vivienda asignada
+
+**Respuesta incluye:** datos de `vivienda` y `creador { id, nombre, apellidos }` para renderizado de tarjetas de color en el frontend.
+
+**Ordenación:** `fecha_creacion DESC` (más recientes primero).
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Lista de incidencias. Puede ser `[]`. |
+| `401` | Sin token. |
+
+**Ejemplo respuesta 200:**
+```json
+[
+  {
+    "id": 1,
+    "vivienda_id": 1,
+    "creador_id": 3,
+    "titulo": "Grifo roto en el baño",
+    "descripcion": "El grifo del lavabo no cierra bien y gotea constantemente.",
+    "estado": "PENDIENTE",
+    "prioridad": "ROJO",
+    "fecha_creacion": "2026-03-29T10:00:00.000Z",
+    "vivienda": {
+      "id": 1,
+      "casero_id": 1,
+      "alias_nombre": "Piso Centro",
+      "direccion": "Calle Mayor 10, 3ºB",
+      "codigo_postal": "28013",
+      "ciudad": "Madrid",
+      "provincia": "Madrid"
+    },
+    "creador": {
+      "id": 3,
+      "nombre": "Carlos",
+      "apellidos": "Martínez López"
+    }
+  }
+]
+```
+
+---
+
+### PATCH `/incidencias/:id/estado`
+
+Actualiza el estado de una incidencia.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- `CASERO`: debe ser propietario de la vivienda de la incidencia
+- `INQUILINO`: debe tener una habitación asignada en la vivienda de la incidencia
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID de la incidencia |
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `estado` | `PENDIENTE` \| `EN_PROCESO` \| `RESUELTA` | Sí | Nuevo estado |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Estado actualizado. Devuelve la incidencia completa. |
+| `400` | `estado` ausente o valor inválido. |
+| `401` | Sin token. |
+| `403` | Sin pertenencia a la vivienda de la incidencia. |
+| `404` | Incidencia no encontrada. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "id": 1,
+  "vivienda_id": 1,
+  "creador_id": 3,
+  "titulo": "Grifo roto en el baño",
+  "descripcion": "El grifo del lavabo no cierra bien y gotea constantemente.",
+  "estado": "EN_PROCESO",
+  "prioridad": "ROJO",
+  "fecha_creacion": "2026-03-29T10:00:00.000Z"
 }
 ```

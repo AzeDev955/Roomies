@@ -18,6 +18,12 @@ enum EstadoIncidencia {
   RESUELTA
 }
 
+enum PrioridadIncidencia {
+  VERDE
+  AMARILLO
+  ROJO
+}
+
 enum TipoHabitacion {
   DORMITORIO
   BANO
@@ -74,6 +80,7 @@ model Incidencia {
   creador        Usuario          @relation(fields: [creador_id], references: [id])
   titulo         String
   descripcion    String
-  estado         EstadoIncidencia @default(PENDIENTE)
-  fecha_creacion DateTime         @default(now())
+  estado         EstadoIncidencia    @default(PENDIENTE)
+  prioridad      PrioridadIncidencia @default(VERDE)
+  fecha_creacion DateTime            @default(now())
 }
