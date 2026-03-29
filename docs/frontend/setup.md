@@ -32,6 +32,8 @@ frontend/
       viviendas.tsx                  # Lista de viviendas del casero (mock data + FAB)
       vivienda/
         [id].tsx                     # Detalle de vivienda: habitaciones + auth biométrica
+    inquilino/
+      inicio.tsx                     # Onboarding (sin casa) + Dashboard con incidencias mock
   styles/
     index.styles.ts                  # Estilos de Login
     home.styles.ts                   # Estilos de Home
@@ -39,6 +41,8 @@ frontend/
       viviendas.styles.ts            # Estilos de la lista de viviendas
       vivienda/
         detalle.styles.ts            # Estilos del detalle (no [id].styles.ts — evita brackets)
+    inquilino/
+      inicio.styles.ts               # Estilos + COLORES_PRIORIDAD + ETIQUETAS_ESTADO
 ```
 
 ## Convenciones
@@ -95,8 +99,9 @@ const revelarCodigo = async (habitacionId: number) => {
 | `/home` | `app/home.tsx` | Home — botón "Mis Viviendas" |
 | `/casero/viviendas` | `app/casero/viviendas.tsx` | Lista de viviendas con FAB |
 | `/casero/vivienda/:id` | `app/casero/vivienda/[id].tsx` | Detalle con habitaciones y códigos biométricos |
+| `/inquilino/inicio` | `app/inquilino/inicio.tsx` | Onboarding (sin casa) o Dashboard (con casa) |
 
-> Las pantallas de detalle e lista usan **mock data** mientras no se integre la API.
+> Las pantallas usan **mock data** mientras no se integre la API.
 
 ## Decisiones de arquitectura
 

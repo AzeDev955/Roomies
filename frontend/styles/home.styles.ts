@@ -18,4 +18,11 @@ export const styles = StyleSheet.create({
     minWidth: 160,
     alignItems: 'center',
   },
+  buttonSecondary: {
+    backgroundColor: '#34C759',
+    padding: 12,
+    borderRadius: 8,
+    minWidth: 160,
+    alignItems: 'center',
+  },
 });
