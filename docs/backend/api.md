@@ -212,3 +212,54 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "codigo_invitacion": null
 }
 ```
+
+---
+
+## Inquilino (`/inquilino`)
+
+### POST `/inquilino/unirse`
+
+Permite a un inquilino unirse a una habitación usando su código de invitación.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `codigo_invitacion` | string | Sí | Código `ROOM-XXXX` de la habitación |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Unión correcta. Devuelve `{ mensaje, habitacion }` con datos de la habitación y su vivienda. |
+| `400` | Falta `codigo_invitacion` o la habitación ya está ocupada. |
+| `403` | El usuario tiene rol `CASERO`. |
+| `404` | El código no corresponde a ninguna habitación. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "mensaje": "Te has unido a la habitación correctamente.",
+  "habitacion": {
+    "id": 1,
+    "vivienda_id": 1,
+    "inquilino_id": 3,
+    "nombre": "Habitación 1",
+    "tipo": "DORMITORIO",
+    "es_habitable": true,
+    "metros_cuadrados": 12.5,
+    "codigo_invitacion": "ROOM-X7B9",
+    "vivienda": {
+      "id": 1,
+      "casero_id": 1,
+      "alias_nombre": "Piso Centro",
+      "direccion": "Calle Mayor 10, 3ºB",
+      "codigo_postal": "28013",
+      "ciudad": "Madrid",
+      "provincia": "Madrid"
+    }
+  }
+}
+```
