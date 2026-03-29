@@ -45,7 +45,7 @@ const MOCK_INCIDENCIAS: Incidencia[] = [
 export default function InquilinoInicioScreen() {
   const router = useRouter();
   const [tieneCasa, setTieneCasa] = useState(false);
-  const [codigo, setCodigo] = useState('');
+  const [sufijo, setSufijo] = useState('');
 
   if (!tieneCasa) {
     return (
@@ -54,16 +54,19 @@ export default function InquilinoInicioScreen() {
         <Text style={styles.onboardingSubtitle}>
           Introduce el código de invitación que te ha proporcionado tu casero para acceder a tu habitación.
         </Text>
-        <TextInput
-          style={styles.input}
-          value={codigo}
-          onChangeText={(text) => setCodigo(text.toUpperCase())}
-          placeholder="ROOM-XXXX"
-          placeholderTextColor="#c7c7cc"
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={9}
-        />
+        <View style={styles.inputFila}>
+          <Text style={styles.inputPrefijo}>ROOM-</Text>
+          <TextInput
+            style={styles.inputSufijo}
+            value={sufijo}
+            onChangeText={(text) => setSufijo(text.toUpperCase())}
+            placeholder="XXXXXX"
+            placeholderTextColor="#c7c7cc"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={6}
+          />
+        </View>
         <Pressable style={styles.botonCanjear} onPress={() => setTieneCasa(true)}>
           <Text style={styles.botonCanjearTexto}>Canjear Código</Text>
         </Pressable>
