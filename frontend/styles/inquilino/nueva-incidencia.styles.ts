@@ -81,4 +81,7 @@ export const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
   },
+  botonEnviarDisabled: {
+    backgroundColor: '#b0c8f0',
+  },
 });
