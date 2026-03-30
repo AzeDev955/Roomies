@@ -38,6 +38,31 @@ export const styles = StyleSheet.create({
     color: '#212529',
   },
   zonaComun: { fontSize: 13, color: '#9e9e9e', fontStyle: 'italic' },
+  errorTexto: { textAlign: 'center', marginTop: 40, color: '#9e9e9e' },
+  codigoReveladoFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  codigoReveladoTextoArea: {
+    flex: 1,
+  },
+  codigoHint: {
+    fontSize: 10,
+    color: '#9e9e9e',
+    marginTop: 2,
+  },
+  compartirBoton: {
+    backgroundColor: '#34C759',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  compartirBotonTexto: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   codigoOculto: {
     fontSize: 22,
     letterSpacing: 4,

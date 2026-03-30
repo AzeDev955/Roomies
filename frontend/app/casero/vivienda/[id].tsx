@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Share } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
 
@@ -55,6 +56,17 @@ export default function DetalleViviendaScreen() {
     }
   };
 
+  const copiarCodigo = async (codigo: string) => {
+    await Clipboard.setStringAsync(codigo);
+    Alert.alert('¡Copiado!', 'El código de invitación se ha guardado en el portapapeles.');
+  };
+
+  const compartirCodigo = async (codigo: string) => {
+    await Share.share({
+      message: `¡Únete a tu nueva habitación en Roomies! Tu código de invitación es: ${codigo}`,
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -66,9 +78,7 @@ export default function DetalleViviendaScreen() {
   if (!vivienda) {
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center', marginTop: 40, color: '#9e9e9e' }}>
-          Vivienda no encontrada.
-        </Text>
+        <Text style={styles.errorTexto}>Vivienda no encontrada.</Text>
       </View>
     );
   }
@@ -89,7 +99,21 @@ export default function DetalleViviendaScreen() {
               <View style={styles.codigoContainer}>
                 <Text style={styles.codigoLabel}>Código de invitación</Text>
                 {codigosRevelados[habitacion.id] ? (
-                  <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
+                  <View style={styles.codigoReveladoFila}>
+                    <Pressable
+                      style={styles.codigoReveladoTextoArea}
+                      onLongPress={() => copiarCodigo(habitacion.codigo_invitacion!)}
+                    >
+                      <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
+                      <Text style={styles.codigoHint}>Mantén pulsado para copiar</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.compartirBoton}
+                      onPress={() => compartirCodigo(habitacion.codigo_invitacion!)}
+                    >
+                      <Text style={styles.compartirBotonTexto}>Compartir</Text>
+                    </Pressable>
+                  </View>
                 ) : (
                   <Pressable onPress={() => revelarCodigo(habitacion.id)}>
                     <Text style={styles.codigoOculto}>••••••••</Text>
