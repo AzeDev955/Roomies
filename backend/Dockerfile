@@ -12,4 +12,4 @@ RUN npx prisma generate
 EXPOSE 3000
 
 # Aplica el schema a la DB y arranca el servidor de desarrollo
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run dev"]
+CMD ["sh", "-c", "npx prisma db push && npx prisma db seed && npm run dev"]
