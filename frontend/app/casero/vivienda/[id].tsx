@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, Pressable } from 'react-native';
-import { useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { useState, useCallback } from 'react';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
+import api from '@/services/api';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
 
 type Habitacion = {
@@ -20,50 +21,30 @@ type Vivienda = {
   habitaciones: Habitacion[];
 };
 
-const MOCK_VIVIENDA: Vivienda = {
-  id: 1,
-  alias_nombre: 'Piso Centro',
-  direccion: 'Calle Mayor 10, 3ºB - Madrid',
-  habitaciones: [
-    {
-      id: 1,
-      nombre: 'Habitación 1',
-      tipo: 'DORMITORIO',
-      es_habitable: true,
-      metros_cuadrados: 12.5,
-      codigo_invitacion: 'ROOM-X7B9',
-    },
-    {
-      id: 2,
-      nombre: 'Habitación 2',
-      tipo: 'DORMITORIO',
-      es_habitable: true,
-      metros_cuadrados: 10.0,
-      codigo_invitacion: 'ROOM-A3K2',
-    },
-    {
-      id: 3,
-      nombre: 'Baño',
-      tipo: 'BANO',
-      es_habitable: false,
-      metros_cuadrados: null,
-      codigo_invitacion: null,
-    },
-    {
-      id: 4,
-      nombre: 'Cocina',
-      tipo: 'COCINA',
-      es_habitable: false,
-      metros_cuadrados: null,
-      codigo_invitacion: null,
-    },
-  ],
-};
-
 export default function DetalleViviendaScreen() {
-  const { id } = useLocalSearchParams();
-  const [vivienda] = useState<Vivienda>(MOCK_VIVIENDA);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const [vivienda, setVivienda] = useState<Vivienda | null>(null);
+  const [loading, setLoading] = useState(true);
   const [codigosRevelados, setCodigosRevelados] = useState<Record<number, boolean>>({});
+
+  const cargarVivienda = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get<Vivienda>(`/viviendas/${id}`);
+      setVivienda(data);
+    } catch {
+      Alert.alert('Error', 'No se pudo cargar la vivienda.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarVivienda();
+    }, [id])
+  );
 
   const revelarCodigo = async (habitacionId: number) => {
     const resultado = await LocalAuthentication.authenticateAsync({
@@ -73,6 +54,24 @@ export default function DetalleViviendaScreen() {
       setCodigosRevelados((prev) => ({ ...prev, [habitacionId]: true }));
     }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />
+      </View>
+    );
+  }
+
+  if (!vivienda) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 40, color: '#9e9e9e' }}>
+          Vivienda no encontrada.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -105,7 +104,10 @@ export default function DetalleViviendaScreen() {
         ))}
       </ScrollView>
 
-      <Pressable style={styles.fab} onPress={() => console.log('Añadir habitación')}>
+      <Pressable
+        style={styles.fab}
+        onPress={() => router.push(`/casero/vivienda/${id}/nueva-habitacion`)}
+      >
         <Text style={styles.fabText}>+</Text>
       </Pressable>
     </View>
