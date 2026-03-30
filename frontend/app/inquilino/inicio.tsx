@@ -1,6 +1,7 @@
-import { View, Text, TextInput, FlatList, Pressable, ScrollView } from 'react-native';
+import { View, Text, TextInput, FlatList, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import api from '@/services/api';
 import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO } from '@/styles/inquilino/inicio.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -13,6 +14,11 @@ type Incidencia = {
   prioridad: Prioridad;
   estado: Estado;
   fecha_creacion: string;
+};
+
+type DatosCasa = {
+  nombreVivienda: string;
+  nombreHabitacion: string;
 };
 
 const MOCK_INCIDENCIAS: Incidencia[] = [
@@ -46,6 +52,27 @@ export default function InquilinoInicioScreen() {
   const router = useRouter();
   const [tieneCasa, setTieneCasa] = useState(false);
   const [sufijo, setSufijo] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [datosCasa, setDatosCasa] = useState<DatosCasa | null>(null);
+
+  const handleCanjearCodigo = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/inquilino/unirse', {
+        codigo_invitacion: `ROOM-${sufijo}`,
+      });
+      setDatosCasa({
+        nombreVivienda: data.habitacion.vivienda.alias_nombre,
+        nombreHabitacion: data.habitacion.nombre,
+      });
+      setTieneCasa(true);
+    } catch (err: any) {
+      const mensaje = err.response?.data?.error ?? 'No se pudo canjear el código. Inténtalo de nuevo.';
+      Alert.alert('Error', mensaje);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!tieneCasa) {
     return (
@@ -67,8 +94,16 @@ export default function InquilinoInicioScreen() {
             maxLength={6}
           />
         </View>
-        <Pressable style={styles.botonCanjear} onPress={() => setTieneCasa(true)}>
-          <Text style={styles.botonCanjearTexto}>Canjear Código</Text>
+        <Pressable
+          style={[styles.botonCanjear, (!sufijo.trim() || loading) && styles.botonCanjearDisabled]}
+          onPress={handleCanjearCodigo}
+          disabled={!sufijo.trim() || loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.botonCanjearTexto}>Canjear Código</Text>
+          )}
         </Pressable>
       </View>
     );
@@ -77,8 +112,8 @@ export default function InquilinoInicioScreen() {
   return (
     <View style={styles.dashboardContainer}>
       <ScrollView contentContainerStyle={styles.dashboardContent}>
-        <Text style={styles.bienvenida}>Piso Madrid</Text>
-        <Text style={styles.subtituloDashboard}>Habitación Principal</Text>
+        <Text style={styles.bienvenida}>{datosCasa?.nombreVivienda ?? 'Mi vivienda'}</Text>
+        <Text style={styles.subtituloDashboard}>{datosCasa?.nombreHabitacion ?? 'Mi habitación'}</Text>
 
         <Text style={styles.seccionTitulo}>Incidencias</Text>
 
