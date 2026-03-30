@@ -17,7 +17,9 @@ export const styles = StyleSheet.create({
   cardTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
   cardAddress: { fontSize: 14, color: '#6c757d', marginBottom: 8 },
   cardRooms: { fontSize: 13, color: '#007AFF', fontWeight: '600' },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyText: { textAlign: 'center', marginTop: 40, color: '#9e9e9e', fontSize: 16 },
+  emptySubtext: { textAlign: 'center', marginTop: 8, color: '#c7c7cc', fontSize: 14 },
   fab: {
     position: 'absolute',
     bottom: 24,

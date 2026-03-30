@@ -3,6 +3,14 @@ import { prisma } from '../lib/prisma';
 import { RolUsuario, TipoHabitacion } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
 
+export const listarViviendas: express.RequestHandler = async (req, res) => {
+  const viviendas = await prisma.vivienda.findMany({
+    where: { casero_id: req.usuario!.id },
+    include: { habitaciones: true },
+  });
+  res.status(200).json(viviendas);
+};
+
 export const crearVivienda: express.RequestHandler = async (req, res) => {
   if (req.usuario!.rol !== RolUsuario.CASERO) {
     res.status(403).json({ error: 'Solo los caseros pueden crear viviendas.' });
@@ -34,6 +42,19 @@ export const crearVivienda: express.RequestHandler = async (req, res) => {
   });
 
   res.status(201).json(vivienda);
+};
+
+export const obtenerVivienda: express.RequestHandler = async (req, res) => {
+  const id = parseInt(req.params['id'] as string, 10);
+  const vivienda = await prisma.vivienda.findUnique({
+    where: { id },
+    include: { habitaciones: true },
+  });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(404).json({ error: 'Vivienda no encontrada.' });
+    return;
+  }
+  res.status(200).json(vivienda);
 };
 
 export const crearHabitacion: express.RequestHandler = async (req, res) => {

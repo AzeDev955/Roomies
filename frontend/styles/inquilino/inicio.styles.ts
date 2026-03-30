@@ -74,6 +74,18 @@ export const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
   },
+  botonCanjearDisabled: {
+    backgroundColor: '#b0c8f0',
+  },
+  loaderIncidencias: {
+    marginTop: 24,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9e9e9e',
+    fontSize: 14,
+    marginTop: 24,
+  },
 
   // — Dashboard (con casa) —
   dashboardContainer: {

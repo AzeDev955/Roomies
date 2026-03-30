@@ -1,14 +1,81 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { styles } from '../styles/index.styles';
+import { styles } from '@/styles/index.styles';
+import { guardarToken } from '@/services/auth.service';
+import api from '@/services/api';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [verPass, setVerPass] = useState(false);
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.post<{ token: string; usuario: { rol: string } }>(
+        '/auth/login',
+        { email, password }
+      );
+      await guardarToken(data.token);
+
+      if (data.usuario.rol === 'CASERO') {
+        router.replace('/casero/viviendas');
+      } else {
+        router.replace('/inquilino/inicio');
+      }
+    } catch {
+      Alert.alert('Error', 'Credenciales inválidas o sin conexión al servidor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Pantalla de Login</Text>
-      <Pressable style={styles.button} onPress={() => router.push('/home')}>
-        <Text style={styles.buttonText}>Ir a Home</Text>
+      <Text style={styles.logo}>Roomies</Text>
+      <Text style={styles.subtitulo}>Gestión de pisos compartidos</Text>
+
+      <Text style={styles.label}>Email</Text>
+      <TextInput
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholder="tu@email.com"
+        placeholderTextColor="#c7c7cc"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+
+      <Text style={styles.label}>Contraseña</Text>
+      <View style={styles.inputPasswordFila}>
+        <TextInput
+          style={styles.inputPassword}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="••••••••"
+          placeholderTextColor="#c7c7cc"
+          secureTextEntry={!verPass}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <Pressable style={styles.botonVerPass} onPress={() => setVerPass((v) => !v)}>
+          <Text style={styles.botonVerPassTexto}>{verPass ? 'Ocultar' : 'Ver'}</Text>
+        </Pressable>
+      </View>
+
+      <Pressable
+        style={loading ? styles.botonLoginDeshabilitado : styles.botonLogin}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.botonLoginTexto}>Iniciar Sesión</Text>
+        }
       </Pressable>
     </View>
   );

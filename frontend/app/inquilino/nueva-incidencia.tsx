@@ -1,6 +1,7 @@
-import { View, Text, TextInput, Pressable, ScrollView } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import api from '@/services/api';
 import { styles, COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD } from '@/styles/inquilino/nueva-incidencia.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -9,14 +10,31 @@ const PRIORIDADES: Prioridad[] = ['VERDE', 'AMARILLO', 'ROJO'];
 
 export default function NuevaIncidenciaScreen() {
   const router = useRouter();
+  const { viviendaId } = useLocalSearchParams<{ viviendaId: string }>();
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [prioridad, setPrioridad] = useState<Prioridad>('VERDE');
+  const [loading, setLoading] = useState(false);
 
-  const handleEnviar = () => {
-    console.log({ titulo, descripcion, prioridad });
-    router.back();
+  const handleEnviar = async () => {
+    setLoading(true);
+    try {
+      await api.post('/incidencias', {
+        titulo,
+        descripcion,
+        prioridad,
+        vivienda_id: Number(viviendaId),
+      });
+      router.back();
+    } catch (err: any) {
+      const mensaje = err.response?.data?.error ?? 'No se pudo enviar la incidencia. Inténtalo de nuevo.';
+      Alert.alert('Error', mensaje);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const puedeEnviar = titulo.trim().length > 0 && descripcion.trim().length > 0;
 
   return (
     <View style={styles.container}>
@@ -58,8 +76,16 @@ export default function NuevaIncidenciaScreen() {
           ))}
         </View>
 
-        <Pressable style={styles.botonEnviar} onPress={handleEnviar}>
-          <Text style={styles.botonEnviarTexto}>Enviar Incidencia</Text>
+        <Pressable
+          style={[styles.botonEnviar, (!puedeEnviar || loading) && styles.botonEnviarDisabled]}
+          onPress={handleEnviar}
+          disabled={!puedeEnviar || loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.botonEnviarTexto}>Enviar Incidencia</Text>
+          )}
         </Pressable>
       </ScrollView>
     </View>
