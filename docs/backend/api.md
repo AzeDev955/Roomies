@@ -112,6 +112,48 @@ Devuelve el payload del token activo. No consulta la base de datos.
 
 ## Viviendas (`/viviendas`)
 
+### GET `/viviendas`
+
+Devuelve todas las viviendas del casero logueado, incluyendo sus habitaciones.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Array de viviendas (puede ser vacío). Cada vivienda incluye `habitaciones[]`. |
+| `401` | Sin token. |
+
+**Ejemplo respuesta 200:**
+```json
+[
+  {
+    "id": 1,
+    "casero_id": 1,
+    "alias_nombre": "Piso Centro",
+    "direccion": "Calle Mayor 10, 3ºB",
+    "codigo_postal": "28013",
+    "ciudad": "Madrid",
+    "provincia": "Madrid",
+    "habitaciones": [
+      {
+        "id": 1,
+        "vivienda_id": 1,
+        "inquilino_id": null,
+        "nombre": "Habitación 1",
+        "tipo": "DORMITORIO",
+        "es_habitable": true,
+        "metros_cuadrados": 12.5,
+        "codigo_invitacion": "ROOM-AB3X"
+      }
+    ]
+  }
+]
+```
+
+---
+
 ### POST `/viviendas`
 
 Crea una nueva vivienda. Solo accesible para usuarios con rol `CASERO`.
