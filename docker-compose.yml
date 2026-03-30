@@ -33,9 +33,11 @@ services:
     build: ./frontend
     ports:
       - "8081:8081"
+    command: npx expo start --host lan --clear
     environment:
       EXPO_PUBLIC_API_URL: http://${HOST_IP}:3001/api
       REACT_NATIVE_PACKAGER_HOSTNAME: ${HOST_IP}
+      EXPO_PUBLIC_MAPBOX_TOKEN: ${EXPO_PUBLIC_MAPBOX_TOKEN}
     depends_on:
       - backend
     volumes:
