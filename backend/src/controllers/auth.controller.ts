@@ -11,7 +11,7 @@ export const register: express.RequestHandler = async (req, res) => {
     dni: string;
     email: string;
     password: string;
-    telefono?: string;
+    telefono: string;
     rol: RolUsuario;
   };
 

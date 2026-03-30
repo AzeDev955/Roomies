@@ -18,6 +18,7 @@ async function main() {
       dni: '11111111A',
       email: 'casero@test.com',
       password_hash: await hash('casero123'),
+      telefono: '600111111',
       rol: RolUsuario.CASERO,
     },
   });
@@ -31,6 +32,7 @@ async function main() {
       dni: '22222222B',
       email: 'inquilino@test.com',
       password_hash: await hash('inquilino123'),
+      telefono: '600222222',
       rol: RolUsuario.INQUILINO,
     },
   });

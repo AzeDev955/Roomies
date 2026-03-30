@@ -39,7 +39,7 @@ model Usuario {
   dni           String       @unique
   email         String       @unique
   password_hash String
-  telefono      String?
+  telefono      String
   rol           RolUsuario
   viviendas     Vivienda[]
   habitaciones  Habitacion[]
