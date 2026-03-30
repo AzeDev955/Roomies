@@ -3,10 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { styles } from '@/styles/index.styles';
 import { guardarToken } from '@/services/auth.service';
-
-// En dispositivo físico, reemplaza localhost por la IP de tu máquina en la red local
-// Ej: http://192.168.1.X:3000/api/auth/login
-const LOGIN_URL = 'http://localhost:3000/api/auth/login';
+import api from '@/services/api';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -17,18 +14,10 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     setLoading(true);
     try {
-      const res = await fetch(LOGIN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        Alert.alert('Error', 'Credenciales inválidas. Comprueba tu email y contraseña.');
-        return;
-      }
-
-      const data = await res.json() as { token: string; usuario: { rol: string } };
+      const { data } = await api.post<{ token: string; usuario: { rol: string } }>(
+        '/auth/login',
+        { email, password }
+      );
       await guardarToken(data.token);
 
       if (data.usuario.rol === 'CASERO') {
@@ -37,7 +26,7 @@ export default function LoginScreen() {
         router.replace('/inquilino/inicio');
       }
     } catch {
-      Alert.alert('Error de red', 'No se pudo conectar con el servidor.');
+      Alert.alert('Error', 'Credenciales inválidas o sin conexión al servidor.');
     } finally {
       setLoading(false);
     }
