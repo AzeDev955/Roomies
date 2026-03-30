@@ -34,9 +34,8 @@ services:
     ports:
       - "8081:8081"
     environment:
-      # Cambia <TU_IP_LOCAL> por la IP de tu máquina en la red (ej: 192.168.1.X)
-      # Se puede obtener con: ipconfig (Windows) / ifconfig (Mac/Linux)
-      EXPO_PUBLIC_API_URL: http://<TU_IP_LOCAL>:3000/api
+      EXPO_PUBLIC_API_URL: http://${HOST_IP}:3000/api
+      REACT_NATIVE_PACKAGER_HOSTNAME: ${HOST_IP}
     depends_on:
       - backend
     volumes:
