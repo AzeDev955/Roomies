@@ -1,7 +1,8 @@
-import { View, Text, FlatList, Pressable } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { View, Text, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { useState, useCallback } from 'react';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { styles } from '@/styles/casero/viviendas.styles';
+import api from '@/services/api';
 
 type Habitacion = { id: number; nombre: string };
 type Vivienda = {
@@ -11,28 +12,36 @@ type Vivienda = {
   habitaciones: Habitacion[];
 };
 
-const MOCK_VIVIENDAS: Vivienda[] = [
-  {
-    id: 1,
-    alias_nombre: 'Piso Centro',
-    direccion: 'Calle Mayor 10, 3ºB - Madrid',
-    habitaciones: [
-      { id: 1, nombre: 'Habitación 1' },
-      { id: 2, nombre: 'Habitación 2' },
-      { id: 3, nombre: 'Baño' },
-    ],
-  },
-  {
-    id: 2,
-    alias_nombre: 'Apartamento Gran Vía',
-    direccion: 'Gran Vía 45, 2ºA - Madrid',
-    habitaciones: [{ id: 4, nombre: 'Dormitorio' }],
-  },
-];
-
 export default function ViviendasScreen() {
   const router = useRouter();
-  const [viviendas] = useState<Vivienda[]>(MOCK_VIVIENDAS);
+  const [viviendas, setViviendas] = useState<Vivienda[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const cargarViviendas = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get<Vivienda[]>('/viviendas');
+      setViviendas(data);
+    } catch {
+      Alert.alert('Error', 'No se pudieron cargar las viviendas.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      cargarViviendas();
+    }, [])
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -41,7 +50,10 @@ export default function ViviendasScreen() {
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No tienes viviendas registradas.</Text>
+          <View>
+            <Text style={styles.emptyText}>Aún no tienes viviendas registradas.</Text>
+            <Text style={styles.emptySubtext}>Pulsa el botón + para añadir tu primera vivienda.</Text>
+          </View>
         }
         renderItem={({ item }) => (
           <Pressable
@@ -50,7 +62,7 @@ export default function ViviendasScreen() {
           >
             <Text style={styles.cardTitle}>{item.alias_nombre}</Text>
             <Text style={styles.cardAddress}>{item.direccion}</Text>
-            <Text style={styles.cardRooms}>{item.habitaciones.length} habitaciones</Text>
+            <Text style={styles.cardRooms}>{item.habitaciones?.length ?? 0} habitaciones</Text>
           </Pressable>
         )}
       />
