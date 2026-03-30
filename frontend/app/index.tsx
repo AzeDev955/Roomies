@@ -77,6 +77,10 @@ export default function LoginScreen() {
           : <Text style={styles.botonLoginTexto}>Iniciar Sesión</Text>
         }
       </Pressable>
+
+      <Pressable style={styles.enlaceRegistro} onPress={() => router.push('/registro')}>
+        <Text style={styles.enlaceRegistroTexto}>¿No tienes cuenta? Regístrate</Text>
+      </Pressable>
     </View>
   );
 }

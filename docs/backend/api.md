@@ -21,7 +21,7 @@ Registra un nuevo usuario en el sistema.
 | `dni` | string | Sí | DNI (único en el sistema) |
 | `email` | string | Sí | Email (único en el sistema) |
 | `password` | string | Sí | Contraseña en texto plano (se hashea con bcrypt) |
-| `telefono` | string | No | Teléfono de contacto |
+| `telefono` | string | Sí | Teléfono de contacto |
 | `rol` | `CASERO` \| `INQUILINO` | Sí | Rol del usuario |
 
 **Respuestas:**
@@ -39,7 +39,7 @@ Registra un nuevo usuario en el sistema.
   "apellidos": "García López",
   "dni": "12345678A",
   "email": "ana@example.com",
-  "telefono": null,
+  "telefono": "600123456",
   "rol": "CASERO"
 }
 ```
@@ -76,7 +76,7 @@ Autentica un usuario y devuelve un JWT.
     "apellidos": "García López",
     "dni": "12345678A",
     "email": "ana@example.com",
-    "telefono": null,
+    "telefono": "600123456",
     "rol": "CASERO"
   }
 }
@@ -88,7 +88,7 @@ Autentica un usuario y devuelve un JWT.
 
 ### GET `/auth/me`
 
-Devuelve el payload del token activo. No consulta la base de datos.
+Devuelve los datos del usuario autenticado consultando la base de datos.
 
 **Auth requerida:** Sí — `Authorization: Bearer <token>`
 
@@ -96,15 +96,20 @@ Devuelve el payload del token activo. No consulta la base de datos.
 
 | Código | Descripción |
 |---|---|
-| `200` | Token válido. Devuelve el payload `{ id, rol }`. |
+| `200` | Token válido. Devuelve nombre, apellidos, email, rol y teléfono (sin `password_hash`). |
 | `401` | No se proporcionó token. |
 | `403` | Token inválido o expirado. |
+| `404` | Usuario no encontrado en la BD. |
 
 **Ejemplo respuesta 200:**
 ```json
 {
   "id": 1,
-  "rol": "CASERO"
+  "nombre": "Ana",
+  "apellidos": "García López",
+  "email": "ana@example.com",
+  "rol": "CASERO",
+  "telefono": "600123456"
 }
 ```
 

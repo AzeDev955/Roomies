@@ -28,7 +28,7 @@ Content-Type: application/json
   "dni": "string",
   "email": "string",
   "password": "string",
-  "telefono": "string (opcional)",
+  "telefono": "string",
   "rol": "CASERO | INQUILINO"
 }
 ```
