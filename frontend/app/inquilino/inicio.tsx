@@ -1,6 +1,7 @@
 import { View, Text, TextInput, FlatList, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO } from '@/styles/inquilino/inicio.styles';
 
@@ -112,6 +113,9 @@ export default function InquilinoInicioScreen() {
 
   return (
     <View style={styles.dashboardContainer}>
+      <Pressable style={styles.iconoPerfil} onPress={() => router.push('/perfil')}>
+        <Ionicons name="person-circle-outline" size={32} color="#007AFF" />
+      </Pressable>
       <ScrollView contentContainerStyle={styles.dashboardContent}>
         <Text style={styles.bienvenida}>{datosCasa?.nombreVivienda ?? 'Mi vivienda'}</Text>
         <Text style={styles.subtituloDashboard}>{datosCasa?.nombreHabitacion ?? 'Mi habitación'}</Text>

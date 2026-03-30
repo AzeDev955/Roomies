@@ -166,6 +166,14 @@ export const styles = StyleSheet.create({
     color: '#c7c7cc',
   },
 
+  // — Icono perfil —
+  iconoPerfil: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+  },
+
   // — FAB —
   fab: {
     position: 'absolute',
