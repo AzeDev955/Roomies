@@ -10,6 +10,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verPass, setVerPass] = useState(false);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -50,14 +51,21 @@ export default function LoginScreen() {
       />
 
       <Text style={styles.label}>Contraseña</Text>
-      <TextInput
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        placeholder="••••••••"
-        placeholderTextColor="#c7c7cc"
-        secureTextEntry
-      />
+      <View style={styles.inputPasswordFila}>
+        <TextInput
+          style={styles.inputPassword}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="••••••••"
+          placeholderTextColor="#c7c7cc"
+          secureTextEntry={!verPass}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <Pressable style={styles.botonVerPass} onPress={() => setVerPass((v) => !v)}>
+          <Text style={styles.botonVerPassTexto}>{verPass ? 'Ocultar' : 'Ver'}</Text>
+        </Pressable>
+      </View>
 
       <Pressable
         style={loading ? styles.botonLoginDeshabilitado : styles.botonLogin}
