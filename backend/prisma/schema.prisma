@@ -35,11 +35,12 @@ enum TipoHabitacion {
 model Usuario {
   id            Int          @id @default(autoincrement())
   nombre        String
-  apellidos     String
-  dni           String       @unique
+  apellidos     String?
+  dni           String?      @unique
   email         String       @unique
-  password_hash String
-  telefono      String
+  password_hash String?
+  google_id     String?      @unique
+  telefono      String?
   rol           RolUsuario
   viviendas     Vivienda[]
   habitaciones  Habitacion[]
