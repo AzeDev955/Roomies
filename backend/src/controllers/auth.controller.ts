@@ -34,6 +34,18 @@ export const register: express.RequestHandler = async (req, res) => {
   res.status(201).json(usuarioSinPassword);
 };
 
+export const obtenerMiPerfil: express.RequestHandler = async (req, res) => {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: req.usuario!.id },
+    select: { id: true, nombre: true, apellidos: true, email: true, rol: true, telefono: true },
+  });
+  if (!usuario) {
+    res.status(404).json({ error: 'Usuario no encontrado.' });
+    return;
+  }
+  res.status(200).json(usuario);
+};
+
 export const login: express.RequestHandler = async (req, res) => {
   const { email, password } = req.body as { email: string; password: string };
 
