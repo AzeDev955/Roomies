@@ -172,6 +172,36 @@ export const editarHabitacion: express.RequestHandler = async (req, res) => {
   res.status(200).json(habitacion);
 };
 
+export const expulsarInquilino: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const habId = parseInt(req.params['habId'] as string, 10);
+
+  const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(403).json({ error: 'Esta vivienda no te pertenece.' });
+    return;
+  }
+
+  const habitacion = await prisma.habitacion.findFirst({
+    where: { id: habId, vivienda_id: viviendaId },
+  });
+  if (!habitacion) {
+    res.status(404).json({ error: 'Habitación no encontrada.' });
+    return;
+  }
+  if (habitacion.inquilino_id === null) {
+    res.status(400).json({ error: 'Esta habitación no tiene inquilino asignado.' });
+    return;
+  }
+
+  await prisma.habitacion.update({
+    where: { id: habId },
+    data: { inquilino_id: null },
+  });
+
+  res.status(200).json({ mensaje: 'Inquilino desvinculado correctamente.' });
+};
+
 export const eliminarHabitacion: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params['id'] as string, 10);
   const habId = parseInt(req.params['habId'] as string, 10);
