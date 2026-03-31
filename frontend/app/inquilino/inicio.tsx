@@ -15,6 +15,8 @@ type Incidencia = {
   prioridad: Prioridad;
   estado: Estado;
   fecha_creacion: string;
+  creador_id: number;
+  habitacion_id: number | null;
 };
 
 type InquilinoResumen = {
@@ -35,6 +37,7 @@ type DatosCasa = {
   nombreHabitacion: string;
   viviendaId: number;
   miHabitacionId: number;
+  miUsuarioId: number;
   habitaciones: HabitacionResumen[];
 };
 
@@ -56,6 +59,7 @@ export default function InquilinoInicioScreen() {
         nombreHabitacion: miHab?.nombre ?? 'Mi habitación',
         viviendaId: data.vivienda.id,
         miHabitacionId: data.miHabitacionId,
+        miUsuarioId: miHab?.inquilino?.id ?? 0,
         habitaciones: data.vivienda.habitaciones,
       });
       setTieneCasa(true);
@@ -125,6 +129,28 @@ export default function InquilinoInicioScreen() {
         },
       ]
     );
+  };
+
+  const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
+
+  const tienePermisoEditar = (item: Incidencia): boolean => {
+    if (!datosCasa) return false;
+    if (item.creador_id === datosCasa.miUsuarioId) return true;
+    if (item.habitacion_id !== null && item.habitacion_id === datosCasa.miHabitacionId) return true;
+    const hab = datosCasa.habitaciones.find((h) => h.id === item.habitacion_id);
+    return hab !== undefined && hab.tipo !== 'DORMITORIO';
+  };
+
+  const actualizarEstado = async (incidenciaId: number, nuevoEstado: Estado) => {
+    try {
+      await api.patch(`/incidencias/${incidenciaId}/estado`, { estado: nuevoEstado });
+      setIncidencias((prev) =>
+        prev.map((i) => (i.id === incidenciaId ? { ...i, estado: nuevoEstado } : i))
+      );
+    } catch (err: any) {
+      const mensaje = err.response?.data?.error ?? 'No se pudo actualizar el estado.';
+      Alert.alert('Error', mensaje);
+    }
   };
 
   const formatearFecha = (iso: string) =>
@@ -228,9 +254,25 @@ export default function InquilinoInicioScreen() {
                   <Text style={styles.cardTitulo}>{item.titulo}</Text>
                   <Text style={styles.cardDescripcion}>{item.descripcion}</Text>
                   <View style={styles.cardFooter}>
-                    <Text style={styles.cardEstado}>{ETIQUETAS_ESTADO[item.estado]}</Text>
                     <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
                   </View>
+                  {tienePermisoEditar(item) ? (
+                    <View style={styles.estadoSelector}>
+                      {ESTADOS.map((e) => (
+                        <Pressable
+                          key={e}
+                          style={[styles.estadoPill, item.estado === e && styles.estadoPillActivo]}
+                          onPress={() => actualizarEstado(item.id, e)}
+                        >
+                          <Text style={[styles.estadoPillTexto, item.estado === e && styles.estadoPillTextoActivo]}>
+                            {ETIQUETAS_ESTADO[e]}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.estadoSoloLectura}>{ETIQUETAS_ESTADO[item.estado]}</Text>
+                  )}
                 </View>
               </View>
             )}

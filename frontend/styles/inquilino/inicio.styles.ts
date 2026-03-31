@@ -251,6 +251,37 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // — Selector de estado de incidencia —
+  estadoSelector: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 10,
+  },
+  estadoPill: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 6,
+    alignItems: 'center',
+    backgroundColor: '#e9ecef',
+  },
+  estadoPillActivo: {
+    backgroundColor: '#007AFF',
+  },
+  estadoPillTexto: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#495057',
+  },
+  estadoPillTextoActivo: {
+    color: '#fff',
+  },
+  estadoSoloLectura: {
+    fontSize: 12,
+    color: '#9e9e9e',
+    fontWeight: '500',
+    marginTop: 6,
+  },
+
   // — FAB —
   fab: {
     position: 'absolute',
