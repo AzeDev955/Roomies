@@ -40,3 +40,35 @@ export const unirseHabitacion: express.RequestHandler = async (req, res) => {
     habitacion: habitacionActualizada,
   });
 };
+
+export const obtenerMiVivienda: express.RequestHandler = async (req, res) => {
+  if (req.usuario!.rol !== RolUsuario.INQUILINO) {
+    res.status(403).json({ error: 'Solo los inquilinos pueden usar este endpoint.' });
+    return;
+  }
+
+  const habitacion = await prisma.habitacion.findFirst({
+    where: { inquilino_id: req.usuario!.id },
+    include: {
+      vivienda: {
+        include: {
+          habitaciones: {
+            include: {
+              inquilino: { select: { id: true, nombre: true, apellidos: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!habitacion) {
+    res.status(404).json({ error: 'No tienes ninguna habitación asignada.' });
+    return;
+  }
+
+  res.status(200).json({
+    miHabitacionId: habitacion.id,
+    vivienda: habitacion.vivienda,
+  });
+};

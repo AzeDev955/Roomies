@@ -6,14 +6,31 @@ import { styles, COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD } from '@/styles/inquili
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 
+type HabitacionResumen = {
+  id: number;
+  nombre: string;
+  tipo: string;
+};
+
 const PRIORIDADES: Prioridad[] = ['VERDE', 'AMARILLO', 'ROJO'];
 
 export default function NuevaIncidenciaScreen() {
   const router = useRouter();
-  const { viviendaId } = useLocalSearchParams<{ viviendaId: string }>();
+  const { viviendaId, habitacionesJson, miHabitacionId } = useLocalSearchParams<{
+    viviendaId: string;
+    habitacionesJson: string;
+    miHabitacionId: string;
+  }>();
+
+  const habitaciones: HabitacionResumen[] = JSON.parse(habitacionesJson ?? '[]');
+  const opcionesHabitacion = habitaciones.filter(
+    (h) => h.tipo !== 'DORMITORIO' || h.id === Number(miHabitacionId)
+  );
+
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [prioridad, setPrioridad] = useState<Prioridad>('VERDE');
+  const [habitacionId, setHabitacionId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleEnviar = async () => {
@@ -24,6 +41,7 @@ export default function NuevaIncidenciaScreen() {
         descripcion,
         prioridad,
         vivienda_id: Number(viviendaId),
+        ...(habitacionId ? { habitacion_id: habitacionId } : {}),
       });
       router.back();
     } catch (err: any) {
@@ -59,6 +77,27 @@ export default function NuevaIncidenciaScreen() {
           placeholderTextColor="#c7c7cc"
           multiline
         />
+
+        {opcionesHabitacion.length > 0 && (
+          <>
+            <Text style={styles.label}>¿Dónde ocurre?</Text>
+            <View style={styles.habitacionFila}>
+              {opcionesHabitacion.map((h) => (
+                <Pressable
+                  key={h.id}
+                  style={[styles.habitacionPill, habitacionId === h.id && styles.habitacionPillActivo]}
+                  onPress={() => setHabitacionId(habitacionId === h.id ? null : h.id)}
+                >
+                  <Text
+                    style={[styles.habitacionPillTexto, habitacionId === h.id && styles.habitacionPillTextoActivo]}
+                  >
+                    {h.nombre}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
 
         <Text style={styles.label}>Prioridad</Text>
         <View style={styles.selectorFila}>

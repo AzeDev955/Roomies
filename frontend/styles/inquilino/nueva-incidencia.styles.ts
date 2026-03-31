@@ -50,6 +50,31 @@ export const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
+  // — Selector de habitación —
+  habitacionFila: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  habitacionPill: {
+    backgroundColor: '#e9ecef',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  habitacionPillActivo: {
+    backgroundColor: '#007AFF',
+  },
+  habitacionPillTexto: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#495057',
+  },
+  habitacionPillTextoActivo: {
+    color: '#fff',
+  },
+
   // — Selector de prioridad —
   selectorFila: {
     flexDirection: 'row',
