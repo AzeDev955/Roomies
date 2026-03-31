@@ -40,15 +40,21 @@ Roomies/
 │   │   └── seed.ts             ← datos de prueba
 │   ├── src/
 │   │   ├── controllers/        ← lógica de negocio
-│   │   │   ├── auth.controller.ts
-│   │   │   └── vivienda.controller.ts
+│   │   │   ├── auth.controller.ts       ← login, registro, Google OAuth, selector de rol
+│   │   │   ├── incidencia.controller.ts ← crear, listar, cambiar estado (permisos granulares)
+│   │   │   ├── inquilino.controller.ts  ← unirse a habitación, ver vivienda, abandonar habitación
+│   │   │   └── vivienda.controller.ts   ← CRUD viviendas y habitaciones, expulsar inquilino
 │   │   ├── generated/prisma/   ← cliente Prisma generado (no editar)
 │   │   ├── lib/prisma.ts       ← instancia singleton de PrismaClient
 │   │   ├── middlewares/
-│   │   │   └── auth.middleware.ts  ← verificarToken
+│   │   │   └── auth.middleware.ts  ← verificarToken (adjunta req.usuario)
 │   │   ├── routes/
 │   │   │   ├── auth.routes.ts
+│   │   │   ├── incidencia.routes.ts
+│   │   │   ├── inquilino.routes.ts
 │   │   │   └── vivienda.routes.ts
+│   │   ├── types/express/
+│   │   │   └── index.d.ts      ← extensión de tipos Express (req.usuario)
 │   │   ├── utils/
 │   │   │   └── generarCodigo.ts    ← generarCodigoInvitacion()
 │   │   └── index.ts            ← entry point Express
@@ -81,11 +87,16 @@ Roomies/
 │   │   ├── registro.styles.ts
 │   │   ├── rol.styles.ts
 │   │   ├── perfil.styles.ts
-│   │   └── casero/
-│   │       ├── nueva-vivienda.styles.ts
-│   │       └── vivienda/
-│   │           ├── detalle.styles.ts
-│   │           └── nueva-habitacion.styles.ts
+│   │   ├── home.styles.ts
+│   │   ├── casero/
+│   │   │   ├── viviendas.styles.ts
+│   │   │   ├── nueva-vivienda.styles.ts
+│   │   │   └── vivienda/
+│   │   │       ├── detalle.styles.ts       ← estilos de [id].tsx (no [id].styles.ts — evita brackets)
+│   │   │       └── nueva-habitacion.styles.ts  ← reutilizado también por editar-habitacion.tsx
+│   │   └── inquilino/
+│   │       ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD, ETIQUETAS_ESTADO, ETIQUETAS_TIPO
+│   │       └── nueva-incidencia.styles.ts  ← incluye COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD
 │   ├── frontend/.env           ← variables EXPO_PUBLIC_* (baked en Metro)
 │   └── package.json
 ├── docs/
