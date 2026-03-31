@@ -15,13 +15,24 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
   OTRO: 'Otro',
 };
 
-export default function NuevaHabitacionScreen() {
+export default function EditarHabitacionScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState<TipoHabitacion>('DORMITORIO');
-  const [esHabitable, setEsHabitable] = useState(true);
-  const [metrosCuadrados, setMetrosCuadrados] = useState('');
+  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam } =
+    useLocalSearchParams<{
+      id: string;
+      habId: string;
+      nombre: string;
+      tipo: string;
+      esHabitable: string;
+      metrosCuadrados: string;
+    }>();
+
+  const tipoInicial = (TIPOS.includes(tipoParam as TipoHabitacion) ? tipoParam : 'DORMITORIO') as TipoHabitacion;
+
+  const [nombre, setNombre] = useState(nombreParam ?? '');
+  const [tipo, setTipo] = useState<TipoHabitacion>(tipoInicial);
+  const [esHabitable, setEsHabitable] = useState(esHabitableParam === 'true');
+  const [metrosCuadrados, setMetrosCuadrados] = useState(metrosParam ?? '');
   const [loading, setLoading] = useState(false);
 
   const handleTipoChange = (t: TipoHabitacion) => {
@@ -34,15 +45,16 @@ export default function NuevaHabitacionScreen() {
     if (!nombre.trim()) return;
     setLoading(true);
     try {
-      await api.post(`/viviendas/${id}/habitaciones`, {
+      await api.put(`/viviendas/${id}/habitaciones/${habId}`, {
         nombre: nombre.trim(),
         tipo,
         es_habitable: tipo === 'DORMITORIO' ? esHabitable : false,
-        metros_cuadrados: metrosCuadrados ? parseFloat(metrosCuadrados) : undefined,
+        metros_cuadrados: metrosCuadrados ? parseFloat(metrosCuadrados) : null,
       });
       router.back();
-    } catch {
-      Alert.alert('Error', 'No se pudo crear la habitación. Inténtalo de nuevo.');
+    } catch (err: any) {
+      const mensaje = err.response?.data?.error ?? 'No se pudo actualizar la habitación.';
+      Alert.alert('Error', mensaje);
     } finally {
       setLoading(false);
     }
@@ -111,7 +123,7 @@ export default function NuevaHabitacionScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.botonTexto}>Añadir habitación</Text>
+            <Text style={styles.botonTexto}>Guardar cambios</Text>
           )}
         </Pressable>
       </ScrollView>
