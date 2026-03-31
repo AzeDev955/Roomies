@@ -97,10 +97,11 @@ frontend/
 | `/perfil` | `app/perfil.tsx` | GET `/auth/me` — datos del usuario + logout |
 | `/casero/viviendas` | `app/casero/viviendas.tsx` | GET `/viviendas` |
 | `/casero/nueva-vivienda` | `app/casero/nueva-vivienda.tsx` | POST `/viviendas` con habitaciones inline + autocompletado Mapbox |
-| `/casero/vivienda/:id` | `app/casero/vivienda/[id].tsx` | GET `/viviendas/:id` — inquilinos + biometría + editar/eliminar |
+| `/casero/vivienda/:id` | `app/casero/vivienda/[id].tsx` | GET `/viviendas/:id` — inquilinos + biometría + editar/eliminar/expulsar |
 | `/casero/vivienda/:id/nueva-habitacion` | `app/casero/vivienda/[id]/nueva-habitacion.tsx` | POST `/viviendas/:id/habitaciones` + autocompletado nombre |
 | `/casero/vivienda/:id/editar-habitacion` | `app/casero/vivienda/[id]/editar-habitacion.tsx` | PUT `/viviendas/:id/habitaciones/:habId` |
-| `/inquilino/inicio` | `app/inquilino/inicio.tsx` | GET `/inquilino/vivienda` + GET `/incidencias` + onboarding |
+| `/rol` | `app/rol.tsx` | PATCH `/auth/rol` — selector de rol post-OAuth para usuarios nuevos |
+| `/inquilino/inicio` | `app/inquilino/inicio.tsx` | GET `/inquilino/vivienda` + GET `/incidencias` + onboarding + abandonar vivienda |
 | `/inquilino/nueva-incidencia` | `app/inquilino/nueva-incidencia.tsx` | POST `/incidencias` con selector de habitación filtrado |
 
 ## Arquitectura de autenticación

@@ -304,8 +304,8 @@ El backend en Docker ejecuta al arrancar:
    - Selector de habitación filtrado: solo zonas comunes + propia habitación.
    - `habitacion_id` es opcional en el POST — si se envía y apunta a un dormitorio ajeno, el backend devuelve 403.
 5. **Ciclo de vida**:
-   - El inquilino puede abandonar su habitación: `DELETE /inquilino/habitacion` → `inquilino_id` queda a null.
-   - El casero puede expulsar a un inquilino: `DELETE /viviendas/:id/habitaciones/:habId/inquilino`.
+   - El inquilino puede abandonar su habitación: botón "Abandonar Vivienda" (outline rojo) al final del dashboard → `DELETE /inquilino/habitacion` → la pantalla regresa al onboarding de forma inmediata (reset de estado local, sin navegación).
+   - El casero puede expulsar a un inquilino: botón "Expulsar" dentro de la tarjeta de habitación ocupada → `DELETE /viviendas/:id/habitaciones/:habId/inquilino` → la tarjeta se actualiza de forma reactiva sin recargar la pantalla.
    - Eliminar la habitación en sí sigue fallando (400) si aún tiene inquilino asignado.
 
 ---
