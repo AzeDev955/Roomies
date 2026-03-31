@@ -39,6 +39,18 @@ export const styles = StyleSheet.create({
     color: '#212529',
   },
   errorTexto: { textAlign: 'center', marginTop: 40, color: '#9e9e9e' },
+  botonIncidencias: {
+    backgroundColor: '#007AFF',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  botonIncidenciasTexto: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   codigoReveladoFila: {
     flexDirection: 'row',
     alignItems: 'center',

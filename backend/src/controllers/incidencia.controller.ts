@@ -76,11 +76,16 @@ export const listarIncidencias: express.RequestHandler = async (req, res) => {
   const rol = req.usuario!.rol;
 
   if (rol === RolUsuario.CASERO) {
+    const viviendaIdParam = req.query['viviendaId'] ? parseInt(req.query['viviendaId'] as string, 10) : undefined;
     const incidencias = await prisma.incidencia.findMany({
-      where: { vivienda: { casero_id: usuarioId } },
+      where: {
+        vivienda: { casero_id: usuarioId },
+        ...(viviendaIdParam ? { vivienda_id: viviendaIdParam } : {}),
+      },
       include: {
         vivienda: true,
         creador: { select: { id: true, nombre: true, apellidos: true } },
+        habitacion: { select: { id: true, nombre: true } },
       },
       orderBy: { fecha_creacion: 'desc' },
     });

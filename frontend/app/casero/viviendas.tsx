@@ -6,11 +6,22 @@ import { styles } from '@/styles/casero/viviendas.styles';
 import api from '@/services/api';
 
 type Habitacion = { id: number; nombre: string };
+type IncidenciaActiva = { prioridad: 'VERDE' | 'AMARILLO' | 'ROJO' };
 type Vivienda = {
   id: number;
   alias_nombre: string;
   direccion: string;
   habitaciones: Habitacion[];
+  incidencias: IncidenciaActiva[];
+};
+
+const ORDEN_PRIORIDAD: Record<string, number> = { VERDE: 0, AMARILLO: 1, ROJO: 2 };
+
+const getMaxPrioridad = (incidencias: IncidenciaActiva[]): 'VERDE' | 'AMARILLO' | 'ROJO' | null => {
+  if (incidencias.length === 0) return null;
+  return incidencias.reduce((max, i) =>
+    ORDEN_PRIORIDAD[i.prioridad] > ORDEN_PRIORIDAD[max.prioridad] ? i : max
+  ).prioridad;
 };
 
 export default function ViviendasScreen() {
@@ -36,6 +47,12 @@ export default function ViviendasScreen() {
     }, [])
   );
 
+  const BADGE_POR_PRIORIDAD = {
+    VERDE: styles.badgeVerde,
+    AMARILLO: styles.badgeAmarillo,
+    ROJO: styles.badgeRojo,
+  } as const;
+
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -59,16 +76,24 @@ export default function ViviendasScreen() {
             <Text style={styles.emptySubtext}>Pulsa el botón + para añadir tu primera vivienda.</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <Pressable
-            style={styles.card}
-            onPress={() => router.push(`/casero/vivienda/${item.id}`)}
-          >
-            <Text style={styles.cardTitle}>{item.alias_nombre}</Text>
-            <Text style={styles.cardAddress}>{item.direccion}</Text>
-            <Text style={styles.cardRooms}>{item.habitaciones?.length ?? 0} habitaciones</Text>
-          </Pressable>
-        )}
+        renderItem={({ item }) => {
+          const maxPrioridad = getMaxPrioridad(item.incidencias);
+          return (
+            <Pressable
+              style={styles.card}
+              onPress={() => router.push(`/casero/vivienda/${item.id}`)}
+            >
+              {maxPrioridad !== null && (
+                <View style={[styles.badge, BADGE_POR_PRIORIDAD[maxPrioridad]]}>
+                  <Text style={styles.badgeTexto}>{item.incidencias.length}</Text>
+                </View>
+              )}
+              <Text style={styles.cardTitle}>{item.alias_nombre}</Text>
+              <Text style={styles.cardAddress}>{item.direccion}</Text>
+              <Text style={styles.cardRooms}>{item.habitaciones?.length ?? 0} habitaciones</Text>
+            </Pressable>
+          );
+        }}
       />
       <Pressable
         style={styles.fab}

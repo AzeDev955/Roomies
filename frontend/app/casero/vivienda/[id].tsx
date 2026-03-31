@@ -174,6 +174,13 @@ export default function DetalleViviendaScreen() {
         <Text style={styles.title}>{vivienda.alias_nombre}</Text>
         <Text style={styles.address}>{vivienda.direccion}</Text>
 
+        <Pressable
+          style={styles.botonIncidencias}
+          onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}
+        >
+          <Text style={styles.botonIncidenciasTexto}>Ver Incidencias</Text>
+        </Pressable>
+
         {vivienda.habitaciones.map((habitacion) => (
           <View key={habitacion.id} style={styles.card}>
             <View style={styles.cardHeader}>
