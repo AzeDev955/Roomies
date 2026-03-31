@@ -1,14 +1,17 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  container: {
+  scrollContainer: {
     flex: 1,
-    justifyContent: 'center',
     backgroundColor: '#f5f5f5',
-    paddingHorizontal: 32,
   },
-  logo: {
-    fontSize: 32,
+  container: {
+    paddingHorizontal: 32,
+    paddingTop: 48,
+    paddingBottom: 40,
+  },
+  titulo: {
+    fontSize: 28,
     fontWeight: '800',
     color: '#007AFF',
     textAlign: 'center',
@@ -18,7 +21,7 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     color: '#6c757d',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 36,
   },
   label: {
     fontSize: 13,
@@ -70,14 +73,40 @@ export const styles = StyleSheet.create({
     color: '#9e9e9e',
     fontWeight: '600',
   },
-  botonLogin: {
+  rolFila: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  rolPill: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#dee2e6',
+    backgroundColor: '#fff',
+  },
+  rolPillActivo: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  rolPillTexto: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#9e9e9e',
+  },
+  rolPillTextoActivo: {
+    color: '#fff',
+  },
+  botonRegistrar: {
     backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },
-  botonLoginDeshabilitado: {
+  botonRegistrarDisabled: {
     backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 16,
@@ -85,16 +114,16 @@ export const styles = StyleSheet.create({
     marginTop: 8,
     opacity: 0.5,
   },
-  botonLoginTexto: {
+  botonRegistrarTexto: {
     color: '#fff',
     fontSize: 17,
     fontWeight: '700',
   },
-  enlaceRegistro: {
+  enlaceLogin: {
     marginTop: 24,
     alignItems: 'center',
   },
-  enlaceRegistroTexto: {
+  enlaceLoginTexto: {
     fontSize: 14,
     color: '#007AFF',
   },

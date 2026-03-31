@@ -35,10 +35,11 @@ enum TipoHabitacion {
 model Usuario {
   id            Int          @id @default(autoincrement())
   nombre        String
-  apellidos     String
-  dni           String       @unique
+  apellidos     String?
+  dni           String?      @unique
   email         String       @unique
-  password_hash String
+  password_hash String?
+  google_id     String?      @unique
   telefono      String?
   rol           RolUsuario
   viviendas     Vivienda[]
@@ -70,6 +71,7 @@ model Habitacion {
   es_habitable      Boolean        @default(true)
   metros_cuadrados  Float?
   codigo_invitacion String?        @unique
+  incidencias       Incidencia[]
 }
 
 model Incidencia {
@@ -78,6 +80,8 @@ model Incidencia {
   vivienda       Vivienda         @relation(fields: [vivienda_id], references: [id])
   creador_id     Int
   creador        Usuario          @relation(fields: [creador_id], references: [id])
+  habitacion_id  Int?
+  habitacion     Habitacion?      @relation(fields: [habitacion_id], references: [id])
   titulo         String
   descripcion    String
   estado         EstadoIncidencia    @default(PENDIENTE)

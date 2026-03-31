@@ -37,4 +37,10 @@ export const styles = StyleSheet.create({
     elevation: 8,
   },
   fabText: { color: '#fff', fontSize: 32, lineHeight: 36, fontWeight: '300' },
+  iconoPerfil: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+  },
 });

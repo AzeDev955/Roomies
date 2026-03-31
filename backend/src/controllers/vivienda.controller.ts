@@ -17,18 +17,37 @@ export const crearVivienda: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const { alias_nombre, direccion, codigo_postal, ciudad, provincia } = req.body as {
+  const { alias_nombre, direccion, codigo_postal, ciudad, provincia, habitaciones } = req.body as {
     alias_nombre: string;
     direccion: string;
     codigo_postal: string;
     ciudad: string;
     provincia: string;
+    habitaciones?: {
+      nombre: string;
+      tipo?: TipoHabitacion;
+      es_habitable?: boolean;
+      metros_cuadrados?: number;
+    }[];
   };
 
   if (!alias_nombre || !direccion || !codigo_postal || !ciudad || !provincia) {
     res.status(400).json({ error: 'alias_nombre, direccion, codigo_postal, ciudad y provincia son obligatorios.' });
     return;
   }
+
+  const habitacionesData = await Promise.all(
+    (habitaciones ?? []).map(async (h) => {
+      const habitable = h.es_habitable !== false;
+      return {
+        nombre: h.nombre,
+        tipo: h.tipo ?? TipoHabitacion.DORMITORIO,
+        es_habitable: habitable,
+        metros_cuadrados: h.metros_cuadrados ?? null,
+        codigo_invitacion: habitable ? await generarCodigoInvitacion() : null,
+      };
+    })
+  );
 
   const vivienda = await prisma.vivienda.create({
     data: {
@@ -38,7 +57,9 @@ export const crearVivienda: express.RequestHandler = async (req, res) => {
       codigo_postal,
       ciudad,
       provincia,
+      habitaciones: habitacionesData.length > 0 ? { create: habitacionesData } : undefined,
     },
+    include: { habitaciones: true },
   });
 
   res.status(201).json(vivienda);
@@ -48,7 +69,15 @@ export const obtenerVivienda: express.RequestHandler = async (req, res) => {
   const id = parseInt(req.params['id'] as string, 10);
   const vivienda = await prisma.vivienda.findUnique({
     where: { id },
-    include: { habitaciones: true },
+    include: {
+      habitaciones: {
+        include: {
+          inquilino: {
+            select: { id: true, nombre: true, apellidos: true, email: true },
+          },
+        },
+      },
+    },
   });
   if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
     res.status(404).json({ error: 'Vivienda no encontrada.' });
@@ -93,4 +122,109 @@ export const crearHabitacion: express.RequestHandler = async (req, res) => {
   });
 
   res.status(201).json(habitacion);
+};
+
+export const editarHabitacion: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const habId = parseInt(req.params['habId'] as string, 10);
+
+  const { nombre, tipo, es_habitable, metros_cuadrados } = req.body as {
+    nombre?: string;
+    tipo?: TipoHabitacion;
+    es_habitable?: boolean;
+    metros_cuadrados?: number | null;
+  };
+
+  const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(403).json({ error: 'No tienes permiso para editar habitaciones de esta vivienda.' });
+    return;
+  }
+
+  const habitacionActual = await prisma.habitacion.findFirst({
+    where: { id: habId, vivienda_id: viviendaId },
+  });
+  if (!habitacionActual) {
+    res.status(404).json({ error: 'Habitación no encontrada.' });
+    return;
+  }
+
+  let codigo_invitacion = habitacionActual.codigo_invitacion;
+  if (es_habitable !== undefined && es_habitable !== habitacionActual.es_habitable) {
+    if (es_habitable) {
+      codigo_invitacion = await generarCodigoInvitacion();
+    } else {
+      codigo_invitacion = null;
+    }
+  }
+
+  const habitacion = await prisma.habitacion.update({
+    where: { id: habId },
+    data: {
+      nombre: nombre ?? habitacionActual.nombre,
+      tipo: tipo ?? habitacionActual.tipo,
+      es_habitable: es_habitable ?? habitacionActual.es_habitable,
+      metros_cuadrados: metros_cuadrados !== undefined ? metros_cuadrados : habitacionActual.metros_cuadrados,
+      codigo_invitacion,
+    },
+  });
+
+  res.status(200).json(habitacion);
+};
+
+export const expulsarInquilino: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const habId = parseInt(req.params['habId'] as string, 10);
+
+  const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(403).json({ error: 'Esta vivienda no te pertenece.' });
+    return;
+  }
+
+  const habitacion = await prisma.habitacion.findFirst({
+    where: { id: habId, vivienda_id: viviendaId },
+  });
+  if (!habitacion) {
+    res.status(404).json({ error: 'Habitación no encontrada.' });
+    return;
+  }
+  if (habitacion.inquilino_id === null) {
+    res.status(400).json({ error: 'Esta habitación no tiene inquilino asignado.' });
+    return;
+  }
+
+  await prisma.habitacion.update({
+    where: { id: habId },
+    data: { inquilino_id: null },
+  });
+
+  res.status(200).json({ mensaje: 'Inquilino desvinculado correctamente.' });
+};
+
+export const eliminarHabitacion: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const habId = parseInt(req.params['habId'] as string, 10);
+
+  const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(403).json({ error: 'No tienes permiso para eliminar habitaciones de esta vivienda.' });
+    return;
+  }
+
+  const habitacion = await prisma.habitacion.findFirst({
+    where: { id: habId, vivienda_id: viviendaId },
+  });
+  if (!habitacion) {
+    res.status(404).json({ error: 'Habitación no encontrada.' });
+    return;
+  }
+
+  if (habitacion.inquilino_id !== null) {
+    res.status(400).json({ error: 'No se puede eliminar una habitación con inquilino asignado.' });
+    return;
+  }
+
+  await prisma.habitacion.delete({ where: { id: habId } });
+  res.status(204).send();
 };

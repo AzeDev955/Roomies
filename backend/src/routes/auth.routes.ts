@@ -1,13 +1,13 @@
 import express from 'express';
-import { register, login } from '../controllers/auth.controller';
+import { register, login, obtenerMiPerfil, loginConGoogle, actualizarRol } from '../controllers/auth.controller';
 import { verificarToken } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
-router.get('/me', verificarToken, (req, res) => {
-  res.status(200).json(req.usuario);
-});
+router.post('/google', loginConGoogle);
+router.get('/me', verificarToken, obtenerMiPerfil);
+router.patch('/rol', verificarToken, actualizarRol);
 
 export default router;
