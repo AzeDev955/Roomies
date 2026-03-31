@@ -1,13 +1,21 @@
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { useRouter, useNavigation } from 'expo-router';
+import { CommonActions } from '@react-navigation/native';
+import { AntDesign } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { styles } from '@/styles/registro.styles';
+import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Rol = 'CASERO' | 'INQUILINO';
 
 export default function RegistroScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [dni, setDni] = useState('');
@@ -17,6 +25,39 @@ export default function RegistroScreen() {
   const [rol, setRol] = useState<Rol | ''>('');
   const [verPass, setVerPass] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    scopes: ['openid', 'email', 'profile'],
+  });
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const idToken =
+        googleResponse.authentication?.idToken ??
+        (googleResponse.params as Record<string, string>)?.['id_token'];
+      if (idToken) handleGoogleLogin(idToken);
+    }
+  }, [googleResponse]);
+
+  const handleGoogleLogin = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post<{ token: string; usuario: { rol: string } }>(
+        '/auth/google',
+        { idToken }
+      );
+      await guardarToken(data.token);
+      const destino = data.usuario.rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
+      navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
+    } catch {
+      Alert.alert('Error', 'No se pudo completar el registro con Google.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRegistrar = async () => {
     if (
@@ -157,6 +198,17 @@ export default function RegistroScreen() {
           ? <ActivityIndicator color="#fff" />
           : <Text style={styles.botonRegistrarTexto}>Crear cuenta</Text>
         }
+      </Pressable>
+
+      <View style={styles.separador}>
+        <View style={styles.separadorLinea} />
+        <Text style={styles.separadorTexto}>o</Text>
+        <View style={styles.separadorLinea} />
+      </View>
+
+      <Pressable style={styles.botonGoogle} onPress={() => googlePromptAsync()} disabled={loading}>
+        <AntDesign name="google" size={20} color="#DB4437" />
+        <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
       <Pressable style={styles.enlaceLogin} onPress={() => router.back()}>

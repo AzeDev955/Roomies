@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
 
@@ -34,18 +35,6 @@ export const register: express.RequestHandler = async (req, res) => {
   res.status(201).json(usuarioSinPassword);
 };
 
-export const obtenerMiPerfil: express.RequestHandler = async (req, res) => {
-  const usuario = await prisma.usuario.findUnique({
-    where: { id: req.usuario!.id },
-    select: { id: true, nombre: true, apellidos: true, email: true, rol: true, telefono: true },
-  });
-  if (!usuario) {
-    res.status(404).json({ error: 'Usuario no encontrado.' });
-    return;
-  }
-  res.status(200).json(usuario);
-};
-
 export const login: express.RequestHandler = async (req, res) => {
   const { email, password } = req.body as { email: string; password: string };
 
@@ -55,6 +44,11 @@ export const login: express.RequestHandler = async (req, res) => {
 
   if (!usuario) {
     res.status(401).json({ error: 'Credenciales inválidas.' });
+    return;
+  }
+
+  if (!usuario.password_hash) {
+    res.status(401).json({ error: 'Esta cuenta usa Google para iniciar sesión.' });
     return;
   }
 
@@ -73,4 +67,69 @@ export const login: express.RequestHandler = async (req, res) => {
 
   const { password_hash: _omit, ...usuarioSinPassword } = usuario;
   res.status(200).json({ token, usuario: usuarioSinPassword });
+};
+
+export const loginConGoogle: express.RequestHandler = async (req, res) => {
+  const { idToken } = req.body as { idToken: string };
+
+  if (!idToken) {
+    res.status(400).json({ error: 'Falta el idToken de Google.' });
+    return;
+  }
+
+  const client = new OAuth2Client(process.env['GOOGLE_CLIENT_ID']);
+  const ticket = await client.verifyIdToken({
+    idToken,
+    audience: process.env['GOOGLE_CLIENT_ID'],
+  });
+
+  const payload = ticket.getPayload();
+  if (!payload?.email) {
+    res.status(401).json({ error: 'Token de Google inválido.' });
+    return;
+  }
+
+  const { email, given_name, family_name, sub: googleId } = payload;
+
+  let usuario = await prisma.usuario.findFirst({
+    where: { OR: [{ google_id: googleId }, { email }] },
+  });
+
+  if (!usuario) {
+    usuario = await prisma.usuario.create({
+      data: {
+        nombre: given_name ?? email.split('@')[0],
+        apellidos: family_name ?? null,
+        email,
+        google_id: googleId,
+        rol: RolUsuario.INQUILINO,
+      },
+    });
+  } else if (!usuario.google_id) {
+    usuario = await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { google_id: googleId },
+    });
+  }
+
+  const token = jwt.sign(
+    { id: usuario.id, rol: usuario.rol },
+    process.env['JWT_SECRET']!,
+    { expiresIn: '7d' }
+  );
+
+  const { password_hash: _omit, ...usuarioSinPassword } = usuario;
+  res.status(200).json({ token, usuario: usuarioSinPassword });
+};
+
+export const obtenerMiPerfil: express.RequestHandler = async (req, res) => {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: req.usuario!.id },
+    select: { id: true, nombre: true, apellidos: true, email: true, rol: true, telefono: true },
+  });
+  if (!usuario) {
+    res.status(404).json({ error: 'Usuario no encontrado.' });
+    return;
+  }
+  res.status(200).json(usuario);
 };

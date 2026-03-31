@@ -83,6 +83,56 @@ Autentica un usuario y devuelve un JWT.
 ```
 
 > El token expira en **7 días**. El payload contiene `{ id, rol }`.
+> Si la cuenta fue creada solo con Google (sin contraseña), devuelve `401` con el mensaje "Esta cuenta usa Google para iniciar sesión."
+
+---
+
+### POST `/auth/google`
+
+Verifica un `idToken` de Google, crea o vincula el usuario, y devuelve el JWT de la app.
+
+**Auth requerida:** No
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `idToken` | string | Sí | JWT de identidad emitido por Google |
+
+**Comportamiento:**
+- Si no existe ningún usuario con ese `google_id` ni ese `email` → crea uno nuevo con rol `INQUILINO` por defecto
+- Si ya existe un usuario con el mismo `email` pero sin `google_id` → vincula la cuenta (añade `google_id`)
+- Si ya existe con ese `google_id` → login directo
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Token válido. Devuelve JWT de la app + datos del usuario. |
+| `400` | Falta `idToken` en el body. |
+| `401` | `idToken` inválido o no verificable por Google. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "usuario": {
+    "id": 3,
+    "nombre": "Ana",
+    "apellidos": "García",
+    "email": "ana@gmail.com",
+    "google_id": "107...",
+    "telefono": null,
+    "rol": "INQUILINO"
+  }
+}
+```
+
+> **Configuración requerida:** Debes crear credenciales OAuth 2.0 en [Google Cloud Console](https://console.cloud.google.com):
+> 1. Habilitar la **Google Identity API**
+> 2. Crear credencial tipo **Web** (para backend + Expo Go) — añadir como URI autorizada: `https://auth.expo.io/@<tu-usuario-expo>/frontend`
+> 3. Crear credenciales tipo **Android** e **iOS** para builds nativos
+> 4. Añadir los Client IDs en `backend/.env` (`GOOGLE_CLIENT_ID`) y `frontend/.env` (`EXPO_PUBLIC_GOOGLE_CLIENT_ID`, etc.)
 
 ---
 
