@@ -15,6 +15,12 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
   OTRO: 'Otro',
 };
 
+const NOMBRE_SUGERIDO: Partial<Record<TipoHabitacion, string>> = {
+  BANO: 'Baño',
+  COCINA: 'Cocina',
+  SALON: 'Salón',
+};
+
 export default function NuevaHabitacionScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +34,7 @@ export default function NuevaHabitacionScreen() {
     setTipo(t);
     if (t !== 'DORMITORIO') setEsHabitable(false);
     else setEsHabitable(true);
+    if (NOMBRE_SUGERIDO[t]) setNombre(NOMBRE_SUGERIDO[t]!);
   };
 
   const guardar = async () => {

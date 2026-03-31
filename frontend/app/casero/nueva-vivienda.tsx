@@ -23,6 +23,12 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
   OTRO: 'Otro',
 };
 
+const NOMBRE_SUGERIDO: Partial<Record<TipoHabitacion, string>> = {
+  BANO: 'Baño',
+  COCINA: 'Cocina',
+  SALON: 'Salón',
+};
+
 type HabitacionLocal = {
   nombre: string;
   tipo: TipoHabitacion;
@@ -94,6 +100,7 @@ export default function NuevaViviendaScreen() {
     setHabTipo(t);
     if (t !== 'DORMITORIO') setHabEsHabitable(false);
     else setHabEsHabitable(true);
+    if (NOMBRE_SUGERIDO[t]) setHabNombre(NOMBRE_SUGERIDO[t]!);
   };
 
   const añadirHabitacion = () => {
