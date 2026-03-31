@@ -73,8 +73,9 @@ export default function DetalleViviendaScreen() {
   };
 
   const copiarCodigo = async (codigo: string) => {
-    await Clipboard.setStringAsync(codigo);
-    Alert.alert('¡Copiado!', 'El código de invitación se ha guardado en el portapapeles.');
+    const codigoLimpio = codigo.replace(/^room[-\s]*/i, '').trim();
+    await Clipboard.setStringAsync(codigoLimpio);
+    Alert.alert('Código copiado', 'Pégalo en la app para unirte a la habitación.');
   };
 
   const compartirCodigo = async (codigo: string) => {
