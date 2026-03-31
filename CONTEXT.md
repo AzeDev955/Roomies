@@ -168,13 +168,17 @@ Roomies/
 | PUT | `/viviendas/:id/habitaciones/:habId` | Sí | Edita habitación |
 | DELETE | `/viviendas/:id/habitaciones/:habId` | Sí | Elimina habitación (falla si tiene inquilino) |
 
-### Inquilino (sin prefijo de grupo documentado aún)
+### Inquilino — `/inquilino`
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | POST | `/inquilino/unirse` | Sí | Canjear código de invitación |
-| GET | `/inquilino/habitacion` | Sí | Habitación actual del inquilino |
-| POST | `/incidencias` | Sí | Crear incidencia |
-| GET | `/incidencias` | Sí | Listar incidencias |
+| GET | `/inquilino/vivienda` | Sí | Vivienda completa del inquilino (habitaciones + inquilinos) |
+
+### Incidencias — `/incidencias`
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| POST | `/incidencias` | Sí | Crear incidencia (acepta `habitacion_id` opcional; validado contra dormitorios ajenos) |
+| GET | `/incidencias` | Sí | Listar incidencias (casero: todas sus viviendas; inquilino: su vivienda) |
 | PATCH | `/incidencias/:id/estado` | Sí | Cambiar estado |
 
 ---
@@ -231,7 +235,9 @@ El backend en Docker ejecuta al arrancar:
 3. `npx prisma db seed` — carga datos de prueba
 4. `npm run dev` — arranca el servidor con nodemon
 
-**Puertos**: PostgreSQL en `5433:5432`, backend en `3001:3000`, frontend en `8081:8081`.
+**Puertos**: PostgreSQL en `5433:5432`, backend en `3001:3000`, frontend en `8080:8080`.
+
+> El puerto 8080 se usa en lugar de 8081 para evitar conflictos con reglas de firewall de Windows.
 
 ---
 
@@ -250,6 +256,8 @@ El backend en Docker ejecuta al arrancar:
 - **Token**: guardar/recuperar/eliminar con las funciones de `services/auth.service.ts`.
 - **API**: importar la instancia Axios de `@/services/api`. El interceptor inyecta el Bearer token automáticamente.
 - **Variables de entorno**: solo `EXPO_PUBLIC_*` son accesibles en el frontend. Se leen con `process.env.EXPO_PUBLIC_*`.
+- **Autocompletado de habitaciones**: al seleccionar tipo BANO, COCINA o SALON en los formularios de habitación, el campo nombre se rellena automáticamente con el nombre canónico. Sigue siendo editable.
+- **Portapapeles y códigos**: los códigos se almacenan con prefijo `ROOM-` en la BD, pero al copiar al portapapeles se limpia el prefijo con `/^room[-\s]*/i` para que el inquilino solo pegue la parte alfanumérica.
 
 ### Routing (expo-router)
 - Las rutas de archivo se mapean directamente a URLs.
@@ -271,10 +279,16 @@ El backend en Docker ejecuta al arrancar:
 
 ## Flujo del inquilino
 
-1. Recibe un código de invitación del casero.
-2. `POST /inquilino/unirse` con el código → queda asignado a la habitación.
-3. Accede al dashboard `inquilino/inicio` con info de su habitación.
-4. Puede crear incidencias desde `inquilino/nueva-incidencia`.
+1. Recibe un código de invitación del casero (solo la parte alfanumérica, sin el prefijo `ROOM-`).
+2. `POST /inquilino/unirse` con `{ codigo_invitacion: "ROOM-XXXXXX" }` → queda asignado a la habitación.
+3. Accede al dashboard `inquilino/inicio`:
+   - `GET /inquilino/vivienda` carga la vivienda completa con todas las habitaciones e inquilinos.
+   - Sección "Compañeros de piso": dormitorios con inquilino asignado (excepto el propio).
+   - Sección "Zonas comunes": habitaciones que no son DORMITORIO.
+   - Sección "Incidencias": `GET /incidencias` filtra por la vivienda del inquilino.
+4. Puede crear incidencias desde `inquilino/nueva-incidencia`:
+   - Selector de habitación filtrado: solo zonas comunes + propia habitación.
+   - `habitacion_id` es opcional en el POST — si se envía y apunta a un dormitorio ajeno, el backend devuelve 403.
 
 ---
 
