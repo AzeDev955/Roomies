@@ -64,6 +64,7 @@ export const crearIncidencia: express.RequestHandler = async (req, res) => {
       vivienda_id,
       creador_id: usuarioId,
       prioridad: prioridad ?? PrioridadIncidencia.VERDE,
+      ...(habitacion_id ? { habitacion_id } : {}),
     },
   });
 

@@ -71,6 +71,7 @@ model Habitacion {
   es_habitable      Boolean        @default(true)
   metros_cuadrados  Float?
   codigo_invitacion String?        @unique
+  incidencias       Incidencia[]
 }
 
 model Incidencia {
@@ -79,6 +80,8 @@ model Incidencia {
   vivienda       Vivienda         @relation(fields: [vivienda_id], references: [id])
   creador_id     Int
   creador        Usuario          @relation(fields: [creador_id], references: [id])
+  habitacion_id  Int?
+  habitacion     Habitacion?      @relation(fields: [habitacion_id], references: [id])
   titulo         String
   descripcion    String
   estado         EstadoIncidencia    @default(PENDIENTE)
