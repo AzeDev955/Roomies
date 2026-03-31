@@ -647,8 +647,11 @@ Actualiza el estado de una incidencia.
 **Auth requerida:** Sí — `Authorization: Bearer <token>`
 
 **Reglas de acceso:**
-- `CASERO`: debe ser propietario de la vivienda de la incidencia
-- `INQUILINO`: debe tener una habitación asignada en la vivienda de la incidencia
+- `CASERO`: debe ser propietario de la vivienda de la incidencia. Sin restricciones adicionales.
+- `INQUILINO`: debe tener habitación asignada en la vivienda **y** cumplir al menos una de estas condiciones:
+  - Es el creador original de la incidencia
+  - La incidencia está vinculada a su propio dormitorio
+  - La incidencia está vinculada a una zona común (habitación de tipo distinto a `DORMITORIO`)
 
 **Params:**
 

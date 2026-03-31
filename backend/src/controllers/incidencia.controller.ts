@@ -121,7 +121,7 @@ export const actualizarEstadoIncidencia: express.RequestHandler = async (req, re
 
   const incidencia = await prisma.incidencia.findUnique({
     where: { id },
-    include: { vivienda: true },
+    include: { vivienda: true, habitacion: true },
   });
 
   if (!incidencia) {
@@ -138,11 +138,24 @@ export const actualizarEstadoIncidencia: express.RequestHandler = async (req, re
       return;
     }
   } else {
-    // INQUILINO: debe tener habitación en la misma vivienda
-    const habitacion = await prisma.habitacion.findFirst({
+    // INQUILINO: debe tener habitación en esta vivienda
+    const miHabitacion = await prisma.habitacion.findFirst({
       where: { vivienda_id: incidencia.vivienda_id, inquilino_id: usuarioId },
     });
-    if (!habitacion) {
+    if (!miHabitacion) {
+      res.status(403).json({ error: 'No tienes ninguna habitación en esta vivienda.' });
+      return;
+    }
+
+    // Al menos una condición debe cumplirse:
+    // a) es el creador original
+    // b) la incidencia está vinculada a su propio dormitorio
+    // c) la incidencia está vinculada a una zona común
+    const esCreador      = incidencia.creador_id === usuarioId;
+    const esSuDormitorio = incidencia.habitacion_id !== null && incidencia.habitacion_id === miHabitacion.id;
+    const esZonaComun    = incidencia.habitacion !== null && incidencia.habitacion.tipo !== 'DORMITORIO';
+
+    if (!esCreador && !esSuDormitorio && !esZonaComun) {
       res.status(403).json({ error: 'No tienes permiso para modificar esta incidencia.' });
       return;
     }

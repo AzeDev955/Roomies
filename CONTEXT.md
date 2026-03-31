@@ -185,7 +185,7 @@ Roomies/
 |---|---|---|---|
 | POST | `/incidencias` | Sí | Crear incidencia (acepta `habitacion_id` opcional; validado contra dormitorios ajenos) |
 | GET | `/incidencias` | Sí | Listar incidencias (casero: todas sus viviendas; inquilino: su vivienda) |
-| PATCH | `/incidencias/:id/estado` | Sí | Cambiar estado |
+| PATCH | `/incidencias/:id/estado` | Sí | Cambiar estado. Casero: libre en sus viviendas. Inquilino: solo si es creador, la incidencia es de su dormitorio, o es de una zona común |
 
 ---
 
@@ -303,6 +303,7 @@ El backend en Docker ejecuta al arrancar:
 4. Puede crear incidencias desde `inquilino/nueva-incidencia`:
    - Selector de habitación filtrado: solo zonas comunes + propia habitación.
    - `habitacion_id` es opcional en el POST — si se envía y apunta a un dormitorio ajeno, el backend devuelve 403.
+   - En el dashboard, cada tarjeta de incidencia muestra un selector de estado (3 pills: Pendiente / En proceso / Resuelta) si el inquilino tiene permiso, o el estado como texto de solo lectura si no. Permisos: es creador **o** la incidencia está en su dormitorio **o** está en una zona común.
 5. **Ciclo de vida**:
    - El inquilino puede abandonar su habitación: botón "Abandonar Vivienda" (outline rojo) al final del dashboard → `DELETE /inquilino/habitacion` → la pantalla regresa al onboarding de forma inmediata (reset de estado local, sin navegación).
    - El casero puede expulsar a un inquilino: botón "Expulsar" dentro de la tarjeta de habitación ocupada → `DELETE /viviendas/:id/habitaciones/:habId/inquilino` → la tarjeta se actualiza de forma reactiva sin recargar la pantalla.
