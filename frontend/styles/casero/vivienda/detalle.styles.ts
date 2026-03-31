@@ -38,7 +38,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 2,
     color: '#212529',
   },
-  zonaComun: { fontSize: 13, color: '#9e9e9e', fontStyle: 'italic', marginTop: 4 },
   errorTexto: { textAlign: 'center', marginTop: 40, color: '#9e9e9e' },
   codigoReveladoFila: {
     flexDirection: 'row',

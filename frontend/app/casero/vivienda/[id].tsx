@@ -149,46 +149,48 @@ export default function DetalleViviendaScreen() {
               <Text style={styles.cardTipo}>{ETIQUETAS_TIPO[habitacion.tipo] ?? habitacion.tipo}</Text>
             </View>
 
-            {habitacion.inquilino ? (
-              <View style={styles.inquilinoInfo}>
-                <Text style={styles.inquilinoNombre}>
-                  {habitacion.inquilino.nombre} {habitacion.inquilino.apellidos ?? ''}
-                </Text>
-                <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
-              </View>
-            ) : (
-              <Text style={styles.sinInquilino}>Sin inquilino</Text>
-            )}
-
-            {habitacion.es_habitable && habitacion.codigo_invitacion ? (
-              <View style={styles.codigoContainer}>
-                <Text style={styles.codigoLabel}>Código de invitación</Text>
-                {codigosRevelados[habitacion.id] ? (
-                  <View style={styles.codigoReveladoFila}>
-                    <Pressable
-                      style={styles.codigoReveladoTextoArea}
-                      onLongPress={() => copiarCodigo(habitacion.codigo_invitacion!)}
-                    >
-                      <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
-                      <Text style={styles.codigoHint}>Mantén pulsado para copiar</Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.compartirBoton}
-                      onPress={() => compartirCodigo(habitacion.codigo_invitacion!)}
-                    >
-                      <Text style={styles.compartirBotonTexto}>Compartir</Text>
-                    </Pressable>
+            {habitacion.tipo === 'DORMITORIO' && (
+              <>
+                {habitacion.inquilino ? (
+                  <View style={styles.inquilinoInfo}>
+                    <Text style={styles.inquilinoNombre}>
+                      {habitacion.inquilino.nombre} {habitacion.inquilino.apellidos ?? ''}
+                    </Text>
+                    <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
                   </View>
                 ) : (
-                  <Pressable onPress={() => revelarCodigo(habitacion.id)}>
-                    <Text style={styles.codigoOculto}>••••••••</Text>
-                    <Text style={styles.revelarTexto}>Toca para revelar</Text>
-                  </Pressable>
+                  <Text style={styles.sinInquilino}>Sin inquilino</Text>
                 )}
-              </View>
-            ) : !habitacion.es_habitable ? (
-              <Text style={styles.zonaComun}>Zona común · Sin código</Text>
-            ) : null}
+
+                {habitacion.es_habitable && habitacion.codigo_invitacion ? (
+                  <View style={styles.codigoContainer}>
+                    <Text style={styles.codigoLabel}>Código de invitación</Text>
+                    {codigosRevelados[habitacion.id] ? (
+                      <View style={styles.codigoReveladoFila}>
+                        <Pressable
+                          style={styles.codigoReveladoTextoArea}
+                          onLongPress={() => copiarCodigo(habitacion.codigo_invitacion!)}
+                        >
+                          <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
+                          <Text style={styles.codigoHint}>Mantén pulsado para copiar</Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.compartirBoton}
+                          onPress={() => compartirCodigo(habitacion.codigo_invitacion!)}
+                        >
+                          <Text style={styles.compartirBotonTexto}>Compartir</Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Pressable onPress={() => revelarCodigo(habitacion.id)}>
+                        <Text style={styles.codigoOculto}>••••••••</Text>
+                        <Text style={styles.revelarTexto}>Toca para revelar</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                ) : null}
+              </>
+            )}
 
             <View style={styles.accionFila}>
               <Pressable style={styles.botonEditar} onPress={() => handleEditarHabitacion(habitacion)}>
