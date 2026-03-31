@@ -44,13 +44,17 @@ export default function RegistroScreen() {
   const handleGoogleLogin = async (idToken: string) => {
     setLoading(true);
     try {
-      const { data } = await api.post<{ token: string; usuario: { rol: string } }>(
+      const { data } = await api.post<{ token: string; usuario: { rol: string }; esNuevo: boolean }>(
         '/auth/google',
         { idToken }
       );
       await guardarToken(data.token);
-      const destino = data.usuario.rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
-      navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
+      if (data.esNuevo) {
+        router.replace('/rol');
+      } else {
+        const destino = data.usuario.rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
+        navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
+      }
     } catch {
       Alert.alert('Error', 'No se pudo completar el registro con Google.');
     } finally {

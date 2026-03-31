@@ -42,12 +42,16 @@ export default function LoginScreen() {
   const handleGoogleLogin = async (idToken: string) => {
     setLoading(true);
     try {
-      const { data } = await api.post<{ token: string; usuario: { rol: string } }>(
+      const { data } = await api.post<{ token: string; usuario: { rol: string }; esNuevo: boolean }>(
         '/auth/google',
         { idToken }
       );
       await guardarToken(data.token);
-      irAlDashboard(data.usuario.rol);
+      if (data.esNuevo) {
+        router.replace('/rol');
+      } else {
+        irAlDashboard(data.usuario.rol);
+      }
     } catch {
       Alert.alert('Error', 'No se pudo completar el inicio de sesión con Google.');
     } finally {
