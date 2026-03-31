@@ -102,6 +102,31 @@ export default function InquilinoInicioScreen() {
     }
   };
 
+  const abandonarVivienda = () => {
+    Alert.alert(
+      'Abandonar Vivienda',
+      '¿Estás seguro de que quieres abandonar esta vivienda? Perderás el acceso a la misma.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Abandonar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete('/inquilino/habitacion');
+              setTieneCasa(false);
+              setDatosCasa(null);
+              setIncidencias([]);
+            } catch (err: any) {
+              const mensaje = err.response?.data?.error ?? 'No se pudo abandonar la vivienda.';
+              Alert.alert('Error', mensaje);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatearFecha = (iso: string) =>
     new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -211,6 +236,10 @@ export default function InquilinoInicioScreen() {
             )}
           />
         )}
+
+        <Pressable style={styles.botonAbandonar} onPress={abandonarVivienda}>
+          <Text style={styles.botonAbandonarTexto}>Abandonar Vivienda</Text>
+        </Pressable>
       </ScrollView>
 
       <Pressable

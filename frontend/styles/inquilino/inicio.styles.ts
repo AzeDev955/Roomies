@@ -234,6 +234,23 @@ export const styles = StyleSheet.create({
     zIndex: 10,
   },
 
+  // — Abandonar vivienda —
+  botonAbandonar: {
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#FF3B30',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 32,
+    marginBottom: 8,
+  },
+  botonAbandonarTexto: {
+    color: '#FF3B30',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+
   // — FAB —
   fab: {
     position: 'absolute',

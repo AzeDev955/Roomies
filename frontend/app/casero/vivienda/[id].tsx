@@ -107,6 +107,38 @@ export default function DetalleViviendaScreen() {
     );
   };
 
+  const handleExpulsarInquilino = (hab: Habitacion) => {
+    Alert.alert(
+      '¿Expulsar inquilino?',
+      'Esta acción desvinculará al usuario de la habitación.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Expulsar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/viviendas/${id}/habitaciones/${hab.id}/inquilino`);
+              setVivienda((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      habitaciones: prev.habitaciones.map((h) =>
+                        h.id === hab.id ? { ...h, inquilino: null } : h
+                      ),
+                    }
+                  : prev
+              );
+            } catch (err: any) {
+              const mensaje = err.response?.data?.error ?? 'No se pudo expulsar al inquilino.';
+              Alert.alert('Error', mensaje);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleEditarHabitacion = (hab: Habitacion) => {
     router.push({
       pathname: `/casero/vivienda/${id}/editar-habitacion`,
@@ -153,10 +185,18 @@ export default function DetalleViviendaScreen() {
               <>
                 {habitacion.inquilino ? (
                   <View style={styles.inquilinoInfo}>
-                    <Text style={styles.inquilinoNombre}>
-                      {habitacion.inquilino.nombre} {habitacion.inquilino.apellidos ?? ''}
-                    </Text>
-                    <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
+                    <View style={styles.inquilinoTextos}>
+                      <Text style={styles.inquilinoNombre}>
+                        {habitacion.inquilino.nombre} {habitacion.inquilino.apellidos ?? ''}
+                      </Text>
+                      <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
+                    </View>
+                    <Pressable
+                      style={styles.botonExpulsar}
+                      onPress={() => handleExpulsarInquilino(habitacion)}
+                    >
+                      <Text style={styles.botonExpulsarTexto}>Expulsar</Text>
+                    </Pressable>
                   </View>
                 ) : (
                   <Text style={styles.sinInquilino}>Sin inquilino</Text>

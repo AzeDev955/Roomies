@@ -79,6 +79,12 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inquilinoTextos: {
+    flex: 1,
   },
   inquilinoNombre: {
     fontSize: 14,
@@ -89,6 +95,18 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: '#0a5a8a',
     marginTop: 2,
+  },
+  botonExpulsar: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginLeft: 8,
+  },
+  botonExpulsarTexto: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   sinInquilino: {
     fontSize: 13,
