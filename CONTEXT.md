@@ -59,6 +59,7 @@ Roomies/
 │   │   ├── _layout.tsx         ← layout raíz con tab navigator
 │   │   ├── index.tsx           ← Login
 │   │   ├── registro.tsx        ← Registro
+│   │   ├── rol.tsx             ← Selector de rol (post-OAuth para usuarios nuevos)
 │   │   ├── perfil.tsx          ← Perfil + logout
 │   │   ├── home.tsx
 │   │   ├── casero/
@@ -78,6 +79,7 @@ Roomies/
 │   ├── styles/                 ← un .styles.ts por pantalla, nunca inline
 │   │   ├── index.styles.ts
 │   │   ├── registro.styles.ts
+│   │   ├── rol.styles.ts
 │   │   ├── perfil.styles.ts
 │   │   └── casero/
 │   │       ├── nueva-vivienda.styles.ts
@@ -135,16 +137,17 @@ Roomies/
 | `codigo_invitacion` | String? unique | se genera con `generarCodigoInvitacion()` |
 
 ### `Incidencia`
-| Campo | Tipo |
-|---|---|
-| `id` | Int PK |
-| `vivienda_id` | FK → Vivienda |
-| `creador_id` | FK → Usuario |
-| `titulo` | String |
-| `descripcion` | String |
-| `estado` | `PENDIENTE` \| `EN_PROCESO` \| `RESUELTA` |
-| `prioridad` | `VERDE` \| `AMARILLO` \| `ROJO` |
-| `fecha_creacion` | DateTime |
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | Int PK | |
+| `vivienda_id` | FK → Vivienda | |
+| `creador_id` | FK → Usuario | |
+| `habitacion_id` | FK → Habitacion? | opcional; el backend rechaza dormitorios ajenos |
+| `titulo` | String | |
+| `descripcion` | String | |
+| `estado` | `PENDIENTE` \| `EN_PROCESO` \| `RESUELTA` | |
+| `prioridad` | `VERDE` \| `AMARILLO` \| `ROJO` | |
+| `fecha_creacion` | DateTime | |
 
 ---
 
@@ -155,8 +158,9 @@ Roomies/
 |---|---|---|---|
 | POST | `/auth/register` | No | Registro con email/pass. Campos: `nombre`, `apellidos`, `dni`, `email`, `telefono`, `password`, `rol` |
 | POST | `/auth/login` | No | Login con email/pass |
-| POST | `/auth/google` | No | Login/registro con Google. Body: `{ idToken }` |
+| POST | `/auth/google` | No | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean` |
 | GET | `/auth/me` | Sí | Perfil del usuario autenticado |
+| PATCH | `/auth/rol` | Sí | Actualiza el rol del usuario y re-emite el JWT. Body: `{ rol: "CASERO" \| "INQUILINO" }` |
 
 ### Viviendas — `/viviendas`
 | Método | Ruta | Auth | Descripción |
@@ -167,12 +171,14 @@ Roomies/
 | POST | `/viviendas/:id/habitaciones` | Sí | Añade habitación suelta |
 | PUT | `/viviendas/:id/habitaciones/:habId` | Sí | Edita habitación |
 | DELETE | `/viviendas/:id/habitaciones/:habId` | Sí | Elimina habitación (falla si tiene inquilino) |
+| DELETE | `/viviendas/:id/habitaciones/:habId/inquilino` | Sí | Casero expulsa al inquilino de una habitación (pone `inquilino_id` a null) |
 
 ### Inquilino — `/inquilino`
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | POST | `/inquilino/unirse` | Sí | Canjear código de invitación |
 | GET | `/inquilino/vivienda` | Sí | Vivienda completa del inquilino (habitaciones + inquilinos) |
+| DELETE | `/inquilino/habitacion` | Sí | El inquilino abandona su habitación (pone `inquilino_id` a null) |
 
 ### Incidencias — `/incidencias`
 | Método | Ruta | Auth | Descripción |
@@ -271,9 +277,17 @@ El backend en Docker ejecuta al arrancar:
 
 1. **Registro manual**: `POST /auth/register` → devuelve nada (201). El usuario va al login.
 2. **Login manual**: `POST /auth/login` → devuelve `{ token, usuario }`. Se guarda el token con `guardarToken`. Se navega con `CommonActions.reset`.
-3. **Google OAuth**: `expo-auth-session` obtiene un `idToken` en el dispositivo → se envía a `POST /auth/google` → el backend lo verifica con `google-auth-library` → upsert del usuario → devuelve `{ token, usuario }`.
-4. **Sesión**: el token JWT se almacena en `expo-secure-store`. El interceptor de Axios lo inyecta en cada petición.
-5. **Logout**: `eliminarToken()` + `CommonActions.reset` a `index`.
+3. **Google OAuth**:
+   - `expo-auth-session` obtiene un `idToken` en el dispositivo.
+   - Se envía a `POST /auth/google` → el backend lo verifica con `google-auth-library` → upsert del usuario.
+   - Devuelve `{ token, usuario, esNuevo: boolean }`.
+   - Si `esNuevo === true` → frontend redirige a `/rol` (selector de rol).
+   - Si `esNuevo === false` → navegación directa al dashboard según `usuario.rol`.
+4. **Selector de rol** (`/rol`): pantalla con dos cards (Casero / Inquilino). Al confirmar:
+   - `PATCH /auth/rol` con `{ rol }` → backend actualiza BD y re-emite un nuevo JWT con el rol correcto.
+   - Frontend guarda el nuevo token y navega con `CommonActions.reset` al dashboard.
+5. **Sesión**: el token JWT se almacena en `expo-secure-store`. El interceptor de Axios lo inyecta en cada petición.
+6. **Logout**: `eliminarToken()` + `CommonActions.reset` a `index`.
 
 ---
 
@@ -289,6 +303,10 @@ El backend en Docker ejecuta al arrancar:
 4. Puede crear incidencias desde `inquilino/nueva-incidencia`:
    - Selector de habitación filtrado: solo zonas comunes + propia habitación.
    - `habitacion_id` es opcional en el POST — si se envía y apunta a un dormitorio ajeno, el backend devuelve 403.
+5. **Ciclo de vida**:
+   - El inquilino puede abandonar su habitación: `DELETE /inquilino/habitacion` → `inquilino_id` queda a null.
+   - El casero puede expulsar a un inquilino: `DELETE /viviendas/:id/habitaciones/:habId/inquilino`.
+   - Eliminar la habitación en sí sigue fallando (400) si aún tiene inquilino asignado.
 
 ---
 
