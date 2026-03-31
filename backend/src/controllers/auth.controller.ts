@@ -95,7 +95,10 @@ export const loginConGoogle: express.RequestHandler = async (req, res) => {
     where: { OR: [{ google_id: googleId }, { email }] },
   });
 
+  let esNuevo = false;
+
   if (!usuario) {
+    esNuevo = true;
     usuario = await prisma.usuario.create({
       data: {
         nombre: given_name ?? email.split('@')[0],
@@ -111,6 +114,29 @@ export const loginConGoogle: express.RequestHandler = async (req, res) => {
       data: { google_id: googleId },
     });
   }
+
+  const token = jwt.sign(
+    { id: usuario.id, rol: usuario.rol },
+    process.env['JWT_SECRET']!,
+    { expiresIn: '7d' }
+  );
+
+  const { password_hash: _omit, ...usuarioSinPassword } = usuario;
+  res.status(200).json({ token, usuario: usuarioSinPassword, esNuevo });
+};
+
+export const actualizarRol: express.RequestHandler = async (req, res) => {
+  const { rol } = req.body as { rol: RolUsuario };
+
+  if (!rol || !Object.values(RolUsuario).includes(rol)) {
+    res.status(400).json({ error: 'rol debe ser CASERO o INQUILINO.' });
+    return;
+  }
+
+  const usuario = await prisma.usuario.update({
+    where: { id: req.usuario!.id },
+    data: { rol },
+  });
 
   const token = jwt.sign(
     { id: usuario.id, rol: usuario.rol },
