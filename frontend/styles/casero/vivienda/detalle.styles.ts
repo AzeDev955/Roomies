@@ -28,6 +28,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderRadius: 8,
     padding: 10,
+    marginTop: 8,
   },
   codigoLabel: { fontSize: 11, color: '#6c757d', marginBottom: 4 },
   codigo: {
@@ -37,7 +38,6 @@ export const styles = StyleSheet.create({
     letterSpacing: 2,
     color: '#212529',
   },
-  zonaComun: { fontSize: 13, color: '#9e9e9e', fontStyle: 'italic' },
   errorTexto: { textAlign: 'center', marginTop: 40, color: '#9e9e9e' },
   codigoReveladoFila: {
     flexDirection: 'row',
@@ -71,6 +71,59 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   revelarTexto: { fontSize: 11, color: '#007AFF', marginTop: 2 },
+
+  // — Inquilino info —
+  inquilinoInfo: {
+    backgroundColor: '#e8f4fd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+  },
+  inquilinoNombre: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0a5a8a',
+  },
+  inquilinoEmail: {
+    fontSize: 12,
+    color: '#0a5a8a',
+    marginTop: 2,
+  },
+  sinInquilino: {
+    fontSize: 13,
+    color: '#adb5bd',
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+
+  // — Acciones editar/eliminar —
+  accionFila: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  botonEditar: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  botonEliminar: {
+    flex: 1,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  botonAccionTexto: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // — FAB —
   fab: {
     position: 'absolute',
     bottom: 24,

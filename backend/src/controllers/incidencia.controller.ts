@@ -6,11 +6,12 @@ const PRIORIDADES_VALIDAS = Object.values(PrioridadIncidencia);
 const ESTADOS_VALIDOS = Object.values(EstadoIncidencia);
 
 export const crearIncidencia: express.RequestHandler = async (req, res) => {
-  const { titulo, descripcion, vivienda_id, prioridad } = req.body as {
+  const { titulo, descripcion, vivienda_id, prioridad, habitacion_id } = req.body as {
     titulo: string;
     descripcion: string;
     vivienda_id: number;
     prioridad?: PrioridadIncidencia;
+    habitacion_id?: number;
   };
 
   if (!titulo || !descripcion || !vivienda_id) {
@@ -27,12 +28,26 @@ export const crearIncidencia: express.RequestHandler = async (req, res) => {
   const rol = req.usuario!.rol;
 
   if (rol === RolUsuario.INQUILINO) {
-    const habitacion = await prisma.habitacion.findFirst({
+    const habitacionPropia = await prisma.habitacion.findFirst({
       where: { vivienda_id, inquilino_id: usuarioId },
     });
-    if (!habitacion) {
+    if (!habitacionPropia) {
       res.status(403).json({ error: 'No tienes ninguna habitación asignada en esta vivienda.' });
       return;
+    }
+
+    if (habitacion_id) {
+      const hab = await prisma.habitacion.findFirst({
+        where: { id: habitacion_id, vivienda_id },
+      });
+      if (!hab) {
+        res.status(400).json({ error: 'Habitación no encontrada en esta vivienda.' });
+        return;
+      }
+      if (hab.tipo === 'DORMITORIO' && hab.inquilino_id !== usuarioId) {
+        res.status(403).json({ error: 'No puedes reportar incidencias en el dormitorio de otro inquilino.' });
+        return;
+      }
     }
   } else {
     const vivienda = await prisma.vivienda.findUnique({ where: { id: vivienda_id } });

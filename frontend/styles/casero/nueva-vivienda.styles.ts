@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
     elevation: 1,
   },
 
-  // — Buscador Nominatim —
+  // — Buscador Mapbox —
   buscadorFila: {
     flexDirection: 'row',
     gap: 8,
@@ -96,6 +96,101 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: '#212529',
     lineHeight: 20,
+  },
+
+  // — Tipo pills —
+  tipoFila: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tipoPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#e9ecef',
+  },
+  tipoPillActivo: {
+    backgroundColor: '#007AFF',
+  },
+  tipoPillTexto: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#495057',
+  },
+  tipoPillTextoActivo: {
+    color: '#fff',
+  },
+
+  // — Switch habitable —
+  switchFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  switchLabel: {
+    fontSize: 14,
+    color: '#495057',
+    flex: 1,
+    marginRight: 12,
+  },
+
+  // — Botón añadir habitación —
+  botonAnadirHabitacion: {
+    backgroundColor: '#34C759',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  botonAnadirHabitacionTexto: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // — Lista de habitaciones añadidas —
+  habitacionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  habitacionItemTexto: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#212529',
+  },
+  habitacionItemBadgeTexto: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginTop: 2,
+  },
+  habitacionItemEliminar: {
+    backgroundColor: '#FF3B30',
+    borderRadius: 16,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
 
   // — Botón guardar —

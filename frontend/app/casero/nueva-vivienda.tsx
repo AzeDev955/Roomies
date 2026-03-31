@@ -1,4 +1,4 @@
-import { View, Text, TextInput, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
@@ -10,6 +10,30 @@ type MapboxFeature = {
   text: string;
   address?: string;
   context?: { id: string; text: string }[];
+};
+
+const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
+type TipoHabitacion = typeof TIPOS[number];
+
+const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
+  DORMITORIO: 'Dormitorio',
+  BANO: 'Baño',
+  COCINA: 'Cocina',
+  SALON: 'Salón',
+  OTRO: 'Otro',
+};
+
+const NOMBRE_SUGERIDO: Partial<Record<TipoHabitacion, string>> = {
+  BANO: 'Baño',
+  COCINA: 'Cocina',
+  SALON: 'Salón',
+};
+
+type HabitacionLocal = {
+  nombre: string;
+  tipo: TipoHabitacion;
+  esHabitable: boolean;
+  metrosCuadrados: string;
 };
 
 export default function NuevaViviendaScreen() {
@@ -27,6 +51,13 @@ export default function NuevaViviendaScreen() {
   const [ciudad, setCiudad] = useState('');
   const [provincia, setProvincia] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Habitaciones inline
+  const [habitaciones, setHabitaciones] = useState<HabitacionLocal[]>([]);
+  const [habNombre, setHabNombre] = useState('');
+  const [habTipo, setHabTipo] = useState<TipoHabitacion>('DORMITORIO');
+  const [habEsHabitable, setHabEsHabitable] = useState(true);
+  const [habMetros, setHabMetros] = useState('');
 
   const puedeGuardar = aliasNombre.trim() && direccion.trim() && codigoPostal.trim() && ciudad.trim() && provincia.trim();
 
@@ -65,6 +96,34 @@ export default function NuevaViviendaScreen() {
     setQueryBusqueda('');
   };
 
+  const handleHabTipoChange = (t: TipoHabitacion) => {
+    setHabTipo(t);
+    if (t !== 'DORMITORIO') setHabEsHabitable(false);
+    else setHabEsHabitable(true);
+    if (NOMBRE_SUGERIDO[t]) setHabNombre(NOMBRE_SUGERIDO[t]!);
+  };
+
+  const añadirHabitacion = () => {
+    if (!habNombre.trim()) return;
+    setHabitaciones((prev) => [
+      ...prev,
+      {
+        nombre: habNombre.trim(),
+        tipo: habTipo,
+        esHabitable: habTipo === 'DORMITORIO' ? habEsHabitable : false,
+        metrosCuadrados: habMetros,
+      },
+    ]);
+    setHabNombre('');
+    setHabTipo('DORMITORIO');
+    setHabEsHabitable(true);
+    setHabMetros('');
+  };
+
+  const eliminarHabitacionLocal = (index: number) => {
+    setHabitaciones((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const guardar = async () => {
     if (!puedeGuardar) return;
     setLoading(true);
@@ -75,6 +134,12 @@ export default function NuevaViviendaScreen() {
         codigo_postal: codigoPostal.trim(),
         ciudad: ciudad.trim(),
         provincia: provincia.trim(),
+        habitaciones: habitaciones.map((h) => ({
+          nombre: h.nombre,
+          tipo: h.tipo,
+          es_habitable: h.esHabitable,
+          metros_cuadrados: h.metrosCuadrados ? parseFloat(h.metrosCuadrados) : undefined,
+        })),
       });
       router.replace('/casero/viviendas');
     } catch {
@@ -184,6 +249,81 @@ export default function NuevaViviendaScreen() {
           onChangeText={setProvincia}
           autoCapitalize="words"
         />
+
+        {/* — Habitaciones inline — */}
+        <Text style={styles.labelSeccion}>Habitaciones (opcional)</Text>
+
+        <Text style={styles.label}>Nombre de la habitación</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ej: Habitación 1"
+          placeholderTextColor="#9e9e9e"
+          value={habNombre}
+          onChangeText={setHabNombre}
+          autoCapitalize="words"
+        />
+
+        <Text style={styles.label}>Tipo</Text>
+        <View style={styles.tipoFila}>
+          {TIPOS.map((t) => (
+            <Pressable
+              key={t}
+              style={[styles.tipoPill, habTipo === t && styles.tipoPillActivo]}
+              onPress={() => handleHabTipoChange(t)}
+            >
+              <Text style={[styles.tipoPillTexto, habTipo === t && styles.tipoPillTextoActivo]}>
+                {ETIQUETAS_TIPO[t]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {habTipo === 'DORMITORIO' && (
+          <>
+            <Text style={styles.label}>¿Es habitable?</Text>
+            <View style={styles.switchFila}>
+              <Text style={styles.switchLabel}>
+                {habEsHabitable ? 'Sí — se generará código de invitación' : 'No — zona común'}
+              </Text>
+              <Switch
+                value={habEsHabitable}
+                onValueChange={setHabEsHabitable}
+                trackColor={{ false: '#dee2e6', true: '#34C759' }}
+                thumbColor="#fff"
+              />
+            </View>
+          </>
+        )}
+
+        <Text style={styles.label}>Metros cuadrados (opcional)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ej: 12.5"
+          placeholderTextColor="#9e9e9e"
+          value={habMetros}
+          onChangeText={setHabMetros}
+          keyboardType="decimal-pad"
+        />
+
+        <Pressable
+          style={[styles.botonAnadirHabitacion, !habNombre.trim() && styles.botonDisabled]}
+          onPress={añadirHabitacion}
+          disabled={!habNombre.trim()}
+        >
+          <Text style={styles.botonAnadirHabitacionTexto}>+ Añadir habitación</Text>
+        </Pressable>
+
+        {habitaciones.map((h, i) => (
+          <View key={i} style={styles.habitacionItem}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.habitacionItemTexto}>{h.nombre}</Text>
+              <Text style={styles.habitacionItemBadgeTexto}>{ETIQUETAS_TIPO[h.tipo]}{h.esHabitable ? ' · habitable' : ''}</Text>
+            </View>
+            <Pressable style={styles.habitacionItemEliminar} onPress={() => eliminarHabitacionLocal(i)}>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>×</Text>
+            </Pressable>
+          </View>
+        ))}
 
         <Pressable
           style={[styles.boton, (!puedeGuardar || loading) && styles.botonDisabled]}

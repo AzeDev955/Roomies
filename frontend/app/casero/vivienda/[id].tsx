@@ -6,6 +6,13 @@ import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
 
+type Inquilino = {
+  id: number;
+  nombre: string;
+  apellidos: string | null;
+  email: string;
+};
+
 type Habitacion = {
   id: number;
   nombre: string;
@@ -13,6 +20,7 @@ type Habitacion = {
   es_habitable: boolean;
   metros_cuadrados: number | null;
   codigo_invitacion: string | null;
+  inquilino: Inquilino | null;
 };
 
 type Vivienda = {
@@ -20,6 +28,14 @@ type Vivienda = {
   alias_nombre: string;
   direccion: string;
   habitaciones: Habitacion[];
+};
+
+const ETIQUETAS_TIPO: Record<string, string> = {
+  DORMITORIO: 'Dormitorio',
+  BANO: 'Baño',
+  COCINA: 'Cocina',
+  SALON: 'Salón',
+  OTRO: 'Otro',
 };
 
 export default function DetalleViviendaScreen() {
@@ -57,13 +73,50 @@ export default function DetalleViviendaScreen() {
   };
 
   const copiarCodigo = async (codigo: string) => {
-    await Clipboard.setStringAsync(codigo);
-    Alert.alert('¡Copiado!', 'El código de invitación se ha guardado en el portapapeles.');
+    const codigoLimpio = codigo.replace(/^room[-\s]*/i, '').trim();
+    await Clipboard.setStringAsync(codigoLimpio);
+    Alert.alert('Código copiado', 'Pégalo en la app para unirte a la habitación.');
   };
 
   const compartirCodigo = async (codigo: string) => {
     await Share.share({
       message: `¡Únete a tu nueva habitación en Roomies! Tu código de invitación es: ${codigo}`,
+    });
+  };
+
+  const handleEliminarHabitacion = (hab: Habitacion) => {
+    Alert.alert(
+      'Eliminar habitación',
+      `¿Eliminar "${hab.nombre}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/viviendas/${id}/habitaciones/${hab.id}`);
+              cargarVivienda();
+            } catch (err: any) {
+              const mensaje = err.response?.data?.error ?? 'No se pudo eliminar la habitación.';
+              Alert.alert('Error', mensaje);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditarHabitacion = (hab: Habitacion) => {
+    router.push({
+      pathname: `/casero/vivienda/${id}/editar-habitacion`,
+      params: {
+        habId: String(hab.id),
+        nombre: hab.nombre,
+        tipo: hab.tipo,
+        esHabitable: String(hab.es_habitable),
+        metrosCuadrados: String(hab.metros_cuadrados ?? ''),
+      },
     });
   };
 
@@ -93,37 +146,60 @@ export default function DetalleViviendaScreen() {
           <View key={habitacion.id} style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>{habitacion.nombre}</Text>
-              <Text style={styles.cardTipo}>{habitacion.tipo}</Text>
+              <Text style={styles.cardTipo}>{ETIQUETAS_TIPO[habitacion.tipo] ?? habitacion.tipo}</Text>
             </View>
-            {habitacion.es_habitable && habitacion.codigo_invitacion ? (
-              <View style={styles.codigoContainer}>
-                <Text style={styles.codigoLabel}>Código de invitación</Text>
-                {codigosRevelados[habitacion.id] ? (
-                  <View style={styles.codigoReveladoFila}>
-                    <Pressable
-                      style={styles.codigoReveladoTextoArea}
-                      onLongPress={() => copiarCodigo(habitacion.codigo_invitacion!)}
-                    >
-                      <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
-                      <Text style={styles.codigoHint}>Mantén pulsado para copiar</Text>
-                    </Pressable>
-                    <Pressable
-                      style={styles.compartirBoton}
-                      onPress={() => compartirCodigo(habitacion.codigo_invitacion!)}
-                    >
-                      <Text style={styles.compartirBotonTexto}>Compartir</Text>
-                    </Pressable>
+
+            {habitacion.tipo === 'DORMITORIO' && (
+              <>
+                {habitacion.inquilino ? (
+                  <View style={styles.inquilinoInfo}>
+                    <Text style={styles.inquilinoNombre}>
+                      {habitacion.inquilino.nombre} {habitacion.inquilino.apellidos ?? ''}
+                    </Text>
+                    <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
                   </View>
                 ) : (
-                  <Pressable onPress={() => revelarCodigo(habitacion.id)}>
-                    <Text style={styles.codigoOculto}>••••••••</Text>
-                    <Text style={styles.revelarTexto}>Toca para revelar</Text>
-                  </Pressable>
+                  <Text style={styles.sinInquilino}>Sin inquilino</Text>
                 )}
-              </View>
-            ) : (
-              <Text style={styles.zonaComun}>Zona común · Sin código</Text>
+
+                {habitacion.es_habitable && habitacion.codigo_invitacion ? (
+                  <View style={styles.codigoContainer}>
+                    <Text style={styles.codigoLabel}>Código de invitación</Text>
+                    {codigosRevelados[habitacion.id] ? (
+                      <View style={styles.codigoReveladoFila}>
+                        <Pressable
+                          style={styles.codigoReveladoTextoArea}
+                          onLongPress={() => copiarCodigo(habitacion.codigo_invitacion!)}
+                        >
+                          <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
+                          <Text style={styles.codigoHint}>Mantén pulsado para copiar</Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.compartirBoton}
+                          onPress={() => compartirCodigo(habitacion.codigo_invitacion!)}
+                        >
+                          <Text style={styles.compartirBotonTexto}>Compartir</Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Pressable onPress={() => revelarCodigo(habitacion.id)}>
+                        <Text style={styles.codigoOculto}>••••••••</Text>
+                        <Text style={styles.revelarTexto}>Toca para revelar</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                ) : null}
+              </>
             )}
+
+            <View style={styles.accionFila}>
+              <Pressable style={styles.botonEditar} onPress={() => handleEditarHabitacion(habitacion)}>
+                <Text style={styles.botonAccionTexto}>Editar</Text>
+              </Pressable>
+              <Pressable style={styles.botonEliminar} onPress={() => handleEliminarHabitacion(habitacion)}>
+                <Text style={styles.botonAccionTexto}>Eliminar</Text>
+              </Pressable>
+            </View>
           </View>
         ))}
       </ScrollView>
