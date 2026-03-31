@@ -12,6 +12,14 @@ export const ETIQUETAS_ESTADO: Record<string, string> = {
   RESUELTA: 'Resuelta',
 };
 
+export const ETIQUETAS_TIPO: Record<string, string> = {
+  DORMITORIO: 'Dormitorio',
+  BANO: 'Baño',
+  COCINA: 'Cocina',
+  SALON: 'Salón',
+  OTRO: 'Otro',
+};
+
 export const styles = StyleSheet.create({
   // — Onboarding (sin casa) —
   onboardingContainer: {
@@ -112,6 +120,58 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#212529',
     marginBottom: 12,
+    marginTop: 8,
+  },
+
+  // — Compañeros de piso —
+  companeroCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  companeroNombre: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#212529',
+  },
+  companeroHabitacion: {
+    fontSize: 13,
+    color: '#6c757d',
+  },
+
+  // — Zonas comunes —
+  zonasFilas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  zonaCard: {
+    backgroundColor: '#e9ecef',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  zonaNombre: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#212529',
+  },
+  zonaTipo: {
+    fontSize: 11,
+    color: '#6c757d',
+    marginTop: 2,
   },
 
   // — Tarjeta de incidencia —
