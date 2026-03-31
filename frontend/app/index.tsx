@@ -1,6 +1,7 @@
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
+import { CommonActions } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -12,6 +13,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,6 +35,11 @@ export default function LoginScreen() {
     }
   }, [googleResponse]);
 
+  const irAlDashboard = (rol: string) => {
+    const destino = rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
+    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
+  };
+
   const handleGoogleLogin = async (idToken: string) => {
     setLoading(true);
     try {
@@ -41,7 +48,7 @@ export default function LoginScreen() {
         { idToken }
       );
       await guardarToken(data.token);
-      router.replace(data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio');
+      irAlDashboard(data.usuario.rol);
     } catch {
       Alert.alert('Error', 'No se pudo completar el inicio de sesión con Google.');
     } finally {
@@ -57,12 +64,7 @@ export default function LoginScreen() {
         { email, password }
       );
       await guardarToken(data.token);
-
-      if (data.usuario.rol === 'CASERO') {
-        router.replace('/casero/viviendas');
-      } else {
-        router.replace('/inquilino/inicio');
-      }
+      irAlDashboard(data.usuario.rol);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'Credenciales inválidas o sin conexión al servidor.';
       Alert.alert('Error', mensaje);

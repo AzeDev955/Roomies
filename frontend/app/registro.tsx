@@ -1,6 +1,7 @@
 import { View, Text, TextInput, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
+import { CommonActions } from '@react-navigation/native';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -14,6 +15,7 @@ type Rol = 'CASERO' | 'INQUILINO';
 
 export default function RegistroScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [dni, setDni] = useState('');
@@ -48,7 +50,8 @@ export default function RegistroScreen() {
         { idToken }
       );
       await guardarToken(data.token);
-      router.replace(data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio');
+      const destino = data.usuario.rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
+      navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
     } catch {
       Alert.alert('Error', 'No se pudo completar el registro con Google.');
     } finally {
