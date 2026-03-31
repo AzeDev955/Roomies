@@ -22,8 +22,6 @@ export default function LoginScreen() {
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    redirectUri: process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI,
     scopes: ['openid', 'email', 'profile'],
   });
 
