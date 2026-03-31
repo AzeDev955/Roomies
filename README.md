@@ -7,22 +7,34 @@ Aplicación integral para la gestión de alquiler de habitaciones y co-living. C
 La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 
 ### 👑 Para el Casero / Gestor
-* **Gestión Multipropiedad:** Creación y administración de diferentes viviendas y sus respectivas habitaciones.
-* **Códigos de Invitación:** Generación de códigos únicos para vincular a los inquilinos con su habitación exacta.
-* **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado (Pendiente, En Proceso, Resuelto) de los problemas reportados en las viviendas.
+* **Gestión Multipropiedad:** Creación y administración de diferentes viviendas y sus respectivas habitaciones, con autocompletado de dirección vía Mapbox.
+* **Códigos de Invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
+* **Gestión de Inquilinos:** Expulsión de inquilinos por habitación directamente desde el panel de detalle.
+* **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado de los problemas reportados en las viviendas.
 
 ### 🛋️ Para el Inquilino
-* **Mi Espacio:** Vista rápida de la información de su vivienda y habitación.
-* **Reporte Rápido:** Formulario ágil para reportar incidencias directamente al casero, evitando la fricción de los mensajes informales.
-* **Seguimiento:** Visualización del estado de sus reportes en tiempo real.
+* **Mi Espacio:** Vista rápida de la vivienda, compañeros de piso, zonas comunes e incidencias.
+* **Reporte Rápido:** Formulario ágil para reportar incidencias con selector de habitación y prioridad.
+* **Seguimiento con permisos:** Selector de estado en las incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
+* **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
+
+### 🔐 Autenticación
+* Registro e inicio de sesión con **email y contraseña**.
+* Inicio de sesión con **Google OAuth** (expo-auth-session + google-auth-library).
+* Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
 
 ## 🛠️ Stack Tecnológico
 
-El proyecto está dividido en dos repositorios/carpetas principales:
-
-* **Frontend (Mobile App):** React Native + Expo.
-* **Backend (API REST):** Node.js + Express.
-* **Base de Datos:** PostgreSQL (gestionada mediante Prisma ORM).
+| Capa | Tecnología |
+|---|---|
+| Frontend | React Native + Expo SDK 54 + expo-router ~6.0.23 |
+| Backend | Node.js + Express 5 + TypeScript |
+| ORM | Prisma 7 (PostgreSQL) |
+| Auth | JWT + bcrypt + Google OAuth (`google-auth-library`) |
+| Token storage | `expo-secure-store` |
+| HTTP client | Axios con interceptor Bearer token |
+| Geocoding | Mapbox Geocoding API |
+| Infraestructura | Docker Compose (PostgreSQL + backend + frontend) |
 
 ## 🗺️ Roadmap (Próximas versiones)
 - [ ] Módulo de limpieza: Asignación de tareas semanales rotativas.
@@ -52,8 +64,8 @@ Esto arrancará tres servicios:
 | Servicio | Puerto | Descripción |
 |---|---|---|
 | `db` | 5432 | PostgreSQL 15 con volumen persistente |
-| `backend` | 3000 | API Express — aplica el schema automáticamente al arrancar |
-| `frontend` | 8081 | Metro bundler de Expo — escanea el QR con Expo Go |
+| `backend` | 3001 | API Express — aplica el schema automáticamente al arrancar |
+| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
 
 > **Dispositivo físico:** el QR de Expo usará la IP de la red del contenedor. Si no conecta, establece la variable `REACT_NATIVE_PACKAGER_HOSTNAME=<TU_IP_LOCAL>` en el servicio `frontend` del compose.
 
@@ -67,8 +79,8 @@ docker-compose exec backend npx prisma db seed
 Credenciales creadas:
 | Rol | Email | Contraseña |
 |---|---|---|
-| CASERO | `casero@test.com` | `casero123` |
-| INQUILINO | `inquilino@test.com` | `inquilino123` |
+| CASERO | `casero@test.com` | `password123` |
+| INQUILINO | `inquilino@test.com` | `password123` |
 
 ---
 
