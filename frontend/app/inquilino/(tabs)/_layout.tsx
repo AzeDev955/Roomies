@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Theme } from '@/constants/theme';
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Theme } from "@/constants/theme";
 
 export default function InquilinoTabsLayout() {
   return (
@@ -16,14 +16,14 @@ export default function InquilinoTabsLayout() {
         },
         tabBarLabelStyle: {
           fontSize: Theme.typography.caption,
-          fontWeight: '600',
+          fontWeight: "600",
         },
       }}
     >
       <Tabs.Screen
         name="inicio"
         options={{
-          title: 'Mi Vivienda',
+          title: "Mi vivienda",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -32,7 +32,7 @@ export default function InquilinoTabsLayout() {
       <Tabs.Screen
         name="tablon"
         options={{
-          title: 'Tablón',
+          title: "Tablón",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="newspaper-outline" size={size} color={color} />
           ),
@@ -41,7 +41,7 @@ export default function InquilinoTabsLayout() {
       <Tabs.Screen
         name="perfil"
         options={{
-          title: 'Perfil',
+          title: "Perfil",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),
