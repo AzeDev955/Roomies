@@ -198,6 +198,80 @@ useFocusEffect(
 );
 ```
 
+## Generar APK para testing (EAS Build)
+
+### Requisitos
+
+- Cuenta en [expo.dev](https://expo.dev) (el `owner` en `app.json` es `azeron955`)
+- EAS CLI instalado globalmente
+
+```bash
+npm install -g eas-cli
+```
+
+### Configuración existente (`frontend/eas.json`)
+
+```json
+{
+  "build": {
+    "preview": {
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://roomies-production-c884.up.railway.app/api",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "...",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "..."
+      }
+    },
+    "production": {
+      "android": { "buildType": "app-bundle" }
+    }
+  }
+}
+```
+
+> Las variables `EXPO_PUBLIC_*` deben declararse en `eas.json` bajo `env` del perfil correspondiente porque el cloud builder de EAS **no lee el `.env` local**. Cualquier variable que falte llega como `undefined` al bundle.
+
+### Comandos
+
+```bash
+cd frontend
+
+# Login (una sola vez)
+eas login
+
+# Build APK (cloud, ~10-15 min)
+eas build --platform android --profile preview
+```
+
+EAS devuelve un enlace de descarga directo del `.apk` al terminar.
+
+### Instalar en dispositivo físico vía ADB
+
+```bash
+# Desinstalar versión anterior (evita conflictos de firma)
+adb uninstall com.azeron955.roomies
+
+# Instalar el nuevo APK
+adb install ruta/al/build.apk
+```
+
+### Google OAuth en APK nativo
+
+El `androidClientId` configurado (`343196560597-i4vamt5...`) usa el paquete `host.exp.exponent` (Expo Go). Para que el login con Google funcione en el APK nativo con `com.azeron955.roomies` hay que:
+
+1. Crear una nueva credencial **Android** en Google Cloud Console con el paquete `com.azeron955.roomies` y el SHA-1 que genera EAS (`eas credentials`)
+2. Actualizar `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` en `eas.json`
+
+Mientras tanto, el **login con email/contraseña funciona correctamente** en el APK.
+
+### Ver logs de crash en dispositivo
+
+```bash
+adb logcat -s ReactNativeJS AndroidRuntime
+```
+
+---
+
 ## Decisiones de arquitectura
 
 | Decisión | Motivo |
