@@ -4,17 +4,6 @@ import { Theme } from '@/constants/theme';
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
   list: { padding: Theme.spacing.base },
-  card: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.base,
-    marginBottom: Theme.spacing.md,
-    shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   cardTitle: { fontSize: 18, fontWeight: '700', marginBottom: Theme.spacing.xs },
   cardAddress: { fontSize: 14, color: Theme.colors.textSecondary, marginBottom: Theme.spacing.sm },
   cardRooms: { fontSize: Theme.typography.label, color: Theme.colors.primary, fontWeight: '600' },

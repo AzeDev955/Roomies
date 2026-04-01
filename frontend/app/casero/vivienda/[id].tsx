@@ -6,6 +6,8 @@ import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
 import { COLORES_PRIORIDAD } from '@/styles/casero/vivienda/incidencias.styles';
+import { Card } from '@/components/common/Card';
+import { CustomButton } from '@/components/common/CustomButton';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
@@ -197,7 +199,7 @@ export default function DetalleViviendaScreen() {
         {[...vivienda.habitaciones]
           .sort((a, b) => Number(b.es_habitable) - Number(a.es_habitable) || a.id - b.id)
           .map((habitacion) => (
-          <View key={habitacion.id} style={styles.card}>
+          <Card key={habitacion.id}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>{habitacion.nombre}</Text>
               <Text style={styles.cardTipo}>{ETIQUETAS_TIPO[habitacion.tipo] ?? habitacion.tipo}</Text>
@@ -213,12 +215,12 @@ export default function DetalleViviendaScreen() {
                       </Text>
                       <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
                     </View>
-                    <Pressable
-                      style={styles.botonExpulsar}
+                    <CustomButton
+                      label="Expulsar"
+                      variant="danger"
                       onPress={() => handleExpulsarInquilino(habitacion)}
-                    >
-                      <Text style={styles.botonExpulsarTexto}>Expulsar</Text>
-                    </Pressable>
+                      style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6, marginLeft: 8 }}
+                    />
                   </View>
                 ) : (
                   <Text style={styles.sinInquilino}>Sin inquilino</Text>
@@ -236,12 +238,12 @@ export default function DetalleViviendaScreen() {
                           <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
                           <Text style={styles.codigoHint}>Mantén pulsado para copiar</Text>
                         </Pressable>
-                        <Pressable
-                          style={styles.compartirBoton}
+                        <CustomButton
+                          label="Compartir"
+                          variant="success"
                           onPress={() => compartirCodigo(habitacion.codigo_invitacion!)}
-                        >
-                          <Text style={styles.compartirBotonTexto}>Compartir</Text>
-                        </Pressable>
+                          style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }}
+                        />
                       </View>
                     ) : (
                       <Pressable onPress={() => revelarCodigo(habitacion.id)}>
@@ -270,14 +272,20 @@ export default function DetalleViviendaScreen() {
             )}
 
             <View style={styles.accionFila}>
-              <Pressable style={styles.botonEditar} onPress={() => handleEditarHabitacion(habitacion)}>
-                <Text style={styles.botonAccionTexto}>Editar</Text>
-              </Pressable>
-              <Pressable style={styles.botonEliminar} onPress={() => handleEliminarHabitacion(habitacion)}>
-                <Text style={styles.botonAccionTexto}>Eliminar</Text>
-              </Pressable>
+              <CustomButton
+                label="Editar"
+                variant="primary"
+                onPress={() => handleEditarHabitacion(habitacion)}
+                style={{ flex: 1, paddingVertical: 8, borderRadius: 8 }}
+              />
+              <CustomButton
+                label="Eliminar"
+                variant="danger"
+                onPress={() => handleEliminarHabitacion(habitacion)}
+                style={{ flex: 1, paddingVertical: 8, borderRadius: 8 }}
+              />
             </View>
-          </View>
+          </Card>
         ))}
       </ScrollView>
 
