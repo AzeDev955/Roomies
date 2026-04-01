@@ -49,6 +49,7 @@ export default function InquilinoInicioScreen() {
   const [datosCasa, setDatosCasa] = useState<DatosCasa | null>(null);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loadingIncidencias, setLoadingIncidencias] = useState(false);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
   const cargarVivienda = async () => {
     try {
@@ -156,6 +157,43 @@ export default function InquilinoInicioScreen() {
   const formatearFecha = (iso: string) =>
     new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+  const renderIncidencia = (item: Incidencia) => {
+    const puedeGestionar = item.creador_id === datosCasa?.miUsuarioId;
+    return (
+      <Pressable
+        key={item.id}
+        style={styles.card}
+        onPress={() => router.push(`/incidencia/${item.id}?puedeGestionar=${puedeGestionar}`)}
+      >
+        <View style={[styles.indicador, { backgroundColor: COLORES_PRIORIDAD[item.prioridad] }]} />
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitulo}>{item.titulo}</Text>
+          <Text style={styles.cardDescripcion} numberOfLines={2}>{item.descripcion}</Text>
+          <View style={styles.cardFooter}>
+            <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
+          </View>
+          {tienePermisoEditar(item) ? (
+            <View style={styles.estadoSelector}>
+              {ESTADOS.map((e) => (
+                <Pressable
+                  key={e}
+                  style={[styles.estadoPill, item.estado === e && styles.estadoPillActivo]}
+                  onPress={() => actualizarEstado(item.id, e)}
+                >
+                  <Text style={[styles.estadoPillTexto, item.estado === e && styles.estadoPillTextoActivo]}>
+                    {ETIQUETAS_ESTADO[e]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.estadoSoloLectura}>{ETIQUETAS_ESTADO[item.estado]}</Text>
+          )}
+        </View>
+      </Pressable>
+    );
+  };
+
   if (!tieneCasa) {
     return (
       <View style={styles.onboardingContainer}>
@@ -195,6 +233,8 @@ export default function InquilinoInicioScreen() {
     (h) => h.tipo === 'DORMITORIO' && h.inquilino !== null && h.id !== datosCasa?.miHabitacionId
   );
   const zonasComunes = (datosCasa?.habitaciones ?? []).filter((h) => h.tipo !== 'DORMITORIO');
+  const activas = incidencias.filter((i) => i.estado !== 'RESUELTA');
+  const historial = incidencias.filter((i) => i.estado === 'RESUELTA');
 
   return (
     <View style={styles.dashboardContainer}>
@@ -238,45 +278,26 @@ export default function InquilinoInicioScreen() {
         {loadingIncidencias ? (
           <ActivityIndicator color="#007AFF" style={styles.loaderIncidencias} />
         ) : (
-          <FlatList
-            data={incidencias}
-            keyExtractor={(item) => item.id.toString()}
-            scrollEnabled={false}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No hay incidencias registradas.</Text>
-            }
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <View
-                  style={[styles.indicador, { backgroundColor: COLORES_PRIORIDAD[item.prioridad] }]}
-                />
-                <View style={styles.cardBody}>
-                  <Text style={styles.cardTitulo}>{item.titulo}</Text>
-                  <Text style={styles.cardDescripcion}>{item.descripcion}</Text>
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
-                  </View>
-                  {tienePermisoEditar(item) ? (
-                    <View style={styles.estadoSelector}>
-                      {ESTADOS.map((e) => (
-                        <Pressable
-                          key={e}
-                          style={[styles.estadoPill, item.estado === e && styles.estadoPillActivo]}
-                          onPress={() => actualizarEstado(item.id, e)}
-                        >
-                          <Text style={[styles.estadoPillTexto, item.estado === e && styles.estadoPillTextoActivo]}>
-                            {ETIQUETAS_ESTADO[e]}
-                          </Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  ) : (
-                    <Text style={styles.estadoSoloLectura}>{ETIQUETAS_ESTADO[item.estado]}</Text>
-                  )}
-                </View>
-              </View>
+          <>
+            {activas.length === 0 && (
+              <Text style={styles.emptyText}>No hay incidencias activas.</Text>
             )}
-          />
+            {activas.map((item) => renderIncidencia(item))}
+
+            {historial.length > 0 && (
+              <Pressable
+                style={styles.historialToggle}
+                onPress={() => setMostrarHistorial((v) => !v)}
+              >
+                <Text style={styles.historialToggleTexto}>
+                  {mostrarHistorial
+                    ? 'Ocultar historial'
+                    : `Ver historial (${historial.length})`}
+                </Text>
+              </Pressable>
+            )}
+            {mostrarHistorial && historial.map((item) => renderIncidencia(item))}
+          </>
         )}
 
         <Pressable style={styles.botonAbandonar} onPress={abandonarVivienda}>

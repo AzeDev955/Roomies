@@ -15,18 +15,18 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 ## Stack técnico
 
-| Capa | Tecnología |
-|---|---|
-| Backend | Node.js + Express 5 + TypeScript |
-| ORM | Prisma 7 (PostgreSQL) |
-| Auth | JWT (`jsonwebtoken`) + bcrypt + Google OAuth (`google-auth-library`) |
-| Frontend | React Native + Expo (SDK 54) |
-| Routing | `expo-router` ~6.0.23 (file-based) |
-| HTTP client | Axios con interceptor Bearer token |
-| Token storage | `expo-secure-store` |
-| Geocoding | Mapbox Geocoding API |
-| Auth social | `expo-auth-session/providers/google` + `expo-web-browser` |
-| Infraestructura | Docker Compose (PostgreSQL + backend + frontend) |
+| Capa            | Tecnología                                                           |
+| --------------- | -------------------------------------------------------------------- |
+| Backend         | Node.js + Express 5 + TypeScript                                     |
+| ORM             | Prisma 7 (PostgreSQL)                                                |
+| Auth            | JWT (`jsonwebtoken`) + bcrypt + Google OAuth (`google-auth-library`) |
+| Frontend        | React Native + Expo (SDK 54)                                         |
+| Routing         | `expo-router` ~6.0.23 (file-based)                                   |
+| HTTP client     | Axios con interceptor Bearer token                                   |
+| Token storage   | `expo-secure-store`                                                  |
+| Geocoding       | Mapbox Geocoding API                                                 |
+| Auth social     | `expo-auth-session/providers/google` + `expo-web-browser`            |
+| Infraestructura | Docker Compose (PostgreSQL + backend + frontend)                     |
 
 ---
 
@@ -112,97 +112,106 @@ Roomies/
 ## Modelos de datos (Prisma)
 
 ### `Usuario`
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | Int PK | autoincrement |
-| `nombre` | String | obligatorio |
-| `apellidos` | String? | opcional (OAuth no siempre lo provee) |
-| `dni` | String? unique | obligatorio en registro manual |
-| `email` | String unique | |
-| `password_hash` | String? | null si el usuario se registró con Google |
-| `google_id` | String? unique | null si el usuario se registró con email/pass |
-| `telefono` | String? | obligatorio en registro manual |
-| `rol` | RolUsuario | `CASERO` \| `INQUILINO` |
+
+| Campo           | Tipo           | Notas                                         |
+| --------------- | -------------- | --------------------------------------------- |
+| `id`            | Int PK         | autoincrement                                 |
+| `nombre`        | String         | obligatorio                                   |
+| `apellidos`     | String?        | opcional (OAuth no siempre lo provee)         |
+| `dni`           | String? unique | obligatorio en registro manual                |
+| `email`         | String unique  |                                               |
+| `password_hash` | String?        | null si el usuario se registró con Google     |
+| `google_id`     | String? unique | null si el usuario se registró con email/pass |
+| `telefono`      | String?        | obligatorio en registro manual                |
+| `rol`           | RolUsuario     | `CASERO` \| `INQUILINO`                       |
 
 ### `Vivienda`
-| Campo | Tipo |
-|---|---|
-| `id` | Int PK |
-| `casero_id` | FK → Usuario |
-| `alias_nombre` | String |
-| `direccion` | String |
-| `codigo_postal` | String |
-| `ciudad` | String |
-| `provincia` | String |
+
+| Campo           | Tipo         |
+| --------------- | ------------ |
+| `id`            | Int PK       |
+| `casero_id`     | FK → Usuario |
+| `alias_nombre`  | String       |
+| `direccion`     | String       |
+| `codigo_postal` | String       |
+| `ciudad`        | String       |
+| `provincia`     | String       |
 
 ### `Habitacion`
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | Int PK | |
-| `vivienda_id` | FK → Vivienda | |
-| `inquilino_id` | FK → Usuario? | null si sin inquilino |
-| `nombre` | String | |
-| `tipo` | TipoHabitacion | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` |
-| `es_habitable` | Boolean | si true, tiene código de invitación |
-| `metros_cuadrados` | Float? | |
-| `codigo_invitacion` | String? unique | se genera con `generarCodigoInvitacion()` |
+
+| Campo               | Tipo           | Notas                                                   |
+| ------------------- | -------------- | ------------------------------------------------------- |
+| `id`                | Int PK         |                                                         |
+| `vivienda_id`       | FK → Vivienda  |                                                         |
+| `inquilino_id`      | FK → Usuario?  | null si sin inquilino                                   |
+| `nombre`            | String         |                                                         |
+| `tipo`              | TipoHabitacion | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` |
+| `es_habitable`      | Boolean        | si true, tiene código de invitación                     |
+| `metros_cuadrados`  | Float?         |                                                         |
+| `codigo_invitacion` | String? unique | se genera con `generarCodigoInvitacion()`               |
 
 ### `Incidencia`
-| Campo | Tipo | Notas |
-|---|---|---|
-| `id` | Int PK | |
-| `vivienda_id` | FK → Vivienda | |
-| `creador_id` | FK → Usuario | |
-| `habitacion_id` | FK → Habitacion? | opcional; el backend rechaza dormitorios ajenos |
-| `titulo` | String | |
-| `descripcion` | String | |
-| `estado` | `PENDIENTE` \| `EN_PROCESO` \| `RESUELTA` | |
-| `prioridad` | `VERDE` \| `AMARILLO` \| `ROJO` | |
-| `fecha_creacion` | DateTime | |
+
+| Campo            | Tipo                                      | Notas                                           |
+| ---------------- | ----------------------------------------- | ----------------------------------------------- |
+| `id`             | Int PK                                    |                                                 |
+| `vivienda_id`    | FK → Vivienda                             |                                                 |
+| `creador_id`     | FK → Usuario                              |                                                 |
+| `habitacion_id`  | FK → Habitacion?                          | opcional; el backend rechaza dormitorios ajenos |
+| `titulo`         | String                                    |                                                 |
+| `descripcion`    | String                                    |                                                 |
+| `estado`         | `PENDIENTE` \| `EN_PROCESO` \| `RESUELTA` |                                                 |
+| `prioridad`      | `VERDE` \| `AMARILLO` \| `ROJO`           |                                                 |
+| `fecha_creacion` | DateTime                                  |                                                 |
 
 ---
 
 ## API REST (base: `/api`)
 
 ### Auth — `/auth`
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/auth/register` | No | Registro con email/pass. Campos: `nombre`, `apellidos`, `dni`, `email`, `telefono`, `password`, `rol` |
-| POST | `/auth/login` | No | Login con email/pass |
-| POST | `/auth/google` | No | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean` |
-| GET | `/auth/me` | Sí | Perfil del usuario autenticado |
-| PATCH | `/auth/rol` | Sí | Actualiza el rol del usuario y re-emite el JWT. Body: `{ rol: "CASERO" \| "INQUILINO" }` |
+
+| Método | Ruta             | Auth | Descripción                                                                                           |
+| ------ | ---------------- | ---- | ----------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/register` | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `dni`, `email`, `telefono`, `password`, `rol` |
+| POST   | `/auth/login`    | No   | Login con email/pass                                                                                  |
+| POST   | `/auth/google`   | No   | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean`                           |
+| GET    | `/auth/me`       | Sí   | Perfil del usuario autenticado                                                                        |
+| PATCH  | `/auth/rol`      | Sí   | Actualiza el rol del usuario y re-emite el JWT. Body: `{ rol: "CASERO" \| "INQUILINO" }`              |
 
 ### Viviendas — `/viviendas`
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| GET | `/viviendas` | Sí | Lista viviendas del casero autenticado |
-| POST | `/viviendas` | Sí | Crea vivienda (acepta array opcional `habitaciones`) |
-| GET | `/viviendas/:id` | Sí | Detalle con habitaciones e inquilinos |
-| POST | `/viviendas/:id/habitaciones` | Sí | Añade habitación suelta |
-| PUT | `/viviendas/:id/habitaciones/:habId` | Sí | Edita habitación |
-| DELETE | `/viviendas/:id/habitaciones/:habId` | Sí | Elimina habitación (falla si tiene inquilino) |
-| DELETE | `/viviendas/:id/habitaciones/:habId/inquilino` | Sí | Casero expulsa al inquilino de una habitación (pone `inquilino_id` a null) |
+
+| Método | Ruta                                           | Auth | Descripción                                                                |
+| ------ | ---------------------------------------------- | ---- | -------------------------------------------------------------------------- |
+| GET    | `/viviendas`                                   | Sí   | Lista viviendas del casero autenticado                                     |
+| POST   | `/viviendas`                                   | Sí   | Crea vivienda (acepta array opcional `habitaciones`)                       |
+| GET    | `/viviendas/:id`                               | Sí   | Detalle con habitaciones e inquilinos                                      |
+| POST   | `/viviendas/:id/habitaciones`                  | Sí   | Añade habitación suelta                                                    |
+| PUT    | `/viviendas/:id/habitaciones/:habId`           | Sí   | Edita habitación                                                           |
+| DELETE | `/viviendas/:id/habitaciones/:habId`           | Sí   | Elimina habitación (falla si tiene inquilino)                              |
+| DELETE | `/viviendas/:id/habitaciones/:habId/inquilino` | Sí   | Casero expulsa al inquilino de una habitación (pone `inquilino_id` a null) |
 
 ### Inquilino — `/inquilino`
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/inquilino/unirse` | Sí | Canjear código de invitación |
-| GET | `/inquilino/vivienda` | Sí | Vivienda completa del inquilino (habitaciones + inquilinos) |
-| DELETE | `/inquilino/habitacion` | Sí | El inquilino abandona su habitación (pone `inquilino_id` a null) |
+
+| Método | Ruta                    | Auth | Descripción                                                      |
+| ------ | ----------------------- | ---- | ---------------------------------------------------------------- |
+| POST   | `/inquilino/unirse`     | Sí   | Canjear código de invitación                                     |
+| GET    | `/inquilino/vivienda`   | Sí   | Vivienda completa del inquilino (habitaciones + inquilinos)      |
+| DELETE | `/inquilino/habitacion` | Sí   | El inquilino abandona su habitación (pone `inquilino_id` a null) |
 
 ### Incidencias — `/incidencias`
-| Método | Ruta | Auth | Descripción |
-|---|---|---|---|
-| POST | `/incidencias` | Sí | Crear incidencia (acepta `habitacion_id` opcional; validado contra dormitorios ajenos) |
-| GET | `/incidencias` | Sí | Listar incidencias (casero: todas sus viviendas; inquilino: su vivienda) |
-| PATCH | `/incidencias/:id/estado` | Sí | Cambiar estado. Casero: libre en sus viviendas. Inquilino: solo si es creador, la incidencia es de su dormitorio, o es de una zona común |
+
+| Método | Ruta                      | Auth | Descripción                                                                                                                              |
+| ------ | ------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/incidencias`            | Sí   | Crear incidencia (acepta `habitacion_id` opcional; validado contra dormitorios ajenos)                                                   |
+| GET    | `/incidencias`            | Sí   | Listar incidencias (casero: todas sus viviendas; inquilino: su vivienda)                                                                 |
+| PATCH  | `/incidencias/:id/estado` | Sí   | Cambiar estado. Casero: libre en sus viviendas. Inquilino: solo si es creador, la incidencia es de su dormitorio, o es de una zona común |
 
 ---
 
 ## Variables de entorno
 
 ### `.env` (raíz — leído por Docker Compose)
+
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
@@ -214,6 +223,7 @@ GOOGLE_CLIENT_ID=<Web Client ID de Google Cloud Console>
 ```
 
 ### `backend/.env` (para desarrollo local sin Docker)
+
 ```
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/roomies
 JWT_SECRET=roomies_dev_secret_local
@@ -221,6 +231,7 @@ GOOGLE_CLIENT_ID=<mismo que arriba>
 ```
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)
+
 ```
 EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
 EXPO_PUBLIC_MAPBOX_TOKEN=<token Mapbox>
@@ -247,6 +258,7 @@ docker-compose down
 ```
 
 El backend en Docker ejecuta al arrancar:
+
 1. `npx prisma db push --accept-data-loss` — aplica el schema
 2. `npx prisma generate` — regenera el cliente
 3. `npx prisma db seed` — carga datos de prueba
@@ -261,6 +273,7 @@ El backend en Docker ejecuta al arrancar:
 ## Convenciones de código
 
 ### Backend
+
 - Los controllers exportan `RequestHandler` tipados de Express 5.
 - El tipo `req.usuario` se añade en `auth.middleware.ts` al verificar el JWT.
 - Prisma se importa desde `../lib/prisma` (singleton).
@@ -268,6 +281,7 @@ El backend en Docker ejecuta al arrancar:
 - `generarCodigoInvitacion()` está en `src/utils/generarCodigo.ts`.
 
 ### Frontend
+
 - **Estilos**: cada pantalla tiene su archivo `.styles.ts` en `styles/` con la misma ruta relativa que la pantalla. Nunca `StyleSheet.create` inline en el componente.
 - **Navegación**: usar `CommonActions.reset` (de `@react-navigation/native`) para limpiar la pila al hacer login/logout. Nunca `router.replace` para navegaciones entre sesiones.
 - **Token**: guardar/recuperar/eliminar con las funciones de `services/auth.service.ts`.
@@ -277,6 +291,7 @@ El backend en Docker ejecuta al arrancar:
 - **Portapapeles y códigos**: los códigos se almacenan con prefijo `ROOM-` en la BD, pero al copiar al portapapeles se limpia el prefijo con `/^room[-\s]*/i` para que el inquilino solo pegue la parte alfanumérica.
 
 ### Routing (expo-router)
+
 - Las rutas de archivo se mapean directamente a URLs.
 - `[id].tsx` → pantalla de detalle con param `id`.
 - `[id]/nueva-habitacion.tsx` → subruta con acceso a `id` mediante `useLocalSearchParams`.
@@ -326,14 +341,15 @@ El backend en Docker ejecuta al arrancar:
 
 Usuarios de prueba creados por `prisma db seed`:
 
-| Email | Password | Rol |
-|---|---|---|
-| casero@test.com | `password123` | CASERO |
-| inquilino@test.com | `password123` | INQUILINO |
+| Email              | Password    | Rol       |
+| ------------------ | ----------- | --------- |
+| casero@test.com    | `casero123` | CASERO    |
+| inquilino@test.com | `casero123` | INQUILINO |
 
 ---
 
 ## Documentación adicional
 
 - `docs/backend/api.md` — referencia completa de endpoints con ejemplos de body/response.
+- `docs/frontend/setup.md` — guía de configuración del frontend, variables de entorno, estructura de la app, flujo de autenticación y decisiones de arquitectura.
 - `docs/changelog/` — un archivo por issue implementado, con decisiones técnicas.

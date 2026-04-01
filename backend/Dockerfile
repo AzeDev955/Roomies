@@ -12,4 +12,4 @@ RUN npx prisma generate
 EXPOSE 3000
 
 # Aplica el schema a la DB y arranca el servidor de desarrollo
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx prisma generate && npx prisma db seed && npm run dev"]
+CMD ["sh", "-c", "until npx prisma db push --accept-data-loss; do echo 'DB not ready, retrying in 3s...'; sleep 3; done && npx prisma db seed && npm run dev"]
