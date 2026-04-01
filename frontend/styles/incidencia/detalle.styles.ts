@@ -1,69 +1,70 @@
 import { StyleSheet } from 'react-native';
+import { Theme } from '@/constants/theme';
 
 export const COLORES_PRIORIDAD: Record<string, string> = {
-  VERDE: '#34C759',
-  AMARILLO: '#FF9500',
-  ROJO: '#FF3B30',
+  VERDE:    Theme.colors.success,
+  AMARILLO: Theme.colors.warning,
+  ROJO:     Theme.colors.danger,
 };
 
 export const ETIQUETAS_ESTADO: Record<string, string> = {
-  PENDIENTE: 'Pendiente',
+  PENDIENTE:  'Pendiente',
   EN_PROCESO: 'En proceso',
-  RESUELTA: 'Resuelta',
+  RESUELTA:   'Resuelta',
 };
 
 export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
-  VERDE: 'Baja',
+  VERDE:    'Baja',
   AMARILLO: 'Media',
-  ROJO: 'Alta',
+  ROJO:     'Alta',
 };
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 16, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: Theme.colors.background },
+  content: { padding: Theme.spacing.base, paddingBottom: 40 },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorTexto: { textAlign: 'center', marginTop: 40, color: '#9e9e9e' },
+  errorTexto: { textAlign: 'center', marginTop: 40, color: Theme.colors.textTertiary },
 
   // — Cabecera —
   cabecera: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 20,
+    gap: Theme.spacing.md,
+    marginBottom: Theme.spacing.lg,
   },
   dot: {
     width: 14,
     height: 14,
     borderRadius: 7,
-    marginTop: 4,
+    marginTop: Theme.spacing.xs,
     flexShrink: 0,
   },
   cabeceraTextos: { flex: 1 },
-  titulo: { fontSize: 20, fontWeight: '700', color: '#212529', marginBottom: 4 },
-  subtitulo: { fontSize: 13, color: '#9e9e9e' },
+  titulo: { fontSize: Theme.typography.title, fontWeight: '700', color: Theme.colors.text, marginBottom: Theme.spacing.xs },
+  subtitulo: { fontSize: Theme.typography.label, color: Theme.colors.textTertiary },
 
   // — Secciones de datos —
   seccion: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.md,
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.md,
+    shadowColor: Theme.colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 1,
   },
-  etiqueta: { fontSize: 11, color: '#9e9e9e', fontWeight: '600', textTransform: 'uppercase', marginBottom: 4 },
-  valor: { fontSize: 14, color: '#212529', lineHeight: 20 },
+  etiqueta: { fontSize: 11, color: Theme.colors.textTertiary, fontWeight: '600', textTransform: 'uppercase', marginBottom: Theme.spacing.xs },
+  valor: { fontSize: 14, color: Theme.colors.text, lineHeight: 20 },
 
   // — Edición inline —
   inputTexto: {
     fontSize: 14,
-    color: '#212529',
+    color: Theme.colors.text,
     borderWidth: 1,
-    borderColor: '#dee2e6',
-    borderRadius: 8,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.sm,
     padding: 10,
     backgroundColor: '#f8f9fa',
   },
@@ -73,48 +74,48 @@ export const styles = StyleSheet.create({
   },
 
   // — Acciones —
-  accionFila: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  accionFila: { flexDirection: 'row', gap: 10, marginTop: Theme.spacing.sm },
   botonEditar: {
     flex: 1,
-    backgroundColor: '#007AFF',
+    backgroundColor: Theme.colors.primary,
     borderRadius: 10,
-    paddingVertical: 12,
+    paddingVertical: Theme.spacing.md,
     alignItems: 'center',
   },
   botonGuardar: {
     flex: 1,
-    backgroundColor: '#34C759',
+    backgroundColor: Theme.colors.success,
     borderRadius: 10,
-    paddingVertical: 12,
+    paddingVertical: Theme.spacing.md,
     alignItems: 'center',
   },
   botonCancelar: {
     flex: 1,
-    backgroundColor: '#e9ecef',
+    backgroundColor: Theme.colors.surface2,
     borderRadius: 10,
-    paddingVertical: 12,
+    paddingVertical: Theme.spacing.md,
     alignItems: 'center',
   },
   botonEliminar: {
     flex: 1,
-    backgroundColor: '#FF3B30',
+    backgroundColor: Theme.colors.danger,
     borderRadius: 10,
-    paddingVertical: 12,
+    paddingVertical: Theme.spacing.md,
     alignItems: 'center',
   },
-  botonTextoClaro: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  botonTextoOscuro: { color: '#495057', fontSize: 14, fontWeight: '700' },
+  botonTextoClaro: { color: Theme.colors.surface, fontSize: 14, fontWeight: '700' },
+  botonTextoOscuro: { color: Theme.colors.textMedium, fontSize: 14, fontWeight: '700' },
 
   // — Selector de estado —
-  estadoSelector: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  estadoSelector: { flexDirection: 'row', gap: 6, marginTop: Theme.spacing.xs },
   estadoPill: {
     flex: 1,
-    borderRadius: 8,
-    paddingVertical: 8,
+    borderRadius: Theme.radius.sm,
+    paddingVertical: Theme.spacing.sm,
     alignItems: 'center',
-    backgroundColor: '#e9ecef',
+    backgroundColor: Theme.colors.surface2,
   },
-  estadoPillActivo: { backgroundColor: '#007AFF' },
-  estadoPillTexto: { fontSize: 11, fontWeight: '600', color: '#495057' },
-  estadoPillTextoActivo: { color: '#fff' },
+  estadoPillActivo: { backgroundColor: Theme.colors.primary },
+  estadoPillTexto: { fontSize: 11, fontWeight: '600', color: Theme.colors.textMedium },
+  estadoPillTextoActivo: { color: Theme.colors.surface },
 });
