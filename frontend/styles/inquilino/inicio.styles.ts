@@ -282,6 +282,17 @@ export const styles = StyleSheet.create({
     marginTop: 6,
   },
 
+  // — Enlace tablón —
+  enlaceTablon: {
+    paddingVertical: 8,
+    marginBottom: 4,
+  },
+  enlaceTablonTexto: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+
   // — Historial —
   historialToggle: {
     paddingVertical: 12,

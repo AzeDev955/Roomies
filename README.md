@@ -42,6 +42,24 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 - [ ] Chat integrado Inquilino <-> Casero.
 - [ ] Tablón de anuncios para la vivienda.
 
+## ☁️ Despliegue en Producción (Railway)
+
+El backend y la base de datos pueden desplegarse en [Railway](https://railway.app) sin servidor propio. Ver los pasos completos en [`docs/backend/setup.md → Despliegue en Railway`](docs/backend/setup.md#despliegue-en-railway).
+
+Una vez obtenido el dominio público del backend, actualiza `frontend/.env`:
+
+```env
+EXPO_PUBLIC_API_URL=https://<tu-dominio>.up.railway.app/api
+```
+
+Y reinicia Metro desde `frontend/` para hornear la nueva URL en el bundle:
+
+```bash
+npx expo start --clear
+```
+
+---
+
 ## ⚙️ Levantar el entorno con Docker (recomendado)
 
 La forma más rápida de tener todo funcionando es con Docker Compose.

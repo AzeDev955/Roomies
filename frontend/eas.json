@@ -1,0 +1,22 @@
+{
+  "cli": {
+    "version": ">= 16.0.0"
+  },
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://roomies-production-c884.up.railway.app/api",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "343196560597-2oe0gikprqi4qe3v7m73jnhrclq48rju.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "343196560597-i4vamt5kpum1q09aievn2krelod15n51.apps.googleusercontent.com"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  }
+}

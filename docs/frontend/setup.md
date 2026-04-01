@@ -17,11 +17,11 @@ EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<android_client_id>
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<ios_client_id>
 ```
 
-> `EXPO_PUBLIC_API_URL`: IP de tu máquina en la red Wi-Fi local (`ipconfig` → IPv4 del adaptador Wi-Fi). Si arrancas sin Docker, apunta a `http://localhost:3000/api`.
+> `EXPO_PUBLIC_API_URL`: IP de tu máquina en la red Wi-Fi local (`ipconfig` → IPv4 del adaptador Wi-Fi). Si arrancas sin Docker, apunta a `http://localhost:3000/api`. Si el backend está desplegado en Railway, usa la URL pública: `https://<dominio>.up.railway.app/api`.
 > `EXPO_PUBLIC_MAPBOX_TOKEN`: necesario para el autocompletado de dirección en "Nueva vivienda".
 > `EXPO_PUBLIC_GOOGLE_*`: IDs de credenciales OAuth 2.0 de Google Cloud Console. Ver sección [Autenticación Google OAuth](#autenticación-google-oauth).
 
-Las variables `EXPO_PUBLIC_*` se hornean en el bundle en tiempo de compilación por Metro — un cambio requiere reiniciar Metro.
+Las variables `EXPO_PUBLIC_*` se hornean en el bundle en tiempo de compilación por Metro — cualquier cambio requiere reiniciar Metro con `npx expo start --clear`.
 
 ## Instalación y arranque
 
@@ -66,6 +66,8 @@ frontend/
     inquilino/
       inicio.tsx                              # Onboarding (canjear código) + Dashboard completo (compañeros, zonas, incidencias)
       nueva-incidencia.tsx                    # Formulario nueva incidencia con selector de habitación
+    tablon/
+      [viviendaId].tsx                        # Tablón de anuncios de una vivienda (casero + inquilino compartido)
   services/
     api.ts                                    # Instancia Axios centralizada con interceptor JWT
     auth.service.ts                           # guardarToken / obtenerToken / eliminarToken (SecureStore)
@@ -83,6 +85,8 @@ frontend/
     inquilino/
       inicio.styles.ts                        # Estilos + COLORES_PRIORIDAD + ETIQUETAS_ESTADO + ETIQUETAS_TIPO
       nueva-incidencia.styles.ts              # Estilos + COLORES_PRIORIDAD + ETIQUETAS_PRIORIDAD
+    tablon/
+      tablon.styles.ts                        # Estilos del tablón de anuncios
   constants/
     theme.ts                                  # Colores globales
 ```
@@ -103,6 +107,7 @@ frontend/
 | `/rol` | `app/rol.tsx` | PATCH `/auth/rol` — selector de rol post-OAuth para usuarios nuevos |
 | `/inquilino/inicio` | `app/inquilino/inicio.tsx` | GET `/inquilino/vivienda` + GET `/incidencias` + onboarding + abandonar vivienda |
 | `/inquilino/nueva-incidencia` | `app/inquilino/nueva-incidencia.tsx` | POST `/incidencias` con selector de habitación filtrado |
+| `/tablon/:viviendaId` | `app/tablon/[viviendaId].tsx` | GET `/anuncios?viviendaId` + POST `/anuncios` + DELETE `/anuncios/:id` — compartida casero e inquilino |
 
 ## Arquitectura de autenticación
 
@@ -192,6 +197,80 @@ useFocusEffect(
   }, [id])
 );
 ```
+
+## Generar APK para testing (EAS Build)
+
+### Requisitos
+
+- Cuenta en [expo.dev](https://expo.dev) (el `owner` en `app.json` es `azeron955`)
+- EAS CLI instalado globalmente
+
+```bash
+npm install -g eas-cli
+```
+
+### Configuración existente (`frontend/eas.json`)
+
+```json
+{
+  "build": {
+    "preview": {
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://roomies-production-c884.up.railway.app/api",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "...",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "..."
+      }
+    },
+    "production": {
+      "android": { "buildType": "app-bundle" }
+    }
+  }
+}
+```
+
+> Las variables `EXPO_PUBLIC_*` deben declararse en `eas.json` bajo `env` del perfil correspondiente porque el cloud builder de EAS **no lee el `.env` local**. Cualquier variable que falte llega como `undefined` al bundle.
+
+### Comandos
+
+```bash
+cd frontend
+
+# Login (una sola vez)
+eas login
+
+# Build APK (cloud, ~10-15 min)
+eas build --platform android --profile preview
+```
+
+EAS devuelve un enlace de descarga directo del `.apk` al terminar.
+
+### Instalar en dispositivo físico vía ADB
+
+```bash
+# Desinstalar versión anterior (evita conflictos de firma)
+adb uninstall com.azeron955.roomies
+
+# Instalar el nuevo APK
+adb install ruta/al/build.apk
+```
+
+### Google OAuth en APK nativo
+
+El `androidClientId` configurado (`343196560597-i4vamt5...`) usa el paquete `host.exp.exponent` (Expo Go). Para que el login con Google funcione en el APK nativo con `com.azeron955.roomies` hay que:
+
+1. Crear una nueva credencial **Android** en Google Cloud Console con el paquete `com.azeron955.roomies` y el SHA-1 que genera EAS (`eas credentials`)
+2. Actualizar `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` en `eas.json`
+
+Mientras tanto, el **login con email/contraseña funciona correctamente** en el APK.
+
+### Ver logs de crash en dispositivo
+
+```bash
+adb logcat -s ReactNativeJS AndroidRuntime
+```
+
+---
 
 ## Decisiones de arquitectura
 

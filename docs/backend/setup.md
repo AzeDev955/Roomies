@@ -57,6 +57,69 @@ GET http://localhost:3000/ping  →  pong
 | `npm run build` | Compila TypeScript a `dist/` |
 | `npm start` | Arranca el servidor compilado (`dist/index.js`) |
 
+## Despliegue en Railway
+
+Railway gestiona el build y el arranque automáticamente usando los scripts de `package.json`. No se necesita `Dockerfile` ni configuración adicional.
+
+### 1. Base de datos
+
+1. En el panel de Railway → **New Project → Database → PostgreSQL**
+2. Una vez creado el servicio, ve a su pestaña **Variables** y copia el valor de `DATABASE_URL` (URL de conexión interna)
+
+### 2. Backend
+
+1. **New Service → GitHub Repo** → selecciona el repositorio
+2. Ve a **Settings → Source → Root Directory** y escribe `/backend`
+   > Esto le indica a Railway que ignore el resto del monorepo y trate `/backend` como la raíz del proyecto Node.js
+
+### 3. Variables de entorno
+
+En el servicio del backend → pestaña **Variables**, añade:
+
+| Variable | Valor |
+|---|---|
+| `DATABASE_URL` | URL interna del servicio PostgreSQL de Railway |
+| `JWT_SECRET` | Cadena aleatoria larga (mín. 32 caracteres) |
+| `GOOGLE_CLIENT_ID` | Web Client ID de Google Cloud Console |
+
+### 4. Build y arranque automático
+
+Railway detecta `package.json` y ejecuta en orden:
+
+```
+npm run build   →  prisma generate + tsc
+npm start       →  prisma db push + node dist/index.js
+```
+
+Las migraciones del schema y el arranque del servidor son completamente automáticos en cada despliegue.
+
+### 5. Dominio público
+
+En el servicio del backend → **Networking → Generate Domain**. Railway genera una URL con el formato:
+
+```
+https://<nombre-proyecto>.up.railway.app
+```
+
+### 6. Conectar el frontend
+
+Actualiza `frontend/.env` con la URL generada:
+
+```env
+EXPO_PUBLIC_API_URL=https://<nombre-proyecto>.up.railway.app/api
+```
+
+Reinicia Metro para que la nueva URL quede horneada en el bundle:
+
+```bash
+cd frontend
+npx expo start --clear
+```
+
+> Las variables `EXPO_PUBLIC_*` se resuelven en tiempo de compilación del bundle — cualquier cambio requiere reiniciar Metro con `--clear`.
+
+---
+
 ## Decisiones de arquitectura
 
 | Decisión | Motivo |

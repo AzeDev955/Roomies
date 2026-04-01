@@ -189,6 +189,9 @@ export default function DetalleViviendaScreen() {
         <Pressable onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}>
           <Text style={styles.enlaceIncidencias}>Ver todas las incidencias →</Text>
         </Pressable>
+        <Pressable onPress={() => router.push(`/tablon/${id}?esCasero=true`)}>
+          <Text style={styles.enlaceIncidencias}>Tablón de anuncios →</Text>
+        </Pressable>
 
         {[...vivienda.habitaciones]
           .sort((a, b) => Number(b.es_habitable) - Number(a.es_habitable) || a.id - b.id)
