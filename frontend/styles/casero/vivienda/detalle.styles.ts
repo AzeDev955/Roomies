@@ -39,6 +39,12 @@ export const styles = StyleSheet.create({
     color: '#212529',
   },
   errorTexto: { textAlign: 'center', marginTop: 40, color: '#9e9e9e' },
+  enlaceIncidencias: {
+    fontSize: 13,
+    color: '#007AFF',
+    marginBottom: 16,
+  },
+
   // — Indicadores de incidencias en tarjeta de habitación —
   incidenciasHabitacion: {
     borderTopWidth: 1,
