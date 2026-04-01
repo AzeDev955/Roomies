@@ -1,7 +1,6 @@
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useEffect, useState } from 'react';
-import { useNavigation } from 'expo-router';
-import { CommonActions } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import api from '@/services/api';
 import { eliminarToken } from '@/services/auth.service';
 import { styles } from '@/styles/perfil.styles';
@@ -16,7 +15,7 @@ type Perfil = {
 };
 
 export default function PerfilScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +35,7 @@ export default function PerfilScreen() {
 
   const cerrarSesion = async () => {
     await eliminarToken();
-    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'index' }] }));
+    router.replace('/');
   };
 
   if (loading) {

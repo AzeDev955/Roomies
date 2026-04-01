@@ -1,7 +1,6 @@
 import { View, Text, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { useState } from 'react';
-import { useNavigation } from 'expo-router';
-import { CommonActions } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { styles } from '@/styles/rol.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
@@ -9,7 +8,7 @@ import api from '@/services/api';
 type Rol = 'CASERO' | 'INQUILINO';
 
 export default function SeleccionRolScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -21,8 +20,8 @@ export default function SeleccionRolScreen() {
         rol: rolSeleccionado,
       });
       await guardarToken(data.token);
-      const destino = data.usuario.rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
-      navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
+      const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
+      router.replace(destino);
     } catch {
       Alert.alert('Error', 'No se pudo guardar el rol. Inténtalo de nuevo.');
     } finally {
