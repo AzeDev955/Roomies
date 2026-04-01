@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { obtenerToken, eliminarToken } from '@/services/auth.service';
 import api from '@/services/api';
@@ -13,13 +13,12 @@ export default function RootLayout() {
     const verificarSesion = async () => {
       try {
         const token = await obtenerToken();
-        if (!token) return; // queda en /
-
-        const { data } = await api.get<{ rol: string }>('/auth/me');
-        const destino = data.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-        router.replace(destino);
+        if (token) {
+          const { data } = await api.get<{ rol: string }>('/auth/me');
+          const destino = data.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
+          router.replace(destino);
+        }
       } catch {
-        // Token expirado o inválido — borrarlo y quedarse en login
         await eliminarToken();
       } finally {
         setChecking(false);
@@ -29,13 +28,23 @@ export default function RootLayout() {
     verificarSesion();
   }, []);
 
-  if (checking) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Theme.colors.background }}>
-        <ActivityIndicator size="large" color={Theme.colors.primary} />
-      </View>
-    );
-  }
-
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+      {checking && (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+        </View>
+      )}
+    </>
+  );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
