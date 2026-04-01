@@ -5,12 +5,23 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
+import { COLORES_PRIORIDAD } from '@/styles/casero/vivienda/incidencias.styles';
+
+type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
+type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
 
 type Inquilino = {
   id: number;
   nombre: string;
   apellidos: string | null;
   email: string;
+};
+
+type IncidenciaResumen = {
+  id: number;
+  titulo: string;
+  prioridad: Prioridad;
+  estado: Estado;
 };
 
 type Habitacion = {
@@ -21,6 +32,7 @@ type Habitacion = {
   metros_cuadrados: number | null;
   codigo_invitacion: string | null;
   inquilino: Inquilino | null;
+  incidencias: IncidenciaResumen[];
 };
 
 type Vivienda = {
@@ -174,13 +186,6 @@ export default function DetalleViviendaScreen() {
         <Text style={styles.title}>{vivienda.alias_nombre}</Text>
         <Text style={styles.address}>{vivienda.direccion}</Text>
 
-        <Pressable
-          style={styles.botonIncidencias}
-          onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}
-        >
-          <Text style={styles.botonIncidenciasTexto}>Ver Incidencias</Text>
-        </Pressable>
-
         {vivienda.habitaciones.map((habitacion) => (
           <View key={habitacion.id} style={styles.card}>
             <View style={styles.cardHeader}>
@@ -237,6 +242,21 @@ export default function DetalleViviendaScreen() {
                   </View>
                 ) : null}
               </>
+            )}
+
+            {habitacion.incidencias.length > 0 && (
+              <View style={styles.incidenciasHabitacion}>
+                {habitacion.incidencias.map((inc) => (
+                  <Pressable
+                    key={inc.id}
+                    style={styles.incidenciaFila}
+                    onPress={() => router.push(`/incidencia/${inc.id}?puedeGestionar=true`)}
+                  >
+                    <View style={[styles.incidenciaDot, { backgroundColor: COLORES_PRIORIDAD[inc.prioridad] }]} />
+                    <Text style={styles.incidenciaTitulo} numberOfLines={1}>{inc.titulo}</Text>
+                  </Pressable>
+                ))}
+              </View>
             )}
 
             <View style={styles.accionFila}>
