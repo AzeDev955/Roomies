@@ -1,5 +1,50 @@
-import { Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { obtenerToken, eliminarToken } from '@/services/auth.service';
+import api from '@/services/api';
+import { Theme } from '@/constants/theme';
 
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const verificarSesion = async () => {
+      try {
+        const token = await obtenerToken();
+        if (token) {
+          const { data } = await api.get<{ rol: string }>('/auth/me');
+          const destino = data.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
+          router.replace(destino);
+        }
+      } catch {
+        await eliminarToken();
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    verificarSesion();
+  }, []);
+
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+      {checking && (
+        <View style={styles.overlay}>
+          <ActivityIndicator size="large" color={Theme.colors.primary} />
+        </View>
+      )}
+    </>
+  );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Theme.colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
