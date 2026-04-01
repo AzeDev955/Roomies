@@ -186,7 +186,9 @@ export default function DetalleViviendaScreen() {
         <Text style={styles.title}>{vivienda.alias_nombre}</Text>
         <Text style={styles.address}>{vivienda.direccion}</Text>
 
-        {vivienda.habitaciones.map((habitacion) => (
+        {[...vivienda.habitaciones]
+          .sort((a, b) => Number(b.es_habitable) - Number(a.es_habitable) || a.id - b.id)
+          .map((habitacion) => (
           <View key={habitacion.id} style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>{habitacion.nombre}</Text>
