@@ -282,6 +282,18 @@ export const styles = StyleSheet.create({
     marginTop: 6,
   },
 
+  // — Historial —
+  historialToggle: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  historialToggleTexto: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+
   // — FAB —
   fab: {
     position: 'absolute',

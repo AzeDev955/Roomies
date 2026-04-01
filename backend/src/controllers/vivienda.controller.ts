@@ -1,12 +1,20 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
-import { RolUsuario, TipoHabitacion } from '../generated/prisma/client';
+import { RolUsuario, TipoHabitacion, EstadoIncidencia } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
 
 export const listarViviendas: express.RequestHandler = async (req, res) => {
   const viviendas = await prisma.vivienda.findMany({
     where: { casero_id: req.usuario!.id },
-    include: { habitaciones: true },
+    include: {
+      habitaciones: true,
+      incidencias: {
+        where: {
+          estado: { in: [EstadoIncidencia.PENDIENTE, EstadoIncidencia.EN_PROCESO] },
+        },
+        select: { prioridad: true },
+      },
+    },
   });
   res.status(200).json(viviendas);
 };
@@ -74,6 +82,10 @@ export const obtenerVivienda: express.RequestHandler = async (req, res) => {
         include: {
           inquilino: {
             select: { id: true, nombre: true, apellidos: true, email: true },
+          },
+          incidencias: {
+            where: { estado: { in: [EstadoIncidencia.PENDIENTE, EstadoIncidencia.EN_PROCESO] } },
+            select: { id: true, titulo: true, prioridad: true, estado: true },
           },
         },
       },

@@ -76,11 +76,16 @@ export const listarIncidencias: express.RequestHandler = async (req, res) => {
   const rol = req.usuario!.rol;
 
   if (rol === RolUsuario.CASERO) {
+    const viviendaIdParam = req.query['viviendaId'] ? parseInt(req.query['viviendaId'] as string, 10) : undefined;
     const incidencias = await prisma.incidencia.findMany({
-      where: { vivienda: { casero_id: usuarioId } },
+      where: {
+        vivienda: { casero_id: usuarioId },
+        ...(viviendaIdParam ? { vivienda_id: viviendaIdParam } : {}),
+      },
       include: {
         vivienda: true,
         creador: { select: { id: true, nombre: true, apellidos: true } },
+        habitacion: { select: { id: true, nombre: true } },
       },
       orderBy: { fecha_creacion: 'desc' },
     });
@@ -108,6 +113,113 @@ export const listarIncidencias: express.RequestHandler = async (req, res) => {
   });
 
   res.status(200).json(incidencias);
+};
+
+export const obtenerIncidencia: express.RequestHandler = async (req, res) => {
+  const id = parseInt(req.params['id'] as string, 10);
+  const usuarioId = req.usuario!.id;
+  const rol = req.usuario!.rol;
+
+  const incidencia = await prisma.incidencia.findUnique({
+    where: { id },
+    include: {
+      vivienda: true,
+      creador: { select: { id: true, nombre: true, apellidos: true } },
+      habitacion: { select: { id: true, nombre: true } },
+    },
+  });
+
+  if (!incidencia) {
+    res.status(404).json({ error: 'Incidencia no encontrada.' });
+    return;
+  }
+
+  if (rol === RolUsuario.CASERO) {
+    if (incidencia.vivienda.casero_id !== usuarioId) {
+      res.status(403).json({ error: 'No tienes permiso para ver esta incidencia.' });
+      return;
+    }
+  } else {
+    const miHabitacion = await prisma.habitacion.findFirst({
+      where: { vivienda_id: incidencia.vivienda_id, inquilino_id: usuarioId },
+    });
+    if (!miHabitacion) {
+      res.status(403).json({ error: 'No tienes acceso a esta incidencia.' });
+      return;
+    }
+  }
+
+  res.status(200).json(incidencia);
+};
+
+export const editarIncidencia: express.RequestHandler = async (req, res) => {
+  const id = parseInt(req.params['id'] as string, 10);
+  const { titulo, descripcion } = req.body as { titulo?: string; descripcion?: string };
+  const usuarioId = req.usuario!.id;
+  const rol = req.usuario!.rol;
+
+  const incidencia = await prisma.incidencia.findUnique({
+    where: { id },
+    include: { vivienda: true },
+  });
+
+  if (!incidencia) {
+    res.status(404).json({ error: 'Incidencia no encontrada.' });
+    return;
+  }
+
+  if (rol === RolUsuario.CASERO) {
+    if (incidencia.vivienda.casero_id !== usuarioId) {
+      res.status(403).json({ error: 'No tienes permiso para editar esta incidencia.' });
+      return;
+    }
+  } else {
+    if (incidencia.creador_id !== usuarioId) {
+      res.status(403).json({ error: 'Solo el creador puede editar esta incidencia.' });
+      return;
+    }
+  }
+
+  const actualizada = await prisma.incidencia.update({
+    where: { id },
+    data: {
+      ...(titulo ? { titulo } : {}),
+      ...(descripcion ? { descripcion } : {}),
+    },
+  });
+
+  res.status(200).json(actualizada);
+};
+
+export const eliminarIncidencia: express.RequestHandler = async (req, res) => {
+  const id = parseInt(req.params['id'] as string, 10);
+  const usuarioId = req.usuario!.id;
+  const rol = req.usuario!.rol;
+
+  const incidencia = await prisma.incidencia.findUnique({
+    where: { id },
+    include: { vivienda: true },
+  });
+
+  if (!incidencia) {
+    res.status(404).json({ error: 'Incidencia no encontrada.' });
+    return;
+  }
+
+  if (rol === RolUsuario.CASERO) {
+    if (incidencia.vivienda.casero_id !== usuarioId) {
+      res.status(403).json({ error: 'No tienes permiso para eliminar esta incidencia.' });
+      return;
+    }
+  } else {
+    if (incidencia.creador_id !== usuarioId) {
+      res.status(403).json({ error: 'Solo el creador puede eliminar esta incidencia.' });
+      return;
+    }
+  }
+
+  await prisma.incidencia.delete({ where: { id } });
+  res.status(204).send();
 };
 
 export const actualizarEstadoIncidencia: express.RequestHandler = async (req, res) => {

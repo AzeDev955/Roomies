@@ -39,6 +39,36 @@ export const styles = StyleSheet.create({
     color: '#212529',
   },
   errorTexto: { textAlign: 'center', marginTop: 40, color: '#9e9e9e' },
+  enlaceIncidencias: {
+    fontSize: 13,
+    color: '#007AFF',
+    marginBottom: 16,
+  },
+
+  // — Indicadores de incidencias en tarjeta de habitación —
+  incidenciasHabitacion: {
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    marginTop: 10,
+    paddingTop: 10,
+    gap: 6,
+  },
+  incidenciaFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  incidenciaDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  incidenciaTitulo: {
+    flex: 1,
+    fontSize: 12,
+    color: '#495057',
+  },
   codigoReveladoFila: {
     flexDirection: 'row',
     alignItems: 'center',
