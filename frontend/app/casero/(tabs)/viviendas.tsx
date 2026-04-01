@@ -1,7 +1,6 @@
 import { View, Text, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { styles } from '@/styles/casero/viviendas.styles';
 import api from '@/services/api';
 import { Card } from '@/components/common/Card';
@@ -64,9 +63,6 @@ export default function ViviendasScreen() {
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.iconoPerfil} onPress={() => router.push('/perfil')}>
-        <Ionicons name="person-circle-outline" size={32} color="#007AFF" />
-      </Pressable>
       <FlatList
         data={viviendas}
         keyExtractor={(item) => item.id.toString()}

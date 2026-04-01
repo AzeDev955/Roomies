@@ -227,14 +227,6 @@ export const styles = StyleSheet.create({
     color: Theme.colors.textMuted,
   },
 
-  // — Icono perfil —
-  iconoPerfil: {
-    position: 'absolute',
-    top: Theme.spacing.base,
-    right: Theme.spacing.base,
-    zIndex: 10,
-  },
-
   // — Abandonar vivienda —
   botonAbandonar: {
     width: '100%',

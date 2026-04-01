@@ -27,12 +27,6 @@ export const styles = StyleSheet.create({
     elevation: 8,
   },
   fabText: { color: Theme.colors.surface, fontSize: Theme.typography.hero, lineHeight: 36, fontWeight: '300' },
-  iconoPerfil: {
-    position: 'absolute',
-    top: Theme.spacing.base,
-    right: Theme.spacing.base,
-    zIndex: 10,
-  },
   badge: {
     position: 'absolute',
     top: 10,
