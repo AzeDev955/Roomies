@@ -66,6 +66,8 @@ frontend/
     inquilino/
       inicio.tsx                              # Onboarding (canjear código) + Dashboard completo (compañeros, zonas, incidencias)
       nueva-incidencia.tsx                    # Formulario nueva incidencia con selector de habitación
+    tablon/
+      [viviendaId].tsx                        # Tablón de anuncios de una vivienda (casero + inquilino compartido)
   services/
     api.ts                                    # Instancia Axios centralizada con interceptor JWT
     auth.service.ts                           # guardarToken / obtenerToken / eliminarToken (SecureStore)
@@ -83,6 +85,8 @@ frontend/
     inquilino/
       inicio.styles.ts                        # Estilos + COLORES_PRIORIDAD + ETIQUETAS_ESTADO + ETIQUETAS_TIPO
       nueva-incidencia.styles.ts              # Estilos + COLORES_PRIORIDAD + ETIQUETAS_PRIORIDAD
+    tablon/
+      tablon.styles.ts                        # Estilos del tablón de anuncios
   constants/
     theme.ts                                  # Colores globales
 ```
@@ -103,6 +107,7 @@ frontend/
 | `/rol` | `app/rol.tsx` | PATCH `/auth/rol` — selector de rol post-OAuth para usuarios nuevos |
 | `/inquilino/inicio` | `app/inquilino/inicio.tsx` | GET `/inquilino/vivienda` + GET `/incidencias` + onboarding + abandonar vivienda |
 | `/inquilino/nueva-incidencia` | `app/inquilino/nueva-incidencia.tsx` | POST `/incidencias` con selector de habitación filtrado |
+| `/tablon/:viviendaId` | `app/tablon/[viviendaId].tsx` | GET `/anuncios?viviendaId` + POST `/anuncios` + DELETE `/anuncios/:id` — compartida casero e inquilino |
 
 ## Arquitectura de autenticación
 

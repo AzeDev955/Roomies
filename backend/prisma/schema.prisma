@@ -45,6 +45,7 @@ model Usuario {
   viviendas     Vivienda[]
   habitaciones  Habitacion[]
   incidencias   Incidencia[]
+  anuncios      Anuncio[]
 }
 
 model Vivienda {
@@ -58,6 +59,7 @@ model Vivienda {
   provincia     String
   habitaciones  Habitacion[]
   incidencias   Incidencia[]
+  anuncios      Anuncio[]
 }
 
 model Habitacion {
@@ -87,4 +89,15 @@ model Incidencia {
   estado         EstadoIncidencia    @default(PENDIENTE)
   prioridad      PrioridadIncidencia @default(VERDE)
   fecha_creacion DateTime            @default(now())
+}
+
+model Anuncio {
+  id             Int      @id @default(autoincrement())
+  vivienda_id    Int
+  vivienda       Vivienda @relation(fields: [vivienda_id], references: [id])
+  autor_id       Int
+  autor          Usuario  @relation(fields: [autor_id], references: [id])
+  titulo         String
+  contenido      String
+  fecha_creacion DateTime @default(now())
 }

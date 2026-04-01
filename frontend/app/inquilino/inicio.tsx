@@ -273,6 +273,17 @@ export default function InquilinoInicioScreen() {
           </>
         )}
 
+        <Pressable
+          style={styles.enlaceTablon}
+          onPress={() =>
+            router.push(
+              `/tablon/${datosCasa?.viviendaId}?miUsuarioId=${datosCasa?.miUsuarioId}`
+            )
+          }
+        >
+          <Text style={styles.enlaceTablonTexto}>Tablón de anuncios →</Text>
+        </Pressable>
+
         <Text style={styles.seccionTitulo}>Incidencias</Text>
 
         {loadingIncidencias ? (
