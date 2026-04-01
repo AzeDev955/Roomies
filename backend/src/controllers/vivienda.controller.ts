@@ -83,6 +83,10 @@ export const obtenerVivienda: express.RequestHandler = async (req, res) => {
           inquilino: {
             select: { id: true, nombre: true, apellidos: true, email: true },
           },
+          incidencias: {
+            where: { estado: { in: [EstadoIncidencia.PENDIENTE, EstadoIncidencia.EN_PROCESO] } },
+            select: { id: true, titulo: true, prioridad: true, estado: true },
+          },
         },
       },
     },

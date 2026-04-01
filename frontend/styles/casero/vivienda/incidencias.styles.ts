@@ -57,4 +57,22 @@ export const styles = StyleSheet.create({
   estadoPillActivo: { backgroundColor: '#007AFF' },
   estadoPillTexto: { fontSize: 11, fontWeight: '600', color: '#495057' },
   estadoPillTextoActivo: { color: '#fff' },
+
+  // — Historial —
+  historialToggle: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  historialToggleTexto: {
+    fontSize: 13,
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  historialSeparador: {
+    height: 1,
+    backgroundColor: '#e9ecef',
+    marginBottom: 12,
+  },
 });
