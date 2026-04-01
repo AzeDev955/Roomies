@@ -688,3 +688,125 @@ Actualiza el estado de una incidencia.
   "fecha_creacion": "2026-03-29T10:00:00.000Z"
 }
 ```
+
+---
+
+## Anuncios (`/anuncios`)
+
+Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e inquilinos) pueden publicar y leer anuncios. Solo el autor o el casero de la vivienda puede eliminarlos.
+
+---
+
+### GET `/anuncios?viviendaId=X`
+
+Lista todos los anuncios de una vivienda, ordenados del más reciente al más antiguo.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Query params:**
+
+| Param | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `viviendaId` | number | Sí | ID de la vivienda |
+
+**Reglas de acceso:**
+- `CASERO`: debe ser propietario de la vivienda (`vivienda.casero_id === usuario.id`)
+- `INQUILINO`: debe tener una habitación asignada en esa vivienda
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Array de anuncios (puede ser `[]`). Cada anuncio incluye `autor { id, nombre }`. |
+| `400` | Falta el parámetro `viviendaId`. |
+| `401` | Sin token. |
+| `403` | El usuario no pertenece a esa vivienda. |
+
+**Ejemplo respuesta 200:**
+```json
+[
+  {
+    "id": 2,
+    "vivienda_id": 1,
+    "autor_id": 3,
+    "titulo": "Limpieza del baño esta semana",
+    "contenido": "Recordad que toca limpiar el baño compartido el jueves.",
+    "fecha_creacion": "2026-04-01T09:00:00.000Z",
+    "autor": { "id": 3, "nombre": "Carlos" }
+  },
+  {
+    "id": 1,
+    "vivienda_id": 1,
+    "autor_id": 1,
+    "titulo": "Nueva norma de silencio",
+    "contenido": "A partir de ahora silencio a partir de las 23:00.",
+    "fecha_creacion": "2026-03-28T18:00:00.000Z",
+    "autor": { "id": 1, "nombre": "Ana" }
+  }
+]
+```
+
+---
+
+### POST `/anuncios`
+
+Publica un nuevo anuncio en una vivienda.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Reglas de acceso:** Igual que GET — casero propietario o inquilino de la vivienda.
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `titulo` | string | Sí | Título del anuncio |
+| `contenido` | string | Sí | Cuerpo del anuncio |
+| `vivienda_id` | number | Sí | ID de la vivienda |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Anuncio creado. Devuelve el objeto completo con `autor { id, nombre }`. |
+| `400` | Falta alguno de los campos obligatorios. |
+| `401` | Sin token. |
+| `403` | El usuario no pertenece a esa vivienda. |
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "id": 3,
+  "vivienda_id": 1,
+  "autor_id": 3,
+  "titulo": "Busco compañero para compra",
+  "contenido": "¿Alguien se apunta al Mercadona el sábado?",
+  "fecha_creacion": "2026-04-01T10:30:00.000Z",
+  "autor": { "id": 3, "nombre": "Carlos" }
+}
+```
+
+---
+
+### DELETE `/anuncios/:id`
+
+Elimina un anuncio.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID del anuncio |
+
+**Reglas de acceso:** Solo puede eliminar el **autor** del anuncio (`anuncio.autor_id === usuario.id`) **o** el **casero** de la vivienda donde está publicado.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `204` | Anuncio eliminado correctamente. Sin body. |
+| `401` | Sin token. |
+| `403` | El usuario no es el autor ni el casero de la vivienda. |
+| `404` | Anuncio no encontrado. |
