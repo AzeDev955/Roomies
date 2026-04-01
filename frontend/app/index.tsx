@@ -1,7 +1,6 @@
 import { View, Text, Pressable, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useRouter, useNavigation } from 'expo-router';
-import { CommonActions } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -15,7 +14,6 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,8 +34,8 @@ export default function LoginScreen() {
   }, [googleResponse]);
 
   const irAlDashboard = (rol: string) => {
-    const destino = rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
-    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
+    const destino = rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
+    router.replace(destino);
   };
 
   const handleGoogleLogin = async (idToken: string) => {
