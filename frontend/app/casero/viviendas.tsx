@@ -4,6 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from '@/styles/casero/viviendas.styles';
 import api from '@/services/api';
+import { Card } from '@/components/common/Card';
 
 type Habitacion = { id: number; nombre: string };
 type IncidenciaActiva = { prioridad: 'VERDE' | 'AMARILLO' | 'ROJO' };
@@ -79,10 +80,7 @@ export default function ViviendasScreen() {
         renderItem={({ item }) => {
           const maxPrioridad = getMaxPrioridad(item.incidencias);
           return (
-            <Pressable
-              style={styles.card}
-              onPress={() => router.push(`/casero/vivienda/${item.id}`)}
-            >
+            <Card onPress={() => router.push(`/casero/vivienda/${item.id}`)}>
               {maxPrioridad !== null && (
                 <View style={[styles.badge, BADGE_POR_PRIORIDAD[maxPrioridad]]}>
                   <Text style={styles.badgeTexto}>{item.incidencias.length}</Text>
@@ -91,7 +89,7 @@ export default function ViviendasScreen() {
               <Text style={styles.cardTitle}>{item.alias_nombre}</Text>
               <Text style={styles.cardAddress}>{item.direccion}</Text>
               <Text style={styles.cardRooms}>{item.habitaciones?.length ?? 0} habitaciones</Text>
-            </Pressable>
+            </Card>
           );
         }}
       />

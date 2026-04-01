@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useNavigation } from 'expo-router';
 import { CommonActions } from '@react-navigation/native';
@@ -8,6 +8,8 @@ import * as WebBrowser from 'expo-web-browser';
 import { styles } from '@/styles/index.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
+import { CustomButton } from '@/components/common/CustomButton';
+import { CustomInput } from '@/components/common/CustomInput';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -17,7 +19,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verPass, setVerPass] = useState(false);
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
@@ -81,45 +82,32 @@ export default function LoginScreen() {
       <Text style={styles.logo}>Roomies</Text>
       <Text style={styles.subtitulo}>Gestión de pisos compartidos</Text>
 
-      <Text style={styles.label}>Email</Text>
-      <TextInput
-        style={styles.input}
+      <CustomInput
+        label="Email"
         value={email}
         onChangeText={setEmail}
         placeholder="tu@email.com"
-        placeholderTextColor="#c7c7cc"
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
       />
 
-      <Text style={styles.label}>Contraseña</Text>
-      <View style={styles.inputPasswordFila}>
-        <TextInput
-          style={styles.inputPassword}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="••••••••"
-          placeholderTextColor="#c7c7cc"
-          secureTextEntry={!verPass}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <Pressable style={styles.botonVerPass} onPress={() => setVerPass((v) => !v)}>
-          <Text style={styles.botonVerPassTexto}>{verPass ? 'Ocultar' : 'Ver'}</Text>
-        </Pressable>
-      </View>
+      <CustomInput
+        label="Contraseña"
+        value={password}
+        onChangeText={setPassword}
+        placeholder="••••••••"
+        autoCapitalize="none"
+        autoCorrect={false}
+        secureToggle
+      />
 
-      <Pressable
-        style={loading ? styles.botonLoginDeshabilitado : styles.botonLogin}
+      <CustomButton
+        label="Iniciar Sesión"
         onPress={handleLogin}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.botonLoginTexto}>Iniciar Sesión</Text>
-        }
-      </Pressable>
+        loading={loading}
+        style={{ marginTop: 8 }}
+      />
 
       <View style={styles.separador}>
         <View style={styles.separadorLinea} />

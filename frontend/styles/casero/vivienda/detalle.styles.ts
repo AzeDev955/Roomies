@@ -6,17 +6,6 @@ export const styles = StyleSheet.create({
   content: { padding: Theme.spacing.base, paddingBottom: 96 },
   title: { fontSize: Theme.typography.heading, fontWeight: '700', marginBottom: Theme.spacing.xs },
   address: { fontSize: 14, color: Theme.colors.textSecondary, marginBottom: 20 },
-  card: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.base,
-    marginBottom: Theme.spacing.md,
-    shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -83,17 +72,6 @@ export const styles = StyleSheet.create({
     color: Theme.colors.textTertiary,
     marginTop: 2,
   },
-  compartirBoton: {
-    backgroundColor: Theme.colors.success,
-    borderRadius: Theme.radius.sm,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
-  },
-  compartirBotonTexto: {
-    color: Theme.colors.surface,
-    fontSize: Theme.typography.caption,
-    fontWeight: '700',
-  },
   codigoOculto: {
     fontSize: 22,
     letterSpacing: 4,
@@ -127,18 +105,6 @@ export const styles = StyleSheet.create({
     color: '#0a5a8a',
     marginTop: 2,
   },
-  botonExpulsar: {
-    backgroundColor: Theme.colors.danger,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginLeft: Theme.spacing.sm,
-  },
-  botonExpulsarTexto: {
-    color: Theme.colors.surface,
-    fontSize: Theme.typography.caption,
-    fontWeight: '700',
-  },
   sinInquilino: {
     fontSize: Theme.typography.label,
     color: '#adb5bd',
@@ -151,25 +117,6 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Theme.spacing.sm,
     marginTop: Theme.spacing.md,
-  },
-  botonEditar: {
-    flex: 1,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.sm,
-    paddingVertical: Theme.spacing.sm,
-    alignItems: 'center',
-  },
-  botonEliminar: {
-    flex: 1,
-    backgroundColor: Theme.colors.danger,
-    borderRadius: Theme.radius.sm,
-    paddingVertical: Theme.spacing.sm,
-    alignItems: 'center',
-  },
-  botonAccionTexto: {
-    color: Theme.colors.surface,
-    fontSize: Theme.typography.label,
-    fontWeight: '700',
   },
 
   // — FAB —
