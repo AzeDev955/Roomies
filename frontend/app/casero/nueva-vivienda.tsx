@@ -315,12 +315,12 @@ export default function NuevaViviendaScreen() {
 
         {habitaciones.map((h, i) => (
           <View key={i} style={styles.habitacionItem}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.habitacionItemWrapper}>
               <Text style={styles.habitacionItemTexto}>{h.nombre}</Text>
               <Text style={styles.habitacionItemBadgeTexto}>{ETIQUETAS_TIPO[h.tipo]}{h.esHabitable ? ' · habitable' : ''}</Text>
             </View>
             <Pressable style={styles.habitacionItemEliminar} onPress={() => eliminarHabitacionLocal(i)}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>×</Text>
+              <Text style={styles.habitacionItemEliminarTexto}>×</Text>
             </Pressable>
           </View>
         ))}

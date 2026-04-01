@@ -1,53 +1,54 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+export const Theme = {
+  colors: {
+    // Primarios
+    primary:         '#007AFF',
+    primaryDisabled: '#b0c8f0',
+    // Semánticos
+    success:         '#34C759',
+    successDisabled: '#a8ddb5',
+    danger:          '#FF3B30',
+    warning:         '#FF9500',
+    // Fondos
+    background:      '#f5f5f5',
+    surface:         '#ffffff',
+    surface2:        '#e9ecef',
+    // Texto
+    text:            '#212529',
+    textSecondary:   '#6c757d',
+    textTertiary:    '#9e9e9e',
+    textMuted:       '#c7c7cc',
+    textMedium:      '#495057',
+    // UI
+    border:          '#dee2e6',
+    shadow:          '#000000',
+  },
+  spacing: {
+    xs:   4,
+    sm:   8,
+    md:   12,
+    base: 16,
+    lg:   24,
+    xl:   32,
+  },
+  radius: {
+    sm:   8,
+    md:   12,
+    lg:   20,
+    full: 28,
+  },
+  typography: {
+    caption: 12,
+    label:   13,
+    body:    15,
+    input:   16,
+    title:   20,
+    heading: 24,
+    hero:    32,
+  },
+} as const;
 
-import { Platform } from 'react-native';
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
+// Expo template compatibility — used by unused boilerplate components
 export const Colors = {
-  light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-  },
-};
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+  light: { icon: Theme.colors.textSecondary, text: Theme.colors.text,     background: Theme.colors.background },
+  dark:  { icon: Theme.colors.textTertiary,  text: Theme.colors.surface,  background: '#151718' },
+} as const;

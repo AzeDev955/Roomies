@@ -1,45 +1,46 @@
 import { StyleSheet } from 'react-native';
+import { Theme } from '@/constants/theme';
 
 export const COLORES_PRIORIDAD: Record<string, string> = {
-  VERDE: '#34C759',
-  AMARILLO: '#FF9500',
-  ROJO: '#FF3B30',
+  VERDE:    Theme.colors.success,
+  AMARILLO: Theme.colors.warning,
+  ROJO:     Theme.colors.danger,
 };
 
 export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
-  VERDE: 'Sugerencia',
+  VERDE:    'Sugerencia',
   AMARILLO: 'Aviso',
-  ROJO: 'Urgente',
+  ROJO:     'Urgente',
 };
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 16, paddingBottom: 96 },
+  container: { flex: 1, backgroundColor: Theme.colors.background },
+  content: { padding: Theme.spacing.base, paddingBottom: 96 },
   titulo: {
-    fontSize: 24,
+    fontSize: Theme.typography.heading,
     fontWeight: '700',
-    color: '#212529',
-    marginBottom: 24,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.lg,
   },
 
   // — Campos —
   label: {
-    fontSize: 13,
+    fontSize: Theme.typography.label,
     fontWeight: '600',
-    color: '#6c757d',
+    color: Theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
+    marginBottom: Theme.spacing.sm,
   },
   inputTexto: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.md,
+    paddingHorizontal: Theme.spacing.base,
     paddingVertical: 14,
-    fontSize: 16,
-    color: '#212529',
+    fontSize: Theme.typography.input,
+    color: Theme.colors.text,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: Theme.colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 3,
@@ -54,59 +55,59 @@ export const styles = StyleSheet.create({
   habitacionFila: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: Theme.spacing.sm,
     marginBottom: 20,
   },
   habitacionPill: {
-    backgroundColor: '#e9ecef',
-    borderRadius: 20,
+    backgroundColor: Theme.colors.surface2,
+    borderRadius: Theme.radius.lg,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: Theme.spacing.sm,
   },
   habitacionPillActivo: {
-    backgroundColor: '#007AFF',
+    backgroundColor: Theme.colors.primary,
   },
   habitacionPillTexto: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#495057',
+    color: Theme.colors.textMedium,
   },
   habitacionPillTextoActivo: {
-    color: '#fff',
+    color: Theme.colors.surface,
   },
 
   // — Selector de prioridad —
   selectorFila: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 32,
+    marginBottom: Theme.spacing.xl,
   },
   selectorBtn: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: Theme.radius.md,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectorBtnTexto: {
-    color: '#fff',
-    fontSize: 13,
+    color: Theme.colors.surface,
+    fontSize: Theme.typography.label,
     fontWeight: '700',
   },
 
   // — Botón enviar —
   botonEnviar: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.radius.md,
+    paddingVertical: Theme.spacing.base,
     alignItems: 'center',
   },
   botonEnviarTexto: {
-    color: '#fff',
+    color: Theme.colors.surface,
     fontSize: 17,
     fontWeight: '700',
   },
   botonEnviarDisabled: {
-    backgroundColor: '#b0c8f0',
+    backgroundColor: Theme.colors.primaryDisabled,
   },
 });

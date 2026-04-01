@@ -153,8 +153,9 @@ export default function DetalleViviendaScreen() {
 
   const handleEditarHabitacion = (hab: Habitacion) => {
     router.push({
-      pathname: `/casero/vivienda/${id}/editar-habitacion`,
+      pathname: '/casero/vivienda/[id]/editar-habitacion',
       params: {
+        id,
         habId: String(hab.id),
         nombre: hab.nombre,
         tipo: hab.tipo,

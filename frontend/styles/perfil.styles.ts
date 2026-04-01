@@ -1,58 +1,59 @@
 import { StyleSheet } from 'react-native';
+import { Theme } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: Theme.colors.background },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { padding: 24, paddingBottom: 48, alignItems: 'center' },
+  scrollContent: { padding: Theme.spacing.lg, paddingBottom: 48, alignItems: 'center' },
 
   // — Avatar —
   avatar: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: '#007AFF',
+    backgroundColor: Theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#007AFF',
+    marginBottom: Theme.spacing.md,
+    shadowColor: Theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
   avatarTexto: {
-    color: '#fff',
+    color: Theme.colors.surface,
     fontSize: 36,
     fontWeight: '700',
   },
   nombreCompleto: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#212529',
-    marginBottom: 8,
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.sm,
     textAlign: 'center',
   },
 
   // — Badge de rol —
   badge: {
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    borderRadius: Theme.radius.lg,
+    paddingHorizontal: Theme.spacing.base,
     paddingVertical: 6,
     marginBottom: 28,
   },
-  badgeCasero: { backgroundColor: '#007AFF' },
-  badgeInquilino: { backgroundColor: '#34C759' },
-  badgeTexto: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  badgeCasero: { backgroundColor: Theme.colors.primary },
+  badgeInquilino: { backgroundColor: Theme.colors.success },
+  badgeTexto: { color: Theme.colors.surface, fontSize: Theme.typography.label, fontWeight: '700' },
 
   // — Tarjetas de datos —
   tarjeta: {
     width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.md,
+    paddingHorizontal: Theme.spacing.base,
     paddingVertical: 14,
     marginBottom: 10,
-    shadowColor: '#000',
+    shadowColor: Theme.colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -61,34 +62,34 @@ export const styles = StyleSheet.create({
   tarjetaLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#9e9e9e',
+    color: Theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 4,
+    marginBottom: Theme.spacing.xs,
   },
   tarjetaValor: {
-    fontSize: 16,
-    color: '#212529',
+    fontSize: Theme.typography.input,
+    color: Theme.colors.text,
     fontWeight: '500',
   },
 
   // — Botón logout —
   botonLogout: {
     width: '100%',
-    backgroundColor: '#FF3B30',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: Theme.colors.danger,
+    borderRadius: Theme.radius.md,
+    paddingVertical: Theme.spacing.base,
     alignItems: 'center',
     marginTop: 28,
-    shadowColor: '#FF3B30',
+    shadowColor: Theme.colors.danger,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 4,
   },
   botonLogoutTexto: {
-    color: '#fff',
-    fontSize: 16,
+    color: Theme.colors.surface,
+    fontSize: Theme.typography.input,
     fontWeight: '700',
   },
 });
