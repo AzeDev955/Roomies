@@ -36,7 +36,7 @@ services:
       - "8080:8080"
     command: npx expo start --host lan --port 8080 --clear
     environment:
-      EXPO_PUBLIC_API_URL: http://${HOST_IP}:3001/api
+      EXPO_PUBLIC_API_URL: https://roomies-production-c884.up.railway.app/api
       REACT_NATIVE_PACKAGER_HOSTNAME: ${HOST_IP}
       EXPO_PUBLIC_MAPBOX_TOKEN: ${EXPO_PUBLIC_MAPBOX_TOKEN}
       EXPO_TOKEN: ${EXPO_TOKEN}
