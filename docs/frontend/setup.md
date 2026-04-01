@@ -17,11 +17,11 @@ EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<android_client_id>
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<ios_client_id>
 ```
 
-> `EXPO_PUBLIC_API_URL`: IP de tu máquina en la red Wi-Fi local (`ipconfig` → IPv4 del adaptador Wi-Fi). Si arrancas sin Docker, apunta a `http://localhost:3000/api`.
+> `EXPO_PUBLIC_API_URL`: IP de tu máquina en la red Wi-Fi local (`ipconfig` → IPv4 del adaptador Wi-Fi). Si arrancas sin Docker, apunta a `http://localhost:3000/api`. Si el backend está desplegado en Railway, usa la URL pública: `https://<dominio>.up.railway.app/api`.
 > `EXPO_PUBLIC_MAPBOX_TOKEN`: necesario para el autocompletado de dirección en "Nueva vivienda".
 > `EXPO_PUBLIC_GOOGLE_*`: IDs de credenciales OAuth 2.0 de Google Cloud Console. Ver sección [Autenticación Google OAuth](#autenticación-google-oauth).
 
-Las variables `EXPO_PUBLIC_*` se hornean en el bundle en tiempo de compilación por Metro — un cambio requiere reiniciar Metro.
+Las variables `EXPO_PUBLIC_*` se hornean en el bundle en tiempo de compilación por Metro — cualquier cambio requiere reiniciar Metro con `npx expo start --clear`.
 
 ## Instalación y arranque
 
