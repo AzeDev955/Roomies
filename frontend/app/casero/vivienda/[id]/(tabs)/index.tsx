@@ -54,7 +54,7 @@ const ETIQUETAS_TIPO: Record<string, string> = {
   OTRO: 'Otro',
 };
 
-export default function DetalleViviendaScreen() {
+export default function ResumenViviendaTab() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
@@ -184,19 +184,6 @@ export default function DetalleViviendaScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>{vivienda.alias_nombre}</Text>
         <Text style={styles.address}>{vivienda.direccion}</Text>
-
-        <Pressable
-          style={({ pressed }) => pressed && styles.enlacePressed}
-          onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}
-        >
-          <Text style={styles.enlaceIncidencias}>Ver todas las incidencias →</Text>
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => pressed && styles.enlacePressed}
-          onPress={() => router.push(`/tablon/${id}?esCasero=true`)}
-        >
-          <Text style={styles.enlaceIncidencias}>Tablón de anuncios →</Text>
-        </Pressable>
 
         {[...vivienda.habitaciones]
           .sort((a, b) => Number(b.es_habitable) - Number(a.es_habitable) || a.id - b.id)
