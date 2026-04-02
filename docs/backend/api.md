@@ -428,6 +428,31 @@ Elimina una habitación. Solo el casero propietario puede eliminar habitaciones.
 
 ---
 
+### DELETE `/viviendas/:id/habitaciones/:habId/inquilino`
+
+El casero expulsa al inquilino de una habitación. Pone `inquilino_id` a `null` sin eliminar la habitación.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID de la vivienda |
+| `habId` | ID de la habitación |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Inquilino desvinculado. Devuelve la habitación actualizada. |
+| `400` | La habitación no tiene inquilino. |
+| `401` | Sin token. |
+| `403` | La vivienda no pertenece al casero logueado. |
+| `404` | Habitación no encontrada. |
+
+---
+
 ## Inquilino (`/inquilino`)
 
 ### POST `/inquilino/unirse`
@@ -523,6 +548,60 @@ Devuelve la vivienda completa del inquilino logueado, incluyendo todas las habit
   }
 }
 ```
+
+---
+
+### DELETE `/inquilino/habitacion`
+
+El inquilino abandona su habitación actual.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Abandonado correctamente. Devuelve `{ mensaje }`. |
+| `403` | El usuario tiene rol `CASERO`. |
+| `404` | El inquilino no tiene ninguna habitación asignada. |
+
+---
+
+### GET `/inquilino/:id/perfil`
+
+Devuelve el perfil de contacto de un inquilino. Solo accesible para el casero cuya vivienda aloja a ese inquilino.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID del usuario inquilino |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Perfil del inquilino con su habitación y vivienda. |
+| `400` | ID no es un número válido. |
+| `401` | Sin token. |
+| `403` | El inquilino no vive en ninguna vivienda del casero autenticado. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "id": 5,
+  "nombre": "Carlos",
+  "apellidos": "Martínez López",
+  "email": "carlos@example.com",
+  "telefono": "+34 600 123 456",
+  "habitacion": { "id": 3, "nombre": "Habitación 1" },
+  "vivienda": { "id": 1, "alias_nombre": "Piso Centro" }
+}
+```
+
+> La autorización se implementa en la propia query Prisma: busca una habitación donde `inquilino_id = :id` AND `vivienda.casero_id = req.usuario.id`. Si no existe → 403. `telefono` puede ser `null` si el usuario se registró solo con Google.
 
 ---
 
@@ -637,6 +716,64 @@ Lista las incidencias accesibles para el usuario logueado.
   }
 ]
 ```
+
+---
+
+### GET `/incidencias/:id`
+
+Devuelve el detalle completo de una incidencia.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Incidencia con `creador { id, nombre, apellidos }` y `habitacion { id, nombre }` si aplica. |
+| `401` | Sin token. |
+| `403` | El usuario no tiene acceso a la vivienda de la incidencia. |
+| `404` | Incidencia no encontrada. |
+
+---
+
+### PUT `/incidencias/:id`
+
+Edita el título y/o descripción de una incidencia. Solo el creador o el casero de la vivienda pueden editarla.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `titulo` | string | No | Nuevo título |
+| `descripcion` | string | No | Nueva descripción |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Incidencia actualizada. |
+| `401` | Sin token. |
+| `403` | Sin permiso de edición. |
+| `404` | Incidencia no encontrada. |
+
+---
+
+### DELETE `/incidencias/:id`
+
+Elimina una incidencia. Solo el creador o el casero de la vivienda pueden eliminarla.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `204` | Eliminada correctamente. Sin body. |
+| `401` | Sin token. |
+| `403` | Sin permiso de eliminación. |
+| `404` | Incidencia no encontrada. |
 
 ---
 
