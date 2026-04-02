@@ -77,31 +77,4 @@ export const styles = StyleSheet.create({
     marginBottom: Theme.spacing.md,
   },
 
-  // — Filtros por habitación —
-  filtros: {
-    flexDirection: 'row',
-    gap: Theme.spacing.xs,
-    paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.sm,
-    backgroundColor: Theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
-  },
-  filtroPill: {
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.xs,
-    borderRadius: Theme.radius.full,
-    backgroundColor: Theme.colors.surface2,
-  },
-  filtroPillActivo: {
-    backgroundColor: Theme.colors.primary,
-  },
-  filtroPillTexto: {
-    fontSize: Theme.typography.caption,
-    fontWeight: '600',
-    color: Theme.colors.textMedium,
-  },
-  filtroPillTextoActivo: {
-    color: Theme.colors.surface,
-  },
 });

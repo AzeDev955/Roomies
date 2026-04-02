@@ -1,4 +1,4 @@
-import { View, Text, FlatList, Pressable, ScrollView } from 'react-native';
+import { View, Text, FlatList, Pressable } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
@@ -28,7 +28,6 @@ export default function IncidenciasCaseroTab() {
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loading, setLoading] = useState(true);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
-  const [filtroHab, setFiltroHab] = useState<number | null>(null);
 
   const cargarIncidencias = async () => {
     setLoading(true);
@@ -63,22 +62,8 @@ export default function IncidenciasCaseroTab() {
   const formatearFecha = (iso: string) =>
     new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  // Derive unique habitaciones from loaded incidencias for filter pills
-  const habitaciones = Array.from(
-    incidencias.reduce((map, i) => {
-      if (i.habitacion && !map.has(i.habitacion.id)) {
-        map.set(i.habitacion.id, i.habitacion.nombre);
-      }
-      return map;
-    }, new Map<number, string>())
-  ).map(([habId, nombre]) => ({ id: habId, nombre }));
-
-  const incidenciasFiltradas = filtroHab
-    ? incidencias.filter((i) => i.habitacion?.id === filtroHab)
-    : incidencias;
-
-  const activas = incidenciasFiltradas.filter((i) => i.estado !== 'RESUELTA');
-  const historial = incidenciasFiltradas.filter((i) => i.estado === 'RESUELTA');
+  const activas = incidencias.filter((i) => i.estado !== 'RESUELTA');
+  const historial = incidencias.filter((i) => i.estado === 'RESUELTA');
 
   const renderCard = (item: Incidencia) => (
     <View key={item.id} style={styles.card}>
@@ -122,42 +107,12 @@ export default function IncidenciasCaseroTab() {
 
   return (
     <View style={styles.container}>
-      {habitaciones.length > 1 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtros}
-        >
-          <Pressable
-            style={[styles.filtroPill, filtroHab === null && styles.filtroPillActivo]}
-            onPress={() => setFiltroHab(null)}
-          >
-            <Text style={[styles.filtroPillTexto, filtroHab === null && styles.filtroPillTextoActivo]}>
-              Todas
-            </Text>
-          </Pressable>
-          {habitaciones.map((h) => (
-            <Pressable
-              key={h.id}
-              style={[styles.filtroPill, filtroHab === h.id && styles.filtroPillActivo]}
-              onPress={() => setFiltroHab(filtroHab === h.id ? null : h.id)}
-            >
-              <Text style={[styles.filtroPillTexto, filtroHab === h.id && styles.filtroPillTextoActivo]}>
-                {h.nombre}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
-
       <FlatList
         contentContainerStyle={styles.content}
         data={activas}
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {filtroHab ? 'Sin incidencias activas en esta habitación.' : 'No hay incidencias activas en esta vivienda.'}
-          </Text>
+          <Text style={styles.emptyText}>No hay incidencias activas en esta vivienda.</Text>
         }
         renderItem={({ item }) => renderCard(item)}
         ListFooterComponent={
