@@ -2,7 +2,7 @@ import { View, Text, FlatList, Pressable } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useGlobalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO } from '@/styles/casero/vivienda/incidencias.styles';
 
@@ -23,7 +23,7 @@ type Incidencia = {
 const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
 
 export default function IncidenciasCaseroTab() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const router = useRouter();
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loading, setLoading] = useState(true);
