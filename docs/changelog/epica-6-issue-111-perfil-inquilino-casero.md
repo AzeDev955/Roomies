@@ -1,8 +1,8 @@
 # Épica 6 — Issue #111: Perfil de Inquilino en Vista de Casero
 
-**Fecha:** 2026-04-02  
+**Fecha:** 2026-04-02 (actualizado 2026-04-03)  
 **Rama:** dev  
-**Archivos modificados:** 5
+**Archivos modificados:** 5 (+1 actualización)
 
 ---
 
@@ -48,7 +48,8 @@ Pantalla Stack estándar fuera del grupo `(tabs)`. Usa `<Stack.Screen>` dentro d
 - Avatar circular 80px con fondo `Theme.colors.primary` e iniciales del inquilino en blanco
 - Nombre completo en `heading` y subtítulo con habitación y vivienda en `textSecondary`
 - `<Card>` con sección "Datos de contacto": email siempre visible, teléfono solo si `!= null`
-- `<CustomButton variant="outline">` "Enviar Email" → `Linking.openURL(mailto:...)` 
+- `<CustomButton variant="outline">` "Enviar Email" → `Linking.openURL(mailto:...)`
+- `<CustomButton variant="outline">` "Llamar" → `Linking.openURL(tel:...)` — solo si `perfil.telefono !== null`
 
 **Lógica:** `GET /inquilino/:id/perfil`, `LoadingScreen` mientras carga.
 
@@ -72,3 +73,4 @@ La `View` con `styles.inquilinoTextos` (nombre + email) se convierte en `Pressab
 - **`<Stack.Screen>` dentro del componente**: Expo Router permite sobreescribir opciones de pantalla desde el componente. Evita modificar `casero/_layout.tsx` para un caso específico.
 - **Iniciales del avatar**: `nombre[0] + (apellidos?.[0] ?? '')` — nunca lanza error aunque `apellidos` sea null.
 - **Teléfono condicional**: si `telefono` es null, la fila completa (icono + separador) no se renderiza.
+- **Botón "Llamar" condicional**: el mismo guard `perfil.telefono &&` cubre el `<CustomButton>` de llamada — renderizado coherente con la fila de datos.
