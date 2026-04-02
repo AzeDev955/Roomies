@@ -1,4 +1,6 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Share } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, Share } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -65,7 +67,7 @@ export default function DetalleViviendaScreen() {
       const { data } = await api.get<Vivienda>(`/viviendas/${id}`);
       setVivienda(data);
     } catch {
-      Alert.alert('Error', 'No se pudo cargar la vivienda.');
+      Toast.show({ type: 'error', text1: 'No se pudo cargar la vivienda.' });
     } finally {
       setLoading(false);
     }
@@ -89,7 +91,7 @@ export default function DetalleViviendaScreen() {
   const copiarCodigo = async (codigo: string) => {
     const codigoLimpio = codigo.replace(/^room[-\s]*/i, '').trim();
     await Clipboard.setStringAsync(codigoLimpio);
-    Alert.alert('Código copiado', 'Pégalo en la app para unirte a la habitación.');
+    Toast.show({ type: 'info', text1: 'Código copiado', text2: 'Pégalo en la app para unirte a la habitación.' });
   };
 
   const compartirCodigo = async (codigo: string) => {
@@ -113,7 +115,7 @@ export default function DetalleViviendaScreen() {
               cargarVivienda();
             } catch (err: any) {
               const mensaje = err.response?.data?.error ?? 'No se pudo eliminar la habitación.';
-              Alert.alert('Error', mensaje);
+              Toast.show({ type: 'error', text1: mensaje });
             }
           },
         },
@@ -145,7 +147,7 @@ export default function DetalleViviendaScreen() {
               );
             } catch (err: any) {
               const mensaje = err.response?.data?.error ?? 'No se pudo expulsar al inquilino.';
-              Alert.alert('Error', mensaje);
+              Toast.show({ type: 'error', text1: mensaje });
             }
           },
         },
@@ -167,13 +169,7 @@ export default function DetalleViviendaScreen() {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />
-      </View>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   if (!vivienda) {
     return (
@@ -189,10 +185,16 @@ export default function DetalleViviendaScreen() {
         <Text style={styles.title}>{vivienda.alias_nombre}</Text>
         <Text style={styles.address}>{vivienda.direccion}</Text>
 
-        <Pressable onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}>
+        <Pressable
+          style={({ pressed }) => pressed && styles.enlacePressed}
+          onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}
+        >
           <Text style={styles.enlaceIncidencias}>Ver todas las incidencias →</Text>
         </Pressable>
-        <Pressable onPress={() => router.push(`/tablon/${id}?esCasero=true`)}>
+        <Pressable
+          style={({ pressed }) => pressed && styles.enlacePressed}
+          onPress={() => router.push(`/tablon/${id}?esCasero=true`)}
+        >
           <Text style={styles.enlaceIncidencias}>Tablón de anuncios →</Text>
         </Pressable>
 
@@ -290,7 +292,7 @@ export default function DetalleViviendaScreen() {
       </ScrollView>
 
       <Pressable
-        style={styles.fab}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => router.push(`/casero/vivienda/${id}/nueva-habitacion`)}
       >
         <Text style={styles.fabText}>+</Text>

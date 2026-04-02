@@ -67,4 +67,7 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.text,
   },
+  pressed: {
+    opacity: 0.7,
+  },
 });

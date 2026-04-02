@@ -155,4 +155,6 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.body,
     fontWeight: '700',
   },
+  fabPressed: { opacity: 0.8 },
+  botonPressed: { opacity: 0.7 },
 });

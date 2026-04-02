@@ -1,4 +1,5 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
@@ -54,7 +55,7 @@ export default function EditarHabitacionScreen() {
       router.back();
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo actualizar la habitación.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     } finally {
       setLoading(false);
     }

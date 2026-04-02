@@ -1,4 +1,5 @@
-import { View, Text, Pressable, Alert } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
@@ -52,7 +53,7 @@ export default function LoginScreen() {
         irAlDashboard(data.usuario.rol);
       }
     } catch {
-      Alert.alert('Error', 'No se pudo completar el inicio de sesión con Google.');
+      Toast.show({ type: 'error', text1: 'No se pudo completar el inicio de sesión con Google.' });
     } finally {
       setLoading(false);
     }
@@ -69,7 +70,7 @@ export default function LoginScreen() {
       irAlDashboard(data.usuario.rol);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'Credenciales inválidas o sin conexión al servidor.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     } finally {
       setLoading(false);
     }
@@ -113,12 +114,19 @@ export default function LoginScreen() {
         <View style={styles.separadorLinea} />
       </View>
 
-      <Pressable style={styles.botonGoogle} onPress={() => googlePromptAsync()} disabled={loading}>
+      <Pressable
+        style={({ pressed }) => [styles.botonGoogle, pressed && styles.pressed]}
+        onPress={() => googlePromptAsync()}
+        disabled={loading}
+      >
         <AntDesign name="google" size={20} color="#DB4437" />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
-      <Pressable style={styles.enlaceRegistro} onPress={() => router.push('/registro')}>
+      <Pressable
+        style={({ pressed }) => [styles.enlaceRegistro, pressed && styles.pressed]}
+        onPress={() => router.push('/registro')}
+      >
         <Text style={styles.enlaceRegistroTexto}>¿No tienes cuenta? Regístrate</Text>
       </Pressable>
     </View>

@@ -1,4 +1,6 @@
-import { View, Text, TextInput, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
@@ -100,7 +102,7 @@ export default function InquilinoInicioScreen() {
       cargarIncidencias();
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo canjear el código. Inténtalo de nuevo.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     } finally {
       setLoading(false);
     }
@@ -123,7 +125,7 @@ export default function InquilinoInicioScreen() {
               setIncidencias([]);
             } catch (err: any) {
               const mensaje = err.response?.data?.error ?? 'No se pudo abandonar la vivienda.';
-              Alert.alert('Error', mensaje);
+              Toast.show({ type: 'error', text1: mensaje });
             }
           },
         },
@@ -149,7 +151,7 @@ export default function InquilinoInicioScreen() {
       );
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo actualizar el estado.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     }
   };
 
@@ -272,7 +274,7 @@ export default function InquilinoInicioScreen() {
         <Text style={styles.seccionTitulo}>Incidencias</Text>
 
         {loadingIncidencias ? (
-          <ActivityIndicator color="#007AFF" style={styles.loaderIncidencias} />
+          <ActivityIndicator color={Theme.colors.primary} style={styles.loaderIncidencias} />
         ) : (
           <>
             {activas.length === 0 && (
@@ -296,13 +298,16 @@ export default function InquilinoInicioScreen() {
           </>
         )}
 
-        <Pressable style={styles.botonAbandonar} onPress={abandonarVivienda}>
+        <Pressable
+          style={({ pressed }) => [styles.botonAbandonar, pressed && styles.botonAbandonarPressed]}
+          onPress={abandonarVivienda}
+        >
           <Text style={styles.botonAbandonarTexto}>Abandonar Vivienda</Text>
         </Pressable>
       </ScrollView>
 
       <Pressable
-        style={styles.fab}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() =>
           router.push({
             pathname: '/inquilino/nueva-incidencia',

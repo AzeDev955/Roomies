@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import api from '@/services/api';
@@ -63,7 +65,7 @@ export default function InquilinoTablonScreen() {
       const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${viviendaId}`);
       setAnuncios(data);
     } catch {
-      Alert.alert('Error', 'No se pudieron cargar los anuncios.');
+      Toast.show({ type: 'error', text1: 'No se pudieron cargar los anuncios.' });
     } finally {
       setLoading(false);
     }
@@ -95,7 +97,7 @@ export default function InquilinoTablonScreen() {
       setContenido('');
       setModalVisible(false);
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error ?? 'No se pudo publicar el anuncio.');
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo publicar el anuncio.' });
     } finally {
       setPublicando(false);
     }
@@ -121,7 +123,7 @@ export default function InquilinoTablonScreen() {
               await api.delete(`/anuncios/${anuncio.id}`);
               setAnuncios((prev) => prev.filter((a) => a.id !== anuncio.id));
             } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.error ?? 'No se pudo eliminar el anuncio.');
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar el anuncio.' });
             }
           },
         },
@@ -135,7 +137,7 @@ export default function InquilinoTablonScreen() {
   if (loadingCtx) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator style={styles.loader} size="large" color="#007AFF" />
+        <ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} />
       </View>
     );
   }
@@ -156,7 +158,7 @@ export default function InquilinoTablonScreen() {
   return (
     <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator style={styles.loader} size="large" color="#007AFF" />
+        <ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} />
       ) : (
         <FlatList
           contentContainerStyle={styles.content}
@@ -185,7 +187,10 @@ export default function InquilinoTablonScreen() {
         />
       )}
 
-      <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
+      <Pressable
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        onPress={() => setModalVisible(true)}
+      >
         <Text style={styles.fabTexto}>+</Text>
       </Pressable>
 
@@ -215,11 +220,14 @@ export default function InquilinoTablonScreen() {
               maxLength={500}
             />
             <View style={styles.modalAcciones}>
-              <Pressable style={styles.botonCancelar} onPress={cerrarModal}>
+              <Pressable
+                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
+                onPress={cerrarModal}
+              >
                 <Text style={styles.botonCancelarTexto}>Cancelar</Text>
               </Pressable>
               <Pressable
-                style={[styles.botonPublicar, !puedePublicar && styles.botonPublicarDisabled]}
+                style={({ pressed }) => [styles.botonPublicar, !puedePublicar && styles.botonPublicarDisabled, pressed && !publicando && styles.botonPressed]}
                 onPress={handlePublicar}
                 disabled={!puedePublicar || publicando}
               >
