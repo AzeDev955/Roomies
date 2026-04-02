@@ -13,7 +13,7 @@ import {
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useGlobalSearchParams, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles } from '@/styles/tablon/tablon.styles';
 
@@ -27,7 +27,7 @@ type Anuncio = {
 };
 
 export default function CaseroTablonTab() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
