@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-04-02  
 **Rama:** dev  
-**Archivos modificados:** 9
+**Archivos modificados:** 7
 
 ---
 
@@ -21,7 +21,7 @@ casero/ Stack
   └── vivienda/[id]/ Stack        ← nuevo _layout.tsx
         ├── (tabs)/ Tabs          ← nuevo (tabs)/_layout.tsx
         │   ├── index.tsx         ← Resumen
-        │   ├── incidencias.tsx   ← Incidencias con filtro por habitación
+        │   ├── incidencias.tsx   ← Incidencias (lista limpia)
         │   └── tablon.tsx        ← Tablón de la vivienda
         ├── editar-habitacion.tsx ← Stack push (sin tab bar)
         └── nueva-habitacion.tsx  ← Stack push (sin tab bar)
@@ -32,28 +32,24 @@ casero/ Stack
 
 ### Nuevos archivos
 
-| Archivo                                           | Descripción                                                                                                                                                                      |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app/casero/vivienda/[id]/_layout.tsx`            | Stack externo sin header. Contiene las tabs y los modales `editar-habitacion` / `nueva-habitacion` como Stack screens.                                                           |
-| `app/casero/vivienda/[id]/(tabs)/_layout.tsx`     | Tabs con `Ionicons`, colores de `Theme` y botón `←` (headerLeft) que ejecuta `router.back()` para volver a la lista de viviendas.                                                |
-| `app/casero/vivienda/[id]/(tabs)/index.tsx`       | Tab "Resumen": habitaciones con códigos de invitación, inquilinos, FAB para nueva habitación. Contenido de `[id].tsx` original sin los enlaces textuales a incidencias y tablón. |
-| `app/casero/vivienda/[id]/(tabs)/incidencias.tsx` | Tab "Incidencias": migrada desde `[id]/incidencias.tsx` + filtro horizontal deslizable por habitación.                                                                           |
-| `app/casero/vivienda/[id]/(tabs)/tablon.tsx`      | Tab "Tablón": nueva pantalla específica de la vivienda. El casero puede eliminar cualquier anuncio (sin restricción de autoría).                                                 |
+| Archivo | Descripción |
+|---|---|
+| `app/casero/vivienda/[id]/_layout.tsx` | Stack externo sin header. Contiene las tabs y los modales `editar-habitacion` / `nueva-habitacion` como Stack screens. |
+| `app/casero/vivienda/[id]/(tabs)/_layout.tsx` | Tabs con `Ionicons`, colores de `Theme` y botón `←` (headerLeft) que ejecuta `router.back()` para volver a la lista de viviendas. |
+| `app/casero/vivienda/[id]/(tabs)/index.tsx` | Tab "Resumen": habitaciones con códigos de invitación, inquilinos, FAB para nueva habitación. Contenido de `[id].tsx` original sin los enlaces textuales a incidencias y tablón. |
+| `app/casero/vivienda/[id]/(tabs)/incidencias.tsx` | Tab "Incidencias": lista limpia de incidencias de la vivienda, con nombre de habitación destacado en `Theme.colors.primary` en cada tarjeta. |
+| `app/casero/vivienda/[id]/(tabs)/tablon.tsx` | Tab "Tablón": nueva pantalla específica de la vivienda. El casero puede eliminar cualquier anuncio (sin restricción de autoría). |
 
 ### Archivos eliminados
 
-| Archivo                                    | Motivo                                   |
-| ------------------------------------------ | ---------------------------------------- |
-| `app/casero/vivienda/[id].tsx`             | Reemplazado por `(tabs)/index.tsx`       |
+| Archivo | Motivo |
+|---|---|
+| `app/casero/vivienda/[id].tsx` | Reemplazado por `(tabs)/index.tsx` |
 | `app/casero/vivienda/[id]/incidencias.tsx` | Reemplazado por `(tabs)/incidencias.tsx` |
 
 ### `styles/casero/vivienda/incidencias.styles.ts`
 
-Añadidos estilos para el filtro por habitación:
-
-- `filtros` — contenedor `ScrollView` horizontal con separador inferior
-- `filtroPill` / `filtroPillActivo` — pills de selección con `Theme.colors.primary` activo
-- `filtroPillTexto` / `filtroPillTextoActivo`
+Sin cambios estructurales — los estilos existentes (`card`, `indicador`, `cardHabitacion` con `Theme.colors.primary`, `estadoPill`, etc.) se mantienen sin modificar. No se añadieron estilos de filtro.
 
 ---
 
@@ -62,6 +58,6 @@ Añadidos estilos para el filtro por habitación:
 - **Stack + Tabs anidados**: el `[id]/_layout.tsx` es un Stack para que `editar-habitacion` y `nueva-habitacion` se comporten como stack pushes (ocultan el tab bar, `router.back()` regresa a las tabs). Si `_layout.tsx` fuera directamente Tabs, esas pantallas se convertirían en tabs y perderían el comportamiento modal.
 - **URLs inalteradas**: `(tabs)` es un route group transparente en Expo Router. Las rutas `/casero/vivienda/123/incidencias` y `/casero/vivienda/123/nueva-habitacion` siguen funcionando igual.
 - **`router.back()` en el header**: al ser el Stack de `casero/` quien posee la pantalla de vivienda, `router.back()` desde las tabs hace pop en ese Stack y regresa a la lista de viviendas. No se usa `router.replace` para no romper el historial de navegación.
-- **Filtro por habitación en Incidencias**: deriva la lista de habitaciones únicas de las propias incidencias cargadas — sin llamada extra a la API. Solo aparece si hay más de una habitación con incidencias. El filtro es stateless (no persiste entre focuses).
+- **Sin filtro por habitación en Incidencias**: decisión de producto — volumen bajo de incidencias simultáneas hace innecesario el filtro. La habitación sigue siendo visible en cada tarjeta con color primario para identificación rápida.
 - **Tablón del casero**: el casero puede eliminar cualquier anuncio (`puedeEliminar` siempre `true`), a diferencia del tablón del inquilino que solo puede borrar los propios. Se reutilizan los estilos de `styles/tablon/tablon.styles.ts`.
 - **Confirmaciones destructivas**: `Alert.alert` se mantiene para eliminar anuncio (mismo criterio que el resto de la app: acciones con botón Cancel/OK).
