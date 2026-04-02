@@ -1,4 +1,5 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
@@ -49,7 +50,7 @@ export default function NuevaHabitacionScreen() {
       });
       router.back();
     } catch {
-      Alert.alert('Error', 'No se pudo crear la habitación. Inténtalo de nuevo.');
+      Toast.show({ type: 'error', text1: 'No se pudo crear la habitación. Inténtalo de nuevo.' });
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useEffect, useState } from 'react';
-import { useNavigation } from 'expo-router';
-import { CommonActions } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import api from '@/services/api';
 import { eliminarToken } from '@/services/auth.service';
 import { styles } from '@/styles/perfil.styles';
@@ -16,7 +17,7 @@ type Perfil = {
 };
 
 export default function PerfilScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +27,7 @@ export default function PerfilScreen() {
         const { data } = await api.get<Perfil>('/auth/me');
         setPerfil(data);
       } catch {
-        Alert.alert('Error', 'No se pudo cargar el perfil.');
+        Toast.show({ type: 'error', text1: 'No se pudo cargar el perfil.' });
       } finally {
         setLoading(false);
       }
@@ -36,16 +37,10 @@ export default function PerfilScreen() {
 
   const cerrarSesion = async () => {
     await eliminarToken();
-    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'index' }] }));
+    router.replace('/');
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   if (!perfil) {
     return (
@@ -88,7 +83,10 @@ export default function PerfilScreen() {
           <Text style={styles.tarjetaValor}>{esCasero ? 'Propietario / Casero' : 'Inquilino'}</Text>
         </View>
 
-        <Pressable style={styles.botonLogout} onPress={cerrarSesion}>
+        <Pressable
+          style={({ pressed }) => [styles.botonLogout, pressed && styles.pressed]}
+          onPress={cerrarSesion}
+        >
           <Text style={styles.botonLogoutTexto}>Cerrar Sesión</Text>
         </Pressable>
       </ScrollView>

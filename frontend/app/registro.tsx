@@ -1,13 +1,15 @@
-import { View, Text, TextInput, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useState, useEffect } from 'react';
-import { useRouter, useNavigation } from 'expo-router';
-import { CommonActions } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { styles } from '@/styles/registro.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
+import { CustomButton } from '@/components/common/CustomButton';
+import { CustomInput } from '@/components/common/CustomInput';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -15,7 +17,6 @@ type Rol = 'CASERO' | 'INQUILINO';
 
 export default function RegistroScreen() {
   const router = useRouter();
-  const navigation = useNavigation();
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [dni, setDni] = useState('');
@@ -23,7 +24,6 @@ export default function RegistroScreen() {
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
   const [rol, setRol] = useState<Rol | ''>('');
-  const [verPass, setVerPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
@@ -52,11 +52,11 @@ export default function RegistroScreen() {
       if (data.esNuevo) {
         router.replace('/rol');
       } else {
-        const destino = data.usuario.rol === 'CASERO' ? 'casero/viviendas' : 'inquilino/inicio';
-        navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: destino }] }));
+        const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
+        router.replace(destino);
       }
     } catch {
-      Alert.alert('Error', 'No se pudo completar el registro con Google.');
+      Toast.show({ type: 'error', text1: 'No se pudo completar el registro con Google.' });
     } finally {
       setLoading(false);
     }
@@ -67,31 +67,30 @@ export default function RegistroScreen() {
       !nombre.trim() || !apellidos.trim() || !dni.trim() ||
       !email.trim() || !telefono.trim() || !password
     ) {
-      Alert.alert('Campos incompletos', 'Rellena todos los campos antes de continuar.');
+      Toast.show({ type: 'error', text1: 'Campos incompletos', text2: 'Rellena todos los campos antes de continuar.' });
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert('Email inválido', 'Introduce un email con formato válido.');
+      Toast.show({ type: 'error', text1: 'Email inválido', text2: 'Introduce un email con formato válido.' });
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Contraseña demasiado corta', 'La contraseña debe tener al menos 6 caracteres.');
+      Toast.show({ type: 'error', text1: 'Contraseña demasiado corta', text2: 'La contraseña debe tener al menos 6 caracteres.' });
       return;
     }
     if (!rol) {
-      Alert.alert('Selecciona un rol', 'Elige si eres Casero o Inquilino.');
+      Toast.show({ type: 'error', text1: 'Selecciona un rol', text2: 'Elige si eres Casero o Inquilino.' });
       return;
     }
 
     setLoading(true);
     try {
       await api.post('/auth/register', { nombre, apellidos, dni, email, telefono, password, rol });
-      Alert.alert('¡Cuenta creada!', 'Ya puedes iniciar sesión con tus credenciales.', [
-        { text: 'Ir al login', onPress: () => router.replace('/') },
-      ]);
+      Toast.show({ type: 'success', text1: '¡Cuenta creada!', text2: 'Ya puedes iniciar sesión con tus credenciales.' });
+      router.replace('/');
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo crear la cuenta. Inténtalo de nuevo.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     } finally {
       setLoading(false);
     }
@@ -102,80 +101,63 @@ export default function RegistroScreen() {
       <Text style={styles.titulo}>Roomies</Text>
       <Text style={styles.subtitulo}>Crea tu cuenta para empezar</Text>
 
-      <Text style={styles.label}>Nombre</Text>
-      <TextInput
-        style={styles.input}
+      <CustomInput
+        label="Nombre"
         value={nombre}
         onChangeText={setNombre}
         placeholder="Tu nombre"
-        placeholderTextColor="#c7c7cc"
         autoCorrect={false}
       />
 
-      <Text style={styles.label}>Apellidos</Text>
-      <TextInput
-        style={styles.input}
+      <CustomInput
+        label="Apellidos"
         value={apellidos}
         onChangeText={setApellidos}
         placeholder="Tus apellidos"
-        placeholderTextColor="#c7c7cc"
         autoCorrect={false}
       />
 
-      <Text style={styles.label}>DNI</Text>
-      <TextInput
-        style={styles.input}
+      <CustomInput
+        label="DNI"
         value={dni}
         onChangeText={(t) => setDni(t.toUpperCase())}
         placeholder="12345678A"
-        placeholderTextColor="#c7c7cc"
         autoCapitalize="characters"
         autoCorrect={false}
       />
 
-      <Text style={styles.label}>Email</Text>
-      <TextInput
-        style={styles.input}
+      <CustomInput
+        label="Email"
         value={email}
         onChangeText={setEmail}
         placeholder="tu@email.com"
-        placeholderTextColor="#c7c7cc"
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
       />
 
-      <Text style={styles.label}>Teléfono</Text>
-      <TextInput
-        style={styles.input}
+      <CustomInput
+        label="Teléfono"
         value={telefono}
         onChangeText={setTelefono}
         placeholder="600 000 000"
-        placeholderTextColor="#c7c7cc"
         keyboardType="phone-pad"
       />
 
-      <Text style={styles.label}>Contraseña</Text>
-      <View style={styles.inputPasswordFila}>
-        <TextInput
-          style={styles.inputPassword}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Mínimo 6 caracteres"
-          placeholderTextColor="#c7c7cc"
-          secureTextEntry={!verPass}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <Pressable style={styles.botonVerPass} onPress={() => setVerPass((v) => !v)}>
-          <Text style={styles.botonVerPassTexto}>{verPass ? 'Ocultar' : 'Ver'}</Text>
-        </Pressable>
-      </View>
+      <CustomInput
+        label="Contraseña"
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Mínimo 6 caracteres"
+        autoCapitalize="none"
+        autoCorrect={false}
+        secureToggle
+      />
 
-      <Text style={styles.label}>Rol</Text>
+      <Text style={styles.labelRol}>Rol</Text>
       <View style={styles.rolFila}>
         <Pressable
-          style={[styles.rolPill, rol === 'CASERO' && styles.rolPillActivo]}
+          style={({ pressed }) => [styles.rolPill, rol === 'CASERO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('CASERO')}
         >
           <Text style={[styles.rolPillTexto, rol === 'CASERO' && styles.rolPillTextoActivo]}>
@@ -183,7 +165,7 @@ export default function RegistroScreen() {
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.rolPill, rol === 'INQUILINO' && styles.rolPillActivo]}
+          style={({ pressed }) => [styles.rolPill, rol === 'INQUILINO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('INQUILINO')}
         >
           <Text style={[styles.rolPillTexto, rol === 'INQUILINO' && styles.rolPillTextoActivo]}>
@@ -192,16 +174,12 @@ export default function RegistroScreen() {
         </Pressable>
       </View>
 
-      <Pressable
-        style={loading ? styles.botonRegistrarDisabled : styles.botonRegistrar}
+      <CustomButton
+        label="Crear cuenta"
         onPress={handleRegistrar}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.botonRegistrarTexto}>Crear cuenta</Text>
-        }
-      </Pressable>
+        loading={loading}
+        style={{ marginTop: 8 }}
+      />
 
       <View style={styles.separador}>
         <View style={styles.separadorLinea} />
@@ -209,12 +187,19 @@ export default function RegistroScreen() {
         <View style={styles.separadorLinea} />
       </View>
 
-      <Pressable style={styles.botonGoogle} onPress={() => googlePromptAsync()} disabled={loading}>
+      <Pressable
+        style={({ pressed }) => [styles.botonGoogle, pressed && styles.pressed]}
+        onPress={() => googlePromptAsync()}
+        disabled={loading}
+      >
         <AntDesign name="google" size={20} color="#DB4437" />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
-      <Pressable style={styles.enlaceLogin} onPress={() => router.back()}>
+      <Pressable
+        style={({ pressed }) => [styles.enlaceLogin, pressed && styles.pressed]}
+        onPress={() => router.back()}
+      >
         <Text style={styles.enlaceLoginTexto}>¿Ya tienes cuenta? Inicia sesión</Text>
       </Pressable>
     </ScrollView>

@@ -1,7 +1,8 @@
-import { View, Text, TextInput, FlatList, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO, ETIQUETAS_TIPO } from '@/styles/inquilino/inicio.styles';
 
@@ -101,7 +102,7 @@ export default function InquilinoInicioScreen() {
       cargarIncidencias();
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo canjear el código. Inténtalo de nuevo.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     } finally {
       setLoading(false);
     }
@@ -124,7 +125,7 @@ export default function InquilinoInicioScreen() {
               setIncidencias([]);
             } catch (err: any) {
               const mensaje = err.response?.data?.error ?? 'No se pudo abandonar la vivienda.';
-              Alert.alert('Error', mensaje);
+              Toast.show({ type: 'error', text1: mensaje });
             }
           },
         },
@@ -150,7 +151,7 @@ export default function InquilinoInicioScreen() {
       );
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo actualizar el estado.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     }
   };
 
@@ -238,9 +239,6 @@ export default function InquilinoInicioScreen() {
 
   return (
     <View style={styles.dashboardContainer}>
-      <Pressable style={styles.iconoPerfil} onPress={() => router.push('/perfil')}>
-        <Ionicons name="person-circle-outline" size={32} color="#007AFF" />
-      </Pressable>
       <ScrollView contentContainerStyle={styles.dashboardContent}>
         <Text style={styles.bienvenida}>{datosCasa?.nombreVivienda ?? 'Mi vivienda'}</Text>
         <Text style={styles.subtituloDashboard}>{datosCasa?.nombreHabitacion ?? 'Mi habitación'}</Text>
@@ -273,21 +271,10 @@ export default function InquilinoInicioScreen() {
           </>
         )}
 
-        <Pressable
-          style={styles.enlaceTablon}
-          onPress={() =>
-            router.push(
-              `/tablon/${datosCasa?.viviendaId}?miUsuarioId=${datosCasa?.miUsuarioId}`
-            )
-          }
-        >
-          <Text style={styles.enlaceTablonTexto}>Tablón de anuncios →</Text>
-        </Pressable>
-
         <Text style={styles.seccionTitulo}>Incidencias</Text>
 
         {loadingIncidencias ? (
-          <ActivityIndicator color="#007AFF" style={styles.loaderIncidencias} />
+          <ActivityIndicator color={Theme.colors.primary} style={styles.loaderIncidencias} />
         ) : (
           <>
             {activas.length === 0 && (
@@ -311,13 +298,16 @@ export default function InquilinoInicioScreen() {
           </>
         )}
 
-        <Pressable style={styles.botonAbandonar} onPress={abandonarVivienda}>
+        <Pressable
+          style={({ pressed }) => [styles.botonAbandonar, pressed && styles.botonAbandonarPressed]}
+          onPress={abandonarVivienda}
+        >
           <Text style={styles.botonAbandonarTexto}>Abandonar Vivienda</Text>
         </Pressable>
       </ScrollView>
 
       <Pressable
-        style={styles.fab}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() =>
           router.push({
             pathname: '/inquilino/nueva-incidencia',

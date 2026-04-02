@@ -8,8 +8,8 @@
 
 Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
-- **Casero**: crea viviendas y habitaciones, gestiona inquilinos e incidencias.
-- **Inquilino**: se une a una habitación mediante un código de invitación, reporta incidencias.
+- **Casero**: crea viviendas y habitaciones, gestiona inquilinos e incidencias, publica anuncios en el tablón.
+- **Inquilino**: se une a una habitación mediante un código de invitación, reporta incidencias, lee y publica anuncios en el tablón.
 
 ---
 
@@ -41,6 +41,7 @@ Roomies/
 │   ├── src/
 │   │   ├── controllers/        ← lógica de negocio
 │   │   │   ├── auth.controller.ts       ← login, registro, Google OAuth, selector de rol
+│   │   │   ├── anuncio.controller.ts    ← CRUD tablón de anuncios
 │   │   │   ├── incidencia.controller.ts ← crear, listar, cambiar estado (permisos granulares)
 │   │   │   ├── inquilino.controller.ts  ← unirse a habitación, ver vivienda, abandonar habitación
 │   │   │   └── vivienda.controller.ts   ← CRUD viviendas y habitaciones, expulsar inquilino
@@ -50,6 +51,7 @@ Roomies/
 │   │   │   └── auth.middleware.ts  ← verificarToken (adjunta req.usuario)
 │   │   ├── routes/
 │   │   │   ├── auth.routes.ts
+│   │   │   ├── anuncio.routes.ts
 │   │   │   ├── incidencia.routes.ts
 │   │   │   ├── inquilino.routes.ts
 │   │   │   └── vivienda.routes.ts
@@ -62,27 +64,51 @@ Roomies/
 │   └── package.json
 ├── frontend/
 │   ├── app/
-│   │   ├── _layout.tsx         ← layout raíz con tab navigator
+│   │   ├── _layout.tsx         ← layout raíz: guard de sesión JWT + Stack navigator
 │   │   ├── index.tsx           ← Login
 │   │   ├── registro.tsx        ← Registro
 │   │   ├── rol.tsx             ← Selector de rol (post-OAuth para usuarios nuevos)
-│   │   ├── perfil.tsx          ← Perfil + logout
-│   │   ├── home.tsx
+│   │   ├── perfil.tsx          ← Perfil + logout (compartido entre roles vía re-export)
 │   │   ├── casero/
-│   │   │   ├── viviendas.tsx           ← lista de viviendas del casero
+│   │   │   ├── _layout.tsx             ← Stack del casero (apila pantallas sobre el tab bar)
 │   │   │   ├── nueva-vivienda.tsx      ← crear vivienda (con habitaciones inline)
+│   │   │   ├── (tabs)/
+│   │   │   │   ├── _layout.tsx         ← Tab bar casero: Mis viviendas | Tablón | Perfil
+│   │   │   │   ├── viviendas.tsx       ← lista de viviendas del casero
+│   │   │   │   ├── tablon.tsx          ← tablón del casero (auto-fetch viviendaId)
+│   │   │   │   └── perfil.tsx          ← re-export de app/perfil.tsx
 │   │   │   └── vivienda/
-│   │   │       ├── [id].tsx            ← detalle vivienda + habitaciones
+│   │   │       ├── [id].tsx            ← detalle vivienda + habitaciones + inquilinos
 │   │   │       └── [id]/
 │   │   │           ├── nueva-habitacion.tsx
-│   │   │           └── editar-habitacion.tsx
-│   │   └── inquilino/
-│   │       ├── inicio.tsx              ← dashboard inquilino
-│   │       └── nueva-incidencia.tsx
+│   │   │           ├── editar-habitacion.tsx
+│   │   │           └── incidencias.tsx ← lista de incidencias de la vivienda
+│   │   ├── inquilino/
+│   │   │   ├── _layout.tsx             ← Stack del inquilino
+│   │   │   ├── nueva-incidencia.tsx
+│   │   │   └── (tabs)/
+│   │   │       ├── _layout.tsx         ← Tab bar inquilino: Mi vivienda | Tablón | Perfil
+│   │   │       ├── inicio.tsx          ← onboarding + dashboard inquilino
+│   │   │       ├── tablon.tsx          ← tablón del inquilino (auto-fetch viviendaId)
+│   │   │       └── perfil.tsx          ← re-export de app/perfil.tsx
+│   │   ├── tablon/
+│   │   │   └── [viviendaId].tsx        ← tablón con viviendaId explícito en URL
+│   │   └── incidencia/
+│   │       └── [id].tsx                ← detalle de incidencia
+│   ├── components/
+│   │   └── common/
+│   │       ├── CustomButton.tsx        ← botón reutilizable: primary|secondary|outline|danger|success
+│   │       ├── CustomButton.styles.ts
+│   │       ├── Card.tsx                ← contenedor con sombra; Pressable si recibe onPress
+│   │       ├── Card.styles.ts
+│   │       ├── CustomInput.tsx         ← input con label, foco, error y secureToggle
+│   │       └── CustomInput.styles.ts
+│   ├── constants/
+│   │   └── theme.ts                    ← design tokens: colors, spacing, radius, typography
 │   ├── services/
 │   │   ├── api.ts              ← instancia Axios con baseURL + interceptor
 │   │   └── auth.service.ts     ← guardarToken / obtenerToken / eliminarToken
-│   ├── styles/                 ← un .styles.ts por pantalla, nunca inline
+│   ├── styles/                 ← un .styles.ts por pantalla, nunca inline en el componente
 │   │   ├── index.styles.ts
 │   │   ├── registro.styles.ts
 │   │   ├── rol.styles.ts
@@ -92,15 +118,21 @@ Roomies/
 │   │   │   ├── viviendas.styles.ts
 │   │   │   ├── nueva-vivienda.styles.ts
 │   │   │   └── vivienda/
-│   │   │       ├── detalle.styles.ts       ← estilos de [id].tsx (no [id].styles.ts — evita brackets)
+│   │   │       ├── detalle.styles.ts       ← estilos de [id].tsx
+│   │   │       ├── incidencias.styles.ts
 │   │   │       └── nueva-habitacion.styles.ts  ← reutilizado también por editar-habitacion.tsx
-│   │   └── inquilino/
-│   │       ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD, ETIQUETAS_ESTADO, ETIQUETAS_TIPO
-│   │       └── nueva-incidencia.styles.ts  ← incluye COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD
+│   │   ├── inquilino/
+│   │   │   ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD
+│   │   │   └── nueva-incidencia.styles.ts  ← incluye COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD
+│   │   ├── incidencia/
+│   │   │   └── detalle.styles.ts
+│   │   └── tablon/
+│   │       └── tablon.styles.ts
 │   ├── frontend/.env           ← variables EXPO_PUBLIC_* (baked en Metro)
 │   └── package.json
 ├── docs/
 │   ├── backend/api.md          ← documentación de endpoints REST
+│   ├── frontend/setup.md       ← guía de configuración, estructura, navegación, diseño
 │   └── changelog/              ← un .md por issue implementado
 ├── .env                        ← variables raíz (Docker Compose las lee)
 ├── docker-compose.yml
@@ -164,6 +196,17 @@ Roomies/
 | `prioridad`      | `VERDE` \| `AMARILLO` \| `ROJO`           |                                                 |
 | `fecha_creacion` | DateTime                                  |                                                 |
 
+### `Anuncio`
+
+| Campo            | Tipo          | Notas                                     |
+| ---------------- | ------------- | ----------------------------------------- |
+| `id`             | Int PK        | autoincrement                             |
+| `vivienda_id`    | FK → Vivienda |                                           |
+| `autor_id`       | FK → Usuario  |                                           |
+| `titulo`         | String        |                                           |
+| `contenido`      | String        |                                           |
+| `fecha_creacion` | DateTime      | `@default(now())`                         |
+
 ---
 
 ## API REST (base: `/api`)
@@ -205,6 +248,16 @@ Roomies/
 | POST   | `/incidencias`            | Sí   | Crear incidencia (acepta `habitacion_id` opcional; validado contra dormitorios ajenos)                                                   |
 | GET    | `/incidencias`            | Sí   | Listar incidencias (casero: todas sus viviendas; inquilino: su vivienda)                                                                 |
 | PATCH  | `/incidencias/:id/estado` | Sí   | Cambiar estado. Casero: libre en sus viviendas. Inquilino: solo si es creador, la incidencia es de su dormitorio, o es de una zona común |
+
+### Anuncios — `/anuncios`
+
+Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e inquilinos) pueden publicar y leer anuncios. Solo el autor o el casero de la vivienda puede eliminarlos.
+
+| Método | Ruta            | Auth | Descripción                                                                         |
+| ------ | --------------- | ---- | ----------------------------------------------------------------------------------- |
+| GET    | `/anuncios?viviendaId=X` | Sí | Lista anuncios de la vivienda (más reciente primero). Incluye `autor { id, nombre }` |
+| POST   | `/anuncios`     | Sí   | Publica anuncio. Body: `{ titulo, contenido, vivienda_id }`                         |
+| DELETE | `/anuncios/:id` | Sí   | Elimina anuncio. Solo el autor o el casero de la vivienda                           |
 
 ---
 
@@ -283,7 +336,9 @@ El backend en Docker ejecuta al arrancar:
 ### Frontend
 
 - **Estilos**: cada pantalla tiene su archivo `.styles.ts` en `styles/` con la misma ruta relativa que la pantalla. Nunca `StyleSheet.create` inline en el componente.
-- **Navegación**: usar `CommonActions.reset` (de `@react-navigation/native`) para limpiar la pila al hacer login/logout. Nunca `router.replace` para navegaciones entre sesiones.
+- **Componentes base**: usar `CustomButton`, `Card` y `CustomInput` de `components/common/` en lugar de primitivos directos (`Pressable`+estilos inline, `View`+sombra manual, `TextInput`+label manual).
+- **Design tokens**: usar `Theme` de `constants/theme.ts` para todos los valores de color, spacing, radius y tipografía. Nunca hex literals ni magic numbers en estilos.
+- **Navegación**: usar `router.replace()` (de `expo-router`) para navegar entre sesiones (login → dashboard, logout → index, selector de rol → dashboard). Nunca `CommonActions.reset` de React Navigation — no resuelve los grupos `(tabs)` de Expo Router.
 - **Token**: guardar/recuperar/eliminar con las funciones de `services/auth.service.ts`.
 - **API**: importar la instancia Axios de `@/services/api`. El interceptor inyecta el Bearer token automáticamente.
 - **Variables de entorno**: solo `EXPO_PUBLIC_*` son accesibles en el frontend. Se leen con `process.env.EXPO_PUBLIC_*`.
@@ -295,25 +350,37 @@ El backend en Docker ejecuta al arrancar:
 - Las rutas de archivo se mapean directamente a URLs.
 - `[id].tsx` → pantalla de detalle con param `id`.
 - `[id]/nueva-habitacion.tsx` → subruta con acceso a `id` mediante `useLocalSearchParams`.
-- Los tabs del layout raíz (`_layout.tsx`) son: `casero/viviendas`, `inquilino/inicio`, `perfil`.
+- Los grupos `(tabs)` son transparentes en URL: `casero/(tabs)/viviendas.tsx` se accede como `/casero/viviendas`.
+- Cada rol tiene su propio grupo `(tabs)` con tres pestañas:
+  - **Casero**: Mis viviendas (`viviendas`) · Tablón (`tablon`) · Perfil (`perfil`)
+  - **Inquilino**: Mi vivienda (`inicio`) · Tablón (`tablon`) · Perfil (`perfil`)
+- Las pantallas de formulario/detalle (nueva vivienda, detalle vivienda, nueva incidencia, detalle incidencia) se apilan sobre el tab bar gracias al `Stack` en `casero/_layout.tsx` e `inquilino/_layout.tsx`.
+- El tablón es un tab autónomo: obtiene `viviendaId` vía API en lugar de recibirlo por URL.
+- La pestaña "Perfil" de cada rol es un re-export de `app/perfil.tsx` para evitar duplicación.
 
 ---
 
 ## Flujo de autenticación
 
-1. **Registro manual**: `POST /auth/register` → devuelve nada (201). El usuario va al login.
-2. **Login manual**: `POST /auth/login` → devuelve `{ token, usuario }`. Se guarda el token con `guardarToken`. Se navega con `CommonActions.reset`.
-3. **Google OAuth**:
+1. **Inicio de app**: `app/_layout.tsx` verifica si existe un JWT almacenado:
+   - Lee el token con `obtenerToken()` (SecureStore).
+   - Si hay token, llama `GET /auth/me` para obtener el rol.
+   - Redirige con `router.replace()` al dashboard correspondiente.
+   - Si el token es inválido o expirado, lo borra con `eliminarToken()` y deja al usuario en el login.
+   - Muestra un `ActivityIndicator` como overlay mientras verifica (el Stack se renderiza siempre para que `router.replace()` tenga destino).
+2. **Registro manual**: `POST /auth/register` → devuelve nada (201). El usuario va al login.
+3. **Login manual**: `POST /auth/login` → devuelve `{ token, usuario }`. Se guarda el token con `guardarToken`. Se navega con `router.replace()` al dashboard según el rol.
+4. **Google OAuth**:
    - `expo-auth-session` obtiene un `idToken` en el dispositivo.
    - Se envía a `POST /auth/google` → el backend lo verifica con `google-auth-library` → upsert del usuario.
    - Devuelve `{ token, usuario, esNuevo: boolean }`.
    - Si `esNuevo === true` → frontend redirige a `/rol` (selector de rol).
-   - Si `esNuevo === false` → navegación directa al dashboard según `usuario.rol`.
-4. **Selector de rol** (`/rol`): pantalla con dos cards (Casero / Inquilino). Al confirmar:
+   - Si `esNuevo === false` → `router.replace()` al dashboard según `usuario.rol`.
+5. **Selector de rol** (`/rol`): pantalla con dos cards (Casero / Inquilino). Al confirmar:
    - `PATCH /auth/rol` con `{ rol }` → backend actualiza BD y re-emite un nuevo JWT con el rol correcto.
-   - Frontend guarda el nuevo token y navega con `CommonActions.reset` al dashboard.
-5. **Sesión**: el token JWT se almacena en `expo-secure-store`. El interceptor de Axios lo inyecta en cada petición.
-6. **Logout**: `eliminarToken()` + `CommonActions.reset` a `index`.
+   - Frontend guarda el nuevo token y navega con `router.replace()` al dashboard.
+6. **Sesión**: el token JWT se almacena en `expo-secure-store`. El interceptor de Axios lo inyecta en cada petición.
+7. **Logout**: `eliminarToken()` + `router.replace('/')` a la pantalla de login.
 
 ---
 
@@ -321,7 +388,7 @@ El backend en Docker ejecuta al arrancar:
 
 1. Recibe un código de invitación del casero (solo la parte alfanumérica, sin el prefijo `ROOM-`).
 2. `POST /inquilino/unirse` con `{ codigo_invitacion: "ROOM-XXXXXX" }` → queda asignado a la habitación.
-3. Accede al dashboard `inquilino/inicio`:
+3. Accede al dashboard `inquilino/(tabs)/inicio`:
    - `GET /inquilino/vivienda` carga la vivienda completa con todas las habitaciones e inquilinos.
    - Sección "Compañeros de piso": dormitorios con inquilino asignado (excepto el propio).
    - Sección "Zonas comunes": habitaciones que no son DORMITORIO.

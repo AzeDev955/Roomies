@@ -1,4 +1,6 @@
 import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
@@ -45,7 +47,7 @@ export default function DetalleIncidenciaScreen() {
       setTitulo(data.titulo);
       setDescripcion(data.descripcion);
     } catch {
-      Alert.alert('Error', 'No se pudo cargar la incidencia.');
+      Toast.show({ type: 'error', text1: 'No se pudo cargar la incidencia.' });
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export default function DetalleIncidenciaScreen() {
       setIncidencia((prev) => prev ? { ...prev, titulo, descripcion } : prev);
       setEditando(false);
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error ?? 'No se pudo guardar.');
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo guardar.' });
     } finally {
       setGuardando(false);
     }
@@ -75,7 +77,7 @@ export default function DetalleIncidenciaScreen() {
       await api.patch(`/incidencias/${id}/estado`, { estado: nuevoEstado });
       setIncidencia((prev) => prev ? { ...prev, estado: nuevoEstado } : prev);
     } catch (err: any) {
-      Alert.alert('Error', err.response?.data?.error ?? 'No se pudo actualizar el estado.');
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo actualizar el estado.' });
     }
   };
 
@@ -93,7 +95,7 @@ export default function DetalleIncidenciaScreen() {
               await api.delete(`/incidencias/${id}`);
               router.back();
             } catch (err: any) {
-              Alert.alert('Error', err.response?.data?.error ?? 'No se pudo eliminar.');
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar.' });
             }
           },
         },
@@ -101,13 +103,7 @@ export default function DetalleIncidenciaScreen() {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   if (!incidencia) {
     return (

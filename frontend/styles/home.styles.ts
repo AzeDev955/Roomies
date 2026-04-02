@@ -1,27 +1,28 @@
 import { StyleSheet } from 'react-native';
+import { Theme } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Theme.spacing.base },
+  title: { fontSize: Theme.typography.heading, fontWeight: 'bold', textAlign: 'center' },
   button: {
-    backgroundColor: '#6c757d',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: Theme.colors.textSecondary,
+    padding: Theme.spacing.md,
+    borderRadius: Theme.radius.sm,
     minWidth: 160,
     alignItems: 'center',
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: Theme.colors.surface, fontSize: Theme.typography.input, fontWeight: '600' },
   buttonPrimary: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: Theme.colors.primary,
+    padding: Theme.spacing.md,
+    borderRadius: Theme.radius.sm,
     minWidth: 160,
     alignItems: 'center',
   },
   buttonSecondary: {
-    backgroundColor: '#34C759',
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: Theme.colors.success,
+    padding: Theme.spacing.md,
+    borderRadius: Theme.radius.sm,
     minWidth: 160,
     alignItems: 'center',
   },

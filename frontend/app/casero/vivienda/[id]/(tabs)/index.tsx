@@ -1,4 +1,6 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Share } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, Share } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -6,6 +8,8 @@ import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
 import { COLORES_PRIORIDAD } from '@/styles/casero/vivienda/incidencias.styles';
+import { Card } from '@/components/common/Card';
+import { CustomButton } from '@/components/common/CustomButton';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
@@ -50,7 +54,7 @@ const ETIQUETAS_TIPO: Record<string, string> = {
   OTRO: 'Otro',
 };
 
-export default function DetalleViviendaScreen() {
+export default function ResumenViviendaTab() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
@@ -63,7 +67,7 @@ export default function DetalleViviendaScreen() {
       const { data } = await api.get<Vivienda>(`/viviendas/${id}`);
       setVivienda(data);
     } catch {
-      Alert.alert('Error', 'No se pudo cargar la vivienda.');
+      Toast.show({ type: 'error', text1: 'No se pudo cargar la vivienda.' });
     } finally {
       setLoading(false);
     }
@@ -87,7 +91,7 @@ export default function DetalleViviendaScreen() {
   const copiarCodigo = async (codigo: string) => {
     const codigoLimpio = codigo.replace(/^room[-\s]*/i, '').trim();
     await Clipboard.setStringAsync(codigoLimpio);
-    Alert.alert('Código copiado', 'Pégalo en la app para unirte a la habitación.');
+    Toast.show({ type: 'info', text1: 'Código copiado', text2: 'Pégalo en la app para unirte a la habitación.' });
   };
 
   const compartirCodigo = async (codigo: string) => {
@@ -111,7 +115,7 @@ export default function DetalleViviendaScreen() {
               cargarVivienda();
             } catch (err: any) {
               const mensaje = err.response?.data?.error ?? 'No se pudo eliminar la habitación.';
-              Alert.alert('Error', mensaje);
+              Toast.show({ type: 'error', text1: mensaje });
             }
           },
         },
@@ -143,7 +147,7 @@ export default function DetalleViviendaScreen() {
               );
             } catch (err: any) {
               const mensaje = err.response?.data?.error ?? 'No se pudo expulsar al inquilino.';
-              Alert.alert('Error', mensaje);
+              Toast.show({ type: 'error', text1: mensaje });
             }
           },
         },
@@ -153,8 +157,9 @@ export default function DetalleViviendaScreen() {
 
   const handleEditarHabitacion = (hab: Habitacion) => {
     router.push({
-      pathname: `/casero/vivienda/${id}/editar-habitacion`,
+      pathname: '/casero/vivienda/[id]/editar-habitacion',
       params: {
+        id,
         habId: String(hab.id),
         nombre: hab.nombre,
         tipo: hab.tipo,
@@ -164,13 +169,7 @@ export default function DetalleViviendaScreen() {
     });
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" style={{ flex: 1 }} />
-      </View>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   if (!vivienda) {
     return (
@@ -186,17 +185,10 @@ export default function DetalleViviendaScreen() {
         <Text style={styles.title}>{vivienda.alias_nombre}</Text>
         <Text style={styles.address}>{vivienda.direccion}</Text>
 
-        <Pressable onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}>
-          <Text style={styles.enlaceIncidencias}>Ver todas las incidencias →</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push(`/tablon/${id}?esCasero=true`)}>
-          <Text style={styles.enlaceIncidencias}>Tablón de anuncios →</Text>
-        </Pressable>
-
         {[...vivienda.habitaciones]
           .sort((a, b) => Number(b.es_habitable) - Number(a.es_habitable) || a.id - b.id)
           .map((habitacion) => (
-          <View key={habitacion.id} style={styles.card}>
+          <Card key={habitacion.id}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>{habitacion.nombre}</Text>
               <Text style={styles.cardTipo}>{ETIQUETAS_TIPO[habitacion.tipo] ?? habitacion.tipo}</Text>
@@ -206,18 +198,21 @@ export default function DetalleViviendaScreen() {
               <>
                 {habitacion.inquilino ? (
                   <View style={styles.inquilinoInfo}>
-                    <View style={styles.inquilinoTextos}>
+                    <Pressable
+                      style={({ pressed }) => [styles.inquilinoTextos, pressed && styles.enlacePressed]}
+                      onPress={() => router.push(`/casero/inquilino/${habitacion.inquilino!.id}`)}
+                    >
                       <Text style={styles.inquilinoNombre}>
                         {habitacion.inquilino.nombre} {habitacion.inquilino.apellidos ?? ''}
                       </Text>
                       <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
-                    </View>
-                    <Pressable
-                      style={styles.botonExpulsar}
-                      onPress={() => handleExpulsarInquilino(habitacion)}
-                    >
-                      <Text style={styles.botonExpulsarTexto}>Expulsar</Text>
                     </Pressable>
+                    <CustomButton
+                      label="Expulsar"
+                      variant="danger"
+                      onPress={() => handleExpulsarInquilino(habitacion)}
+                      style={{ paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6, marginLeft: 8 }}
+                    />
                   </View>
                 ) : (
                   <Text style={styles.sinInquilino}>Sin inquilino</Text>
@@ -235,12 +230,12 @@ export default function DetalleViviendaScreen() {
                           <Text style={styles.codigo}>{habitacion.codigo_invitacion}</Text>
                           <Text style={styles.codigoHint}>Mantén pulsado para copiar</Text>
                         </Pressable>
-                        <Pressable
-                          style={styles.compartirBoton}
+                        <CustomButton
+                          label="Compartir"
+                          variant="success"
                           onPress={() => compartirCodigo(habitacion.codigo_invitacion!)}
-                        >
-                          <Text style={styles.compartirBotonTexto}>Compartir</Text>
-                        </Pressable>
+                          style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 }}
+                        />
                       </View>
                     ) : (
                       <Pressable onPress={() => revelarCodigo(habitacion.id)}>
@@ -269,19 +264,25 @@ export default function DetalleViviendaScreen() {
             )}
 
             <View style={styles.accionFila}>
-              <Pressable style={styles.botonEditar} onPress={() => handleEditarHabitacion(habitacion)}>
-                <Text style={styles.botonAccionTexto}>Editar</Text>
-              </Pressable>
-              <Pressable style={styles.botonEliminar} onPress={() => handleEliminarHabitacion(habitacion)}>
-                <Text style={styles.botonAccionTexto}>Eliminar</Text>
-              </Pressable>
+              <CustomButton
+                label="Editar"
+                variant="primary"
+                onPress={() => handleEditarHabitacion(habitacion)}
+                style={{ flex: 1, paddingVertical: 8, borderRadius: 8 }}
+              />
+              <CustomButton
+                label="Eliminar"
+                variant="danger"
+                onPress={() => handleEliminarHabitacion(habitacion)}
+                style={{ flex: 1, paddingVertical: 8, borderRadius: 8 }}
+              />
             </View>
-          </View>
+          </Card>
         ))}
       </ScrollView>
 
       <Pressable
-        style={styles.fab}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => router.push(`/casero/vivienda/${id}/nueva-habitacion`)}
       >
         <Text style={styles.fabText}>+</Text>

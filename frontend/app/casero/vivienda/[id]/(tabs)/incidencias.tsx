@@ -1,4 +1,6 @@
-import { View, Text, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, FlatList, Pressable } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
@@ -20,7 +22,7 @@ type Incidencia = {
 
 const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
 
-export default function IncidenciasCaseroScreen() {
+export default function IncidenciasCaseroTab() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
@@ -33,7 +35,7 @@ export default function IncidenciasCaseroScreen() {
       const { data } = await api.get<Incidencia[]>(`/incidencias?viviendaId=${id}`);
       setIncidencias(data);
     } catch {
-      Alert.alert('Error', 'No se pudieron cargar las incidencias.');
+      Toast.show({ type: 'error', text1: 'No se pudieron cargar las incidencias.' });
     } finally {
       setLoading(false);
     }
@@ -53,7 +55,7 @@ export default function IncidenciasCaseroScreen() {
       );
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo actualizar el estado.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     }
   };
 
@@ -101,46 +103,41 @@ export default function IncidenciasCaseroScreen() {
     </View>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   return (
-    <FlatList
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      data={activas}
-      keyExtractor={(item) => item.id.toString()}
-      ListEmptyComponent={
-        <Text style={styles.emptyText}>No hay incidencias activas en esta vivienda.</Text>
-      }
-      renderItem={({ item }) => renderCard(item)}
-      ListFooterComponent={
-        historial.length > 0 ? (
-          <>
-            <Pressable
-              style={styles.historialToggle}
-              onPress={() => setMostrarHistorial((v) => !v)}
-            >
-              <Text style={styles.historialToggleTexto}>
-                {mostrarHistorial
-                  ? 'Ocultar historial'
-                  : `Ver historial (${historial.length})`}
-              </Text>
-            </Pressable>
-            {mostrarHistorial && (
-              <>
-                <View style={styles.historialSeparador} />
-                {historial.map((item) => renderCard(item))}
-              </>
-            )}
-          </>
-        ) : null
-      }
-    />
+    <View style={styles.container}>
+      <FlatList
+        contentContainerStyle={styles.content}
+        data={activas}
+        keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No hay incidencias activas en esta vivienda.</Text>
+        }
+        renderItem={({ item }) => renderCard(item)}
+        ListFooterComponent={
+          historial.length > 0 ? (
+            <>
+              <Pressable
+                style={styles.historialToggle}
+                onPress={() => setMostrarHistorial((v) => !v)}
+              >
+                <Text style={styles.historialToggleTexto}>
+                  {mostrarHistorial
+                    ? 'Ocultar historial'
+                    : `Ver historial (${historial.length})`}
+                </Text>
+              </Pressable>
+              {mostrarHistorial && (
+                <>
+                  <View style={styles.historialSeparador} />
+                  {historial.map((item) => renderCard(item))}
+                </>
+              )}
+            </>
+          ) : null
+        }
+      />
+    </View>
   );
 }
