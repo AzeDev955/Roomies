@@ -8,9 +8,11 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 
 ### 👑 Para el Casero / Gestor
 * **Gestión Multipropiedad:** Creación y administración de diferentes viviendas y sus respectivas habitaciones, con autocompletado de dirección vía Mapbox.
+* **Centro de mandos por vivienda:** Al entrar en una propiedad, un menú inferior propio con tres pestañas — Resumen, Incidencias y Tablón — sin perder la navegación principal.
 * **Códigos de Invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
-* **Gestión de Inquilinos:** Expulsión de inquilinos por habitación directamente desde el panel de detalle.
+* **Gestión de Inquilinos:** Expulsión de inquilinos por habitación, y acceso al perfil de contacto completo (nombre, email, teléfono) de cada inquilino con un toque.
 * **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado de los problemas reportados en las viviendas.
+* **Tablón de anuncios:** Publicación y eliminación de anuncios en cada vivienda; el casero puede moderar cualquier anuncio.
 
 ### 🛋️ Para el Inquilino
 * **Mi Espacio:** Vista rápida de la vivienda, compañeros de piso, zonas comunes e incidencias.
