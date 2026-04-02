@@ -1,4 +1,5 @@
-import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
@@ -55,7 +56,7 @@ export default function RegistroScreen() {
         router.replace(destino);
       }
     } catch {
-      Alert.alert('Error', 'No se pudo completar el registro con Google.');
+      Toast.show({ type: 'error', text1: 'No se pudo completar el registro con Google.' });
     } finally {
       setLoading(false);
     }
@@ -66,31 +67,30 @@ export default function RegistroScreen() {
       !nombre.trim() || !apellidos.trim() || !dni.trim() ||
       !email.trim() || !telefono.trim() || !password
     ) {
-      Alert.alert('Campos incompletos', 'Rellena todos los campos antes de continuar.');
+      Toast.show({ type: 'error', text1: 'Campos incompletos', text2: 'Rellena todos los campos antes de continuar.' });
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert('Email inválido', 'Introduce un email con formato válido.');
+      Toast.show({ type: 'error', text1: 'Email inválido', text2: 'Introduce un email con formato válido.' });
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Contraseña demasiado corta', 'La contraseña debe tener al menos 6 caracteres.');
+      Toast.show({ type: 'error', text1: 'Contraseña demasiado corta', text2: 'La contraseña debe tener al menos 6 caracteres.' });
       return;
     }
     if (!rol) {
-      Alert.alert('Selecciona un rol', 'Elige si eres Casero o Inquilino.');
+      Toast.show({ type: 'error', text1: 'Selecciona un rol', text2: 'Elige si eres Casero o Inquilino.' });
       return;
     }
 
     setLoading(true);
     try {
       await api.post('/auth/register', { nombre, apellidos, dni, email, telefono, password, rol });
-      Alert.alert('¡Cuenta creada!', 'Ya puedes iniciar sesión con tus credenciales.', [
-        { text: 'Ir al login', onPress: () => router.replace('/') },
-      ]);
+      Toast.show({ type: 'success', text1: '¡Cuenta creada!', text2: 'Ya puedes iniciar sesión con tus credenciales.' });
+      router.replace('/');
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo crear la cuenta. Inténtalo de nuevo.';
-      Alert.alert('Error', mensaje);
+      Toast.show({ type: 'error', text1: mensaje });
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ export default function RegistroScreen() {
       <Text style={styles.labelRol}>Rol</Text>
       <View style={styles.rolFila}>
         <Pressable
-          style={[styles.rolPill, rol === 'CASERO' && styles.rolPillActivo]}
+          style={({ pressed }) => [styles.rolPill, rol === 'CASERO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('CASERO')}
         >
           <Text style={[styles.rolPillTexto, rol === 'CASERO' && styles.rolPillTextoActivo]}>
@@ -165,7 +165,7 @@ export default function RegistroScreen() {
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.rolPill, rol === 'INQUILINO' && styles.rolPillActivo]}
+          style={({ pressed }) => [styles.rolPill, rol === 'INQUILINO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('INQUILINO')}
         >
           <Text style={[styles.rolPillTexto, rol === 'INQUILINO' && styles.rolPillTextoActivo]}>
@@ -187,12 +187,19 @@ export default function RegistroScreen() {
         <View style={styles.separadorLinea} />
       </View>
 
-      <Pressable style={styles.botonGoogle} onPress={() => googlePromptAsync()} disabled={loading}>
+      <Pressable
+        style={({ pressed }) => [styles.botonGoogle, pressed && styles.pressed]}
+        onPress={() => googlePromptAsync()}
+        disabled={loading}
+      >
         <AntDesign name="google" size={20} color="#DB4437" />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
-      <Pressable style={styles.enlaceLogin} onPress={() => router.back()}>
+      <Pressable
+        style={({ pressed }) => [styles.enlaceLogin, pressed && styles.pressed]}
+        onPress={() => router.back()}
+      >
         <Text style={styles.enlaceLoginTexto}>¿Ya tienes cuenta? Inicia sesión</Text>
       </Pressable>
     </ScrollView>

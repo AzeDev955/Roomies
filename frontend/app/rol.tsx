@@ -1,4 +1,5 @@
-import { View, Text, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { styles } from '@/styles/rol.styles';
@@ -23,7 +24,7 @@ export default function SeleccionRolScreen() {
       const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
       router.replace(destino);
     } catch {
-      Alert.alert('Error', 'No se pudo guardar el rol. Inténtalo de nuevo.');
+      Toast.show({ type: 'error', text1: 'No se pudo guardar el rol. Inténtalo de nuevo.' });
     } finally {
       setLoading(false);
     }

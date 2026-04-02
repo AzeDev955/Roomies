@@ -27,6 +27,7 @@ export const styles = StyleSheet.create({
     elevation: 8,
   },
   fabText: { color: Theme.colors.surface, fontSize: Theme.typography.hero, lineHeight: 36, fontWeight: '300' },
+  fabPressed: { opacity: 0.8 },
   badge: {
     position: 'absolute',
     top: 10,

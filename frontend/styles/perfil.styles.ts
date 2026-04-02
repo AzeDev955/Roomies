@@ -92,4 +92,7 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.input,
     fontWeight: '700',
   },
+  pressed: {
+    opacity: 0.7,
+  },
 });

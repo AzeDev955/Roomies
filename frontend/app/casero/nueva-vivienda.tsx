@@ -1,4 +1,5 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
@@ -65,7 +66,7 @@ export default function NuevaViviendaScreen() {
     if (!queryBusqueda.trim()) return;
     const token = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
     if (!token) {
-      Alert.alert('Configuración', 'Falta EXPO_PUBLIC_MAPBOX_TOKEN en las variables de entorno.');
+      Toast.show({ type: 'error', text1: 'Falta EXPO_PUBLIC_MAPBOX_TOKEN en las variables de entorno.' });
       return;
     }
     setBuscandoDireccion(true);
@@ -75,7 +76,7 @@ export default function NuevaViviendaScreen() {
       const datos = await respuesta.json();
       setResultadosBusqueda(datos.features ?? []);
     } catch {
-      Alert.alert('Error', 'No se pudo conectar con el buscador de direcciones.');
+      Toast.show({ type: 'error', text1: 'No se pudo conectar con el buscador de direcciones.' });
     } finally {
       setBuscandoDireccion(false);
     }
@@ -143,7 +144,7 @@ export default function NuevaViviendaScreen() {
       });
       router.replace('/casero/viviendas');
     } catch {
-      Alert.alert('Error', 'No se pudo crear la vivienda. Inténtalo de nuevo.');
+      Toast.show({ type: 'error', text1: 'No se pudo crear la vivienda. Inténtalo de nuevo.' });
     } finally {
       setLoading(false);
     }

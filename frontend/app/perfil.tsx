@@ -1,4 +1,6 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable } from 'react-native';
+import Toast from 'react-native-toast-message';
+import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
@@ -25,7 +27,7 @@ export default function PerfilScreen() {
         const { data } = await api.get<Perfil>('/auth/me');
         setPerfil(data);
       } catch {
-        Alert.alert('Error', 'No se pudo cargar el perfil.');
+        Toast.show({ type: 'error', text1: 'No se pudo cargar el perfil.' });
       } finally {
         setLoading(false);
       }
@@ -38,13 +40,7 @@ export default function PerfilScreen() {
     router.replace('/');
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
+  if (loading) return <LoadingScreen />;
 
   if (!perfil) {
     return (
@@ -87,7 +83,10 @@ export default function PerfilScreen() {
           <Text style={styles.tarjetaValor}>{esCasero ? 'Propietario / Casero' : 'Inquilino'}</Text>
         </View>
 
-        <Pressable style={styles.botonLogout} onPress={cerrarSesion}>
+        <Pressable
+          style={({ pressed }) => [styles.botonLogout, pressed && styles.pressed]}
+          onPress={cerrarSesion}
+        >
           <Text style={styles.botonLogoutTexto}>Cerrar Sesión</Text>
         </Pressable>
       </ScrollView>

@@ -321,4 +321,6 @@ export const styles = StyleSheet.create({
     lineHeight: 32,
     fontWeight: '300',
   },
+  fabPressed: { opacity: 0.8 },
+  botonAbandonarPressed: { opacity: 0.7 },
 });

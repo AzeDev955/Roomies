@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { obtenerToken, eliminarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { Theme } from '@/constants/theme';
+import { toastConfig } from '@/constants/toastConfig';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -36,6 +38,7 @@ export default function RootLayout() {
           <ActivityIndicator size="large" color={Theme.colors.primary} />
         </View>
       )}
+      <Toast config={toastConfig} />
     </>
   );
 }
