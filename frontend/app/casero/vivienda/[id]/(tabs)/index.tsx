@@ -198,12 +198,15 @@ export default function ResumenViviendaTab() {
               <>
                 {habitacion.inquilino ? (
                   <View style={styles.inquilinoInfo}>
-                    <View style={styles.inquilinoTextos}>
+                    <Pressable
+                      style={({ pressed }) => [styles.inquilinoTextos, pressed && styles.enlacePressed]}
+                      onPress={() => router.push(`/casero/inquilino/${habitacion.inquilino!.id}`)}
+                    >
                       <Text style={styles.inquilinoNombre}>
                         {habitacion.inquilino.nombre} {habitacion.inquilino.apellidos ?? ''}
                       </Text>
                       <Text style={styles.inquilinoEmail}>{habitacion.inquilino.email}</Text>
-                    </View>
+                    </Pressable>
                     <CustomButton
                       label="Expulsar"
                       variant="danger"
