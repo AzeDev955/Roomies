@@ -131,3 +131,48 @@ POST   /viviendas/:id/limpieza/generar                   →  generarTurnos
 - **Greedy de mayor a menor peso**: un greedy de menor a mayor dejaría las zonas pesadas para el final, cuando los usuarios ya tienen carga acumulada y la diferencia entre ellos es pequeña → peor distribución. Procesando de mayor a menor, los bloques grandes se "encajan" primero en el usuario con más espacio disponible.
 - **`carga_efectiva = cargaSemanal + balance_bd`**: combinar la carga de esta semana con el balance histórico hace que el algoritmo corrija automáticamente injusticias de semanas pasadas sin necesidad de lógica adicional.
 - **Guard de duplicados por `fecha_inicio`**: más robusto que comparar con "esta semana" porque funciona aunque el casero genere los turnos con antelación (ej. el jueves para la semana siguiente).
+
+
+---
+
+## Actualización — Motor incremental y paginación de calendario (2026-04-03)
+
+### `backend/src/services/limpieza.service.ts`
+
+**Eliminado**: el guard anti-duplicados (`if existentes > 0 throw Error`).
+
+**Eliminado**: `getProximaSemana()` (siempre apuntaba a la semana siguiente a la actual).
+
+**Añadido**: `getLunesDeSemana(fecha: Date)` — calcula el lunes 00:00 de la semana ISO que contiene `fecha`, usando `(getDay() + 6) % 7` para convertir el domingo-0 de JS al lunes-0 ISO.
+
+**Nueva lógica de fecha objetivo** en `generarTurnosSemanales`:
+1. Busca el turno más reciente de la vivienda (`findFirst orderBy fecha_inicio desc`).
+2. Si no existe ninguno, o si `fecha_inicio < lunesHoy` (historial antiguo) → `inicio = lunesHoy` (semana actual).
+3. Si existe y `fecha_inicio >= lunesHoy` → `inicio = lunesUltimo + 7 días` (semana siguiente al último bloque generado).
+
+Resultado: el casero puede pulsar el botón N veces y genera N semanas consecutivas sin error, empezando siempre desde donde lo dejó.
+
+### `backend/src/controllers/limpieza.controller.ts` — `obtenerTurnos`
+
+Añadido soporte para `req.query.fecha` (formato `YYYY-MM-DD`). Si se envía, la semana objetivo (lunes–domingo) se calcula usando esa fecha como referencia. Si no se envía, se usa `new Date()` (semana actual). El cálculo es idéntico en ambos casos: `(base.getDay() + 6) % 7` para hallar el lunes.
+
+### `frontend/app/casero/vivienda/[id]/(tabs)/limpieza.tsx`
+
+**Estado añadido**: `fechaObjetivo: Date` — inicializado al lunes de la semana actual. Persiste entre cambios de vista.
+
+**`navegar(direccion: -1 | 1)`**: suma/resta 7 días a `fechaObjetivo` con `setDate`. El `useEffect([vistaActual, fechaObjetivo])` reacciona y llama a `cargarTurnos(fechaObjetivo)`.
+
+**`cargarTurnos(fecha?)`**: construye `?fecha=YYYY-MM-DD` a partir de `fecha.toISOString().split('T')[0]` y lo pasa al endpoint.
+
+**Vista Calendario — nuevo header de navegación** (`semanaNav`): fila `‹ [etiqueta] ›` con `Pressable` en los extremos. `getSemanaLabel(base)` ahora recibe la fecha como argumento en lugar de calcularla internamente.
+
+**Empty state en Calendario**: en lugar de ocultar la vista, muestra `"No hay turnos para esta semana"` + `<CustomButton>` "Generar turnos" inline para que el casero no tenga que cambiar de pestaña.
+
+**Botón general renombrado**: `"Generar Turnos Semanales (Test)"` → `"Generar siguiente semana de turnos"`. Tras generar, muestra un Toast con éxito sin cambiar la vista ni la fecha objetivo, dejando al casero libre de navegar al calendario cuando quiera.
+
+### Decisiones técnicas
+
+- **Sin `throw` en el servicio por duplicados**: el motor incremental hace innecesario el guard — si ya existe la semana actual, calcula la siguiente automáticamente. Responsabilidad de detección de duplicados eliminada del dominio.
+- **`getLunesDeSemana` en lugar de `getProximaSemana`**: una función pura y reutilizable que acepta cualquier `Date` es más testeable y flexible que una que siempre lee `new Date()` internamente.
+- **`fechaObjetivo` en el frontend, no como string**: mantener la fecha como `Date` en el estado facilita `setDate(+7/-7)` sin parsing/formatting intermedio; solo se convierte a string en el momento de la llamada HTTP.
+- **Toast en lugar de `Alert.alert` tras generar**: `Alert` requiere interacción del usuario (tap en "OK") lo que bloquea el flujo. Toast es no-bloqueante y coherente con el resto de notificaciones de la app.

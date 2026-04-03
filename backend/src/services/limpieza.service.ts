@@ -1,18 +1,13 @@
 import { prisma } from '../lib/prisma';
 import { EstadoPresencia, EstadoTurno } from '../generated/prisma/client';
 
-/** Devuelve el lunes y el domingo de la PRÓXIMA semana (ISO: lunes = día 1). */
-function getProximaSemana(): { inicio: Date; fin: Date } {
-  const hoy = new Date();
-  const diaSemana = hoy.getDay(); // 0=Dom, 1=Lun … 6=Sáb
-  const diasHastaLunes = diaSemana === 0 ? 1 : 8 - diaSemana;
-  const lunes = new Date(hoy);
-  lunes.setDate(hoy.getDate() + diasHastaLunes);
+/** Devuelve el lunes 00:00 de la semana que contiene `fecha`. */
+function getLunesDeSemana(fecha: Date): Date {
+  const lunes = new Date(fecha);
+  const offset = (fecha.getDay() + 6) % 7; // 0=Lun … 6=Dom
+  lunes.setDate(fecha.getDate() - offset);
   lunes.setHours(0, 0, 0, 0);
-  const domingo = new Date(lunes);
-  domingo.setDate(lunes.getDate() + 6);
-  domingo.setHours(23, 59, 59, 999);
-  return { inicio: lunes, fin: domingo };
+  return lunes;
 }
 
 /**
@@ -26,18 +21,33 @@ function getProximaSemana(): { inicio: Date; fin: Date } {
  * Todo se persiste en una única transacción de Prisma.
  */
 export async function generarTurnosSemanales(viviendaId: number): Promise<void> {
-  const { inicio, fin } = getProximaSemana();
-
-  // Guard: evitar doble generación para la misma semana.
-  const existentes = await prisma.turnoLimpieza.count({
-    where: {
-      zona: { vivienda_id: viviendaId },
-      fecha_inicio: inicio,
-    },
+  // Determina la semana objetivo de forma incremental:
+  // - Si no hay turnos o el último es de una semana pasada → semana actual.
+  // - Si el último es de esta semana o futura → semana siguiente al último turno.
+  const ultimoTurno = await prisma.turnoLimpieza.findFirst({
+    where: { zona: { vivienda_id: viviendaId } },
+    orderBy: { fecha_inicio: 'desc' },
+    select: { fecha_inicio: true },
   });
-  if (existentes > 0) {
-    throw new Error('Ya existen turnos generados para la próxima semana.');
+
+  const hoy = new Date();
+  const lunesHoy = getLunesDeSemana(hoy);
+
+  let inicio: Date;
+  if (!ultimoTurno || ultimoTurno.fecha_inicio < lunesHoy) {
+    // Sin historial o historial antiguo → empezar por la semana actual.
+    inicio = lunesHoy;
+  } else {
+    // Hay turnos recientes → siguiente semana después del último.
+    const lunesUltimo = getLunesDeSemana(new Date(ultimoTurno.fecha_inicio));
+    inicio = new Date(lunesUltimo);
+    inicio.setDate(lunesUltimo.getDate() + 7);
   }
+  inicio.setHours(0, 0, 0, 0);
+
+  const fin = new Date(inicio);
+  fin.setDate(inicio.getDate() + 6);
+  fin.setHours(23, 59, 59, 999);
 
   // ── 1. Inquilinos ACTIVOS ────────────────────────────────────────────────────
   const habitaciones = await prisma.habitacion.findMany({
