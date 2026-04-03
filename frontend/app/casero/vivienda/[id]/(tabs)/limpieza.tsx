@@ -114,6 +114,13 @@ export default function LimpiezaCaseroTab() {
   // — Calendario state —
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loadingTurnos, setLoadingTurnos] = useState(false);
+  const [fechaObjetivo, setFechaObjetivo] = useState<Date>(() => {
+    const hoy = new Date();
+    const offset = (hoy.getDay() + 6) % 7;
+    hoy.setDate(hoy.getDate() - offset);
+    hoy.setHours(0, 0, 0, 0);
+    return hoy;
+  });
 
   useEffect(() => {
     const inicializar = async () => {
@@ -125,8 +132,8 @@ export default function LimpiezaCaseroTab() {
   }, [id]);
 
   useEffect(() => {
-    if (vistaActual === 'CALENDARIO') cargarTurnos();
-  }, [vistaActual]);
+    if (vistaActual === 'CALENDARIO') cargarTurnos(fechaObjetivo);
+  }, [vistaActual, fechaObjetivo]);
 
   const cargarZonas = async () => {
     try {
@@ -148,16 +155,26 @@ export default function LimpiezaCaseroTab() {
     }
   };
 
-  const cargarTurnos = async () => {
+  const cargarTurnos = async (fecha?: Date) => {
     setLoadingTurnos(true);
     try {
-      const { data } = await api.get<Turno[]>(`/viviendas/${id}/limpieza/turnos`);
+      const base = fecha ?? fechaObjetivo;
+      const fechaParam = base.toISOString().split('T')[0];
+      const { data } = await api.get<Turno[]>(`/viviendas/${id}/limpieza/turnos?fecha=${fechaParam}`);
       setTurnos(data);
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudieron cargar los turnos.' });
     } finally {
       setLoadingTurnos(false);
     }
+  };
+
+  const navegar = (direccion: -1 | 1) => {
+    setFechaObjetivo((prev) => {
+      const nueva = new Date(prev);
+      nueva.setDate(prev.getDate() + direccion * 7);
+      return nueva;
+    });
   };
 
   // — Nueva zona —
@@ -263,10 +280,7 @@ export default function LimpiezaCaseroTab() {
     setGenerando(true);
     try {
       await api.post(`/viviendas/${id}/limpieza/generar`);
-      Alert.alert(
-        '¡Turnos generados!',
-        'El algoritmo ha repartido las tareas de limpieza para la próxima semana.'
-      );
+      Toast.show({ type: 'success', text1: 'Turnos generados', text2: 'Ve al Calendario para verlos.' });
     } catch (err: any) {
       Alert.alert(
         'No se pudieron generar los turnos',
@@ -280,15 +294,11 @@ export default function LimpiezaCaseroTab() {
   const nombreCorto = (inq: Inquilino) =>
     `${inq.nombre}${inq.apellidos ? ` ${inq.apellidos[0]}.` : ''}`;
 
-  const getSemanaLabel = () => {
-    const hoy = new Date();
-    const offset = (hoy.getDay() + 6) % 7;
-    const lunes = new Date(hoy);
-    lunes.setDate(hoy.getDate() - offset);
-    const domingo = new Date(lunes);
-    domingo.setDate(lunes.getDate() + 6);
+  const getSemanaLabel = (base: Date) => {
+    const domingo = new Date(base);
+    domingo.setDate(base.getDate() + 6);
     const fmt = (d: Date) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    return `${fmt(lunes)} — ${fmt(domingo)}`;
+    return `${fmt(base)} — ${fmt(domingo)}`;
   };
 
   // ── Render: card de zona ──────────────────────────────────────────────────
@@ -347,16 +357,6 @@ export default function LimpiezaCaseroTab() {
       return <ActivityIndicator style={{ flex: 1, marginTop: 40 }} size="large" color={Theme.colors.primary} />;
     }
 
-    if (turnos.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            No hay turnos generados para esta semana.{'\n'}Ve a Configuración y pulsa "Generar turnos".
-          </Text>
-        </View>
-      );
-    }
-
     const turnosPorUsuario = turnos.reduce<
       Record<number, { usuario: Turno['usuario']; items: Turno[] }>
     >((acc, t) => {
@@ -367,23 +367,54 @@ export default function LimpiezaCaseroTab() {
 
     return (
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.semanaLabel}>{getSemanaLabel()}</Text>
-        {Object.values(turnosPorUsuario).map((grupo) => (
-          <Card key={grupo.usuario.id} style={{ marginBottom: Theme.spacing.md }}>
-            <Text style={styles.calendarioNombreUsuario}>
-              {grupo.usuario.nombre}
-              {grupo.usuario.apellidos ? ` ${grupo.usuario.apellidos[0]}.` : ''}
-            </Text>
-            {grupo.items.map((t) => (
-              <View key={t.id} style={styles.turnoRow}>
-                <Text style={styles.turnoZona}>{t.zona.nombre}</Text>
-                <Text style={[styles.turnoEstado, { color: ESTADO_COLOR[t.estado] }]}>
-                  {ESTADO_LABEL[t.estado]}
-                </Text>
-              </View>
-            ))}
-          </Card>
-        ))}
+        {/* Navegación de semana */}
+        <View style={styles.semanaNav}>
+          <Pressable
+            onPress={() => navegar(-1)}
+            hitSlop={12}
+            style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}
+          >
+            <Text style={styles.semanaNavTexto}>‹</Text>
+          </Pressable>
+          <Text style={styles.semanaLabel}>{getSemanaLabel(fechaObjetivo)}</Text>
+          <Pressable
+            onPress={() => navegar(1)}
+            hitSlop={12}
+            style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}
+          >
+            <Text style={styles.semanaNavTexto}>›</Text>
+          </Pressable>
+        </View>
+
+        {turnos.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No hay turnos para esta semana.</Text>
+            <CustomButton
+              label={generando ? 'Generando...' : 'Generar turnos'}
+              variant="primary"
+              onPress={handleGenerarTurnos}
+              disabled={generando}
+              style={{ marginTop: Theme.spacing.md, minWidth: 180 }}
+            />
+          </View>
+        ) : (
+          Object.values(turnosPorUsuario).map((grupo) => (
+            <Card key={grupo.usuario.id} style={{ marginBottom: Theme.spacing.md }}>
+              <Text style={styles.calendarioNombreUsuario}>
+                {grupo.usuario.nombre}
+                {grupo.usuario.apellidos ? ` ${grupo.usuario.apellidos[0]}.` : ''}
+              </Text>
+              {grupo.items.map((t) => (
+                <View key={t.id} style={styles.turnoRow}>
+                  <Text style={styles.turnoZona}>{t.zona.nombre}</Text>
+                  <Text style={[styles.turnoEstado, { color: ESTADO_COLOR[t.estado] }]}>
+                    {ESTADO_LABEL[t.estado]}
+                  </Text>
+                </View>
+              ))}
+            </Card>
+          ))
+        )}
       </ScrollView>
     );
   };
@@ -415,7 +446,7 @@ export default function LimpiezaCaseroTab() {
       {vistaActual === 'CONFIG' ? (
         <>
           <CustomButton
-            label={generando ? 'Generando...' : 'Generar Turnos Semanales (Test)'}
+            label={generando ? 'Generando...' : 'Generar siguiente semana de turnos'}
             variant="primary"
             onPress={handleGenerarTurnos}
             disabled={generando || loading}

@@ -281,6 +281,20 @@ export const styles = StyleSheet.create({
   },
 
   // — Vista Calendario —
+  semanaNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Theme.spacing.md,
+  },
+  semanaNavBtn: {
+    paddingHorizontal: Theme.spacing.sm,
+  },
+  semanaNavTexto: {
+    fontSize: 26,
+    color: Theme.colors.textMedium,
+    lineHeight: 30,
+  },
   semanaLabel: {
     fontSize: Theme.typography.caption,
     fontWeight: '700',
@@ -288,7 +302,7 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     textAlign: 'center',
-    marginBottom: Theme.spacing.md,
+    flex: 1,
   },
   calendarioNombreUsuario: {
     fontSize: Theme.typography.body,

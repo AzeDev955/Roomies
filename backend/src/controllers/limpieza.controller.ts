@@ -211,11 +211,11 @@ export const obtenerTurnos: express.RequestHandler = async (req, res) => {
     }
   }
 
-  // Semana en curso: lunes 00:00 — domingo 23:59:59
-  const hoy = new Date();
-  const offset = (hoy.getDay() + 6) % 7;
-  const lunes = new Date(hoy);
-  lunes.setDate(hoy.getDate() - offset);
+  // Semana objetivo: usa ?fecha=YYYY-MM-DD si se envía, si no la semana actual.
+  const base = req.query['fecha'] ? new Date(req.query['fecha'] as string) : new Date();
+  const offset = (base.getDay() + 6) % 7;
+  const lunes = new Date(base);
+  lunes.setDate(base.getDate() - offset);
   lunes.setHours(0, 0, 0, 0);
   const domingo = new Date(lunes);
   domingo.setDate(lunes.getDate() + 6);

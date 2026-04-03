@@ -46,30 +46,38 @@ export default function LimpiezaInquilinoTab() {
   const [loading, setLoading] = useState(true);
   const [marcando, setMarcando] = useState<number | null>(null);
 
-  const cargarDatos = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data: viviendaData } = await api.get<{ miHabitacionId: number; vivienda: any }>(
-        '/inquilino/vivienda'
-      );
-      const miHab = viviendaData.vivienda.habitaciones.find(
-        (h: any) => h.id === viviendaData.miHabitacionId
-      );
-      const vId = viviendaData.vivienda.id;
-      const uId = miHab?.inquilino?.id ?? 0;
-      setViviendaId(vId);
-      setMiUsuarioId(uId);
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
 
-      const { data: turnosData } = await api.get<Turno[]>(`/viviendas/${vId}/limpieza/turnos`);
-      setTurnos(turnosData);
-    } catch {
-      // Sin vivienda o sin turnos — se muestra estado vacío
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const cargarDatos = async () => {
+        setLoading(true);
+        try {
+          const { data: viviendaData } = await api.get<{ miHabitacionId: number; vivienda: any }>(
+            '/inquilino/vivienda'
+          );
+          const miHab = viviendaData.vivienda.habitaciones.find(
+            (h: any) => h.id === viviendaData.miHabitacionId
+          );
+          const vId = viviendaData.vivienda.id;
+          const uId = miHab?.inquilino?.id ?? 0;
+          if (!activo) return;
+          setViviendaId(vId);
+          setMiUsuarioId(uId);
 
-  useFocusEffect(cargarDatos);
+          const { data: turnosData } = await api.get<Turno[]>(`/viviendas/${vId}/limpieza/turnos`);
+          if (activo) setTurnos(turnosData);
+        } catch {
+          // Sin vivienda o sin turnos — se muestra estado vacío
+        } finally {
+          if (activo) setLoading(false);
+        }
+      };
+
+      cargarDatos();
+      return () => { activo = false; };
+    }, [])
+  );
 
   const handleMarcarHecho = async (turnoId: number) => {
     if (!viviendaId) return;
