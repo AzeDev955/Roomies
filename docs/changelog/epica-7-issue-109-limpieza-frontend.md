@@ -1,4 +1,4 @@
-# Épica 7 — Issue #109 (Fases 3, 4 y 6): Interfaz de Configuración de Limpieza
+# Épica 7 — Issue #109 (Fases 3, 4, 6, 7 y 8): Interfaz de Configuración de Limpieza
 
 **Fecha:** 2026-04-03  
 **Rama:** dev  
@@ -112,5 +112,89 @@ Añadidos: `asignacionRow`, `asignacionFija`, `asignarLink`, `modalSubtitulo`, `
 
 ## Decisiones técnicas
 
-- **Un solo inquilino por zona**: el modelo `AsignacionLimpiezaFija` tiene `@@unique([zona_id, usuario_id])` pero el algoritmo asume una asignación por zona. La UI toma `asignaciones_fijas[0]` y reemplaza al asignar uno nuevo.
-- **Remoción pendiente de backend**: el frontend llama a `DELETE /viviendas/:id/limpieza/zonas/:zonaId/asignacion`; si el endpoint no existe aún, el toast de error informa al usuario sin romper el estado local.
+- **Sync en lugar de upsert**: el endpoint de asignación ahora hace delete+createMany en transacción. Más simple que rastrear qué IDs añadir/quitar individualmente, y garantiza que el estado en BD siempre coincide exactamente con lo que el casero envió.
+- **Sub-rotación via balance existente**: la Fase A del algoritmo no necesita estado adicional para rotar entre co-responsables — reutiliza `balance_limpieza` exactamente igual que la Fase B. El efecto emergente es una rotación justa sin lógica de turno explícita.
+- **"Quitar todos" = guardar con array vacío**: eliminar el modal de "Quitar asignación" simplifica la UX. Desmarcar a todos en el multi-select y pulsar Guardar tiene el mismo efecto con menos superficie de UI.
+
+---
+
+## Fase 7 — Multi-asignación y sub-rotación (baños compartidos)
+
+### `backend/src/controllers/limpieza.controller.ts` — `asignarZonaFija`
+
+**Contrato del endpoint cambiado:** recibe `{ usuario_ids: number[] }` en lugar de `{ usuario_id: number }`.
+
+**Operación sync atómica** dentro de `prisma.$transaction`: deleteMany → createMany → findMany. Si `usuario_ids` es `[]`, solo se ejecuta el deleteMany → equivale a "quitar todos".
+
+### `backend/src/services/limpieza.service.ts` — Fase A con sub-rotación
+
+```
+asignadosActivos = asignaciones_fijas.filter(a => a.usuario está ACTIVO)
+elegido = argmin(asignadosActivos, u => cargaSemanal[u] + balance_limpieza[u])
+```
+
+Si Ana y Juan comparten Baño 1: el que tenga menor carga efectiva esa semana recibe el turno. La Fase C actualiza su balance → la próxima semana el otro tendrá menor carga. Rotación automática sin estado adicional.
+
+### `frontend/app/casero/vivienda/[id]/(tabs)/limpieza.tsx`
+
+- `seleccionados: number[]` — IDs marcados en el modal, inicializados desde `asignaciones_fijas` actuales.
+- `toggleSeleccion(id)` — añade o quita del array (comportamiento checkbox).
+- `handleGuardarAsignacion` — envía `{ usuario_ids: seleccionados }`, actualiza estado local con la respuesta.
+- Card muestra todos los asignados: `"👤 Fijos: Juan G., María P."`.
+- Modal: botón "Guardar" al final en lugar de acción inmediata al tocar.
+
+---
+
+## Fase 8 — T-Shirt Sizing, Quick Chips y Starter Pack
+
+### T-Shirt Sizing (abstracción del peso)
+
+El input de texto libre para `peso` se reemplaza por tres botones exclusivos:
+
+| Botón | Peso interno |
+|---|---|
+| Ligera | 3 |
+| Normal | 6 |
+| Intensa | 10 |
+
+El estado `pesoSeleccionado: number | null` reemplaza al string `peso`. El botón "Guardar" permanece deshabilitado hasta que se selecciona una talla. El casero nunca ve números — solo etiquetas semánticas.
+
+**En la tarjeta (`renderZona`):** `"Peso: 10"` → `"Esfuerzo: Intensa"` vía el mapa `ETIQUETA_ESFUERZO`. Para valores que no están en el mapa (creados con la API directamente) se muestra `"Peso: X"` como fallback.
+
+### Quick Chips
+
+Fila de pastillas presionables encima del `CustomInput` de nombre: `Cocina`, `Baño`, `Salón`, `Pasillo`. Al pulsar, rellenan el campo nombre — reducen friction para los casos más comunes sin eliminar la edición libre.
+
+### Starter Pack (empty state)
+
+Cuando no hay zonas (`zonas.length === 0`), el `ListEmptyComponent` muestra el texto vacío y un `<CustomButton variant="outline">` "Generar zonas básicas".
+
+Al pulsar, `handleGenerarZonasBasicas` hace tres POST en paralelo (`Promise.all`): Cocina (Intensa/10), Salón (Normal/6), Baño (Normal/6). Las zonas creadas se añaden al estado local con `asignaciones_fijas: []`. Estado separado `creandoBase` para no bloquear el botón de generar turnos.
+
+### Estilos añadidos en `limpieza.styles.ts`
+
+`emptyContainer`, `chipRow`, `chip`, `chipTexto`, `tshirtLabel`, `tshirtRow`, `tshirtBtn`, `tshirtBtnActivo`, `tshirtBtnTexto`, `tshirtBtnTextoActivo`.
+
+### Decisiones técnicas
+
+- **`primary + '12'` como fondo del botón activo**: añadir `12` al hex del color primario da un 7% de opacidad — más ligero que un tint fijo, automáticamente consistente si el color primario cambia.
+- **`pesoSeleccionado: number | null`**: null explícito en lugar de `0` evita que el botón "Guardar" se active accidentalmente si el casero no ha elegido talla.
+- **Starter Pack con `Promise.all`**: crea las tres zonas en paralelo en lugar de secuencialmente. Si alguna falla, el `catch` muestra toast pero las creadas exitosamente sí aparecen (no hay rollback, diseño intencional para MVP).
+
+---
+
+## Fase 9 — Eliminación de zonas
+
+### Backend
+
+**`eliminarZona`** (`DELETE /viviendas/:id/limpieza/zonas/:zonaId`):
+- Verifica propiedad de vivienda y existencia de zona.
+- Ejecuta `prisma.$transaction([deleteMany turnos, deleteMany asignaciones, delete zona])` — el schema no define `onDelete: Cascade`, así que los registros dependientes se eliminan explícitamente antes de borrar la zona.
+
+### Frontend
+
+**Botón ✕** en el `cardRow` de cada zona, junto al badge de estado. Al pulsar:
+1. `Alert.alert` con confirmación destructiva — el mensaje advierte que se borran asignaciones y turnos.
+2. Si confirma → `DELETE /viviendas/:id/limpieza/zonas/:zonaId` → `setZonas(prev.filter(...))`.
+
+Estilo `eliminarBtn`: mismo patrón que el ✕ del tablón de anuncios (`textTertiary`, `fontWeight 600`).

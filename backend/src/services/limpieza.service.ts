@@ -85,23 +85,37 @@ export async function generarTurnosSemanales(viviendaId: number): Promise<void> 
   const turnos: TurnoData[] = [];
   const zonasRotativas: typeof zonas = [];
 
-  // ── Fase A: Zonas fijas ──────────────────────────────────────────────────────
+  // ── Fase A: Zonas fijas con sub-rotación ────────────────────────────────────
+  // Una zona puede tener varios asignados. De los ACTIVOS, se elige al de menor
+  // carga efectiva esta semana → sub-rotación justa entre co-responsables.
   for (const zona of zonas) {
-    const asignacion = zona.asignaciones_fijas[0];
-    if (asignacion && activeUserIds.has(asignacion.usuario_id)) {
+    const asignadosActivos = zona.asignaciones_fijas
+      .filter((a) => activeUserIds.has(a.usuario_id))
+      .map((a) => usuariosActivos.find((u) => u.id === a.usuario_id)!)
+      .filter(Boolean);
+
+    if (asignadosActivos.length > 0) {
+      let elegido = asignadosActivos[0];
+      let menorCarga = (cargaSemanal.get(elegido.id) ?? 0) + elegido.balance_limpieza;
+
+      for (const usuario of asignadosActivos) {
+        const carga = (cargaSemanal.get(usuario.id) ?? 0) + usuario.balance_limpieza;
+        if (carga < menorCarga) {
+          menorCarga = carga;
+          elegido = usuario;
+        }
+      }
+
       turnos.push({
-        usuario_id: asignacion.usuario_id,
+        usuario_id: elegido.id,
         zona_id: zona.id,
         fecha_inicio: inicio,
         fecha_fin: fin,
         estado: EstadoTurno.PENDIENTE,
       });
-      cargaSemanal.set(
-        asignacion.usuario_id,
-        (cargaSemanal.get(asignacion.usuario_id) ?? 0) + zona.peso
-      );
+      cargaSemanal.set(elegido.id, (cargaSemanal.get(elegido.id) ?? 0) + zona.peso);
     } else {
-      // Sin asignación válida → entra en rotación.
+      // Sin asignados activos → entra en rotación global.
       zonasRotativas.push(zona);
     }
   }

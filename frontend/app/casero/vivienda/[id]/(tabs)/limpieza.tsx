@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
@@ -18,6 +19,28 @@ import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { styles } from '@/styles/casero/vivienda/limpieza.styles';
+
+// ── T-Shirt Sizing ────────────────────────────────────────────────────────────
+const TALLAS = [
+  { label: 'Ligera', peso: 3 },
+  { label: 'Normal', peso: 6 },
+  { label: 'Intensa', peso: 10 },
+] as const;
+
+const ETIQUETA_ESFUERZO: Record<number, string> = { 3: 'Ligera', 6: 'Normal', 10: 'Intensa' };
+
+const etiquetaEsfuerzo = (peso: number) =>
+  ETIQUETA_ESFUERZO[peso] ? `Esfuerzo: ${ETIQUETA_ESFUERZO[peso]}` : `Peso: ${peso}`;
+
+const QUICK_CHIPS = ['Cocina', 'Baño', 'Salón', 'Pasillo'];
+
+const ZONAS_BASE = [
+  { nombre: 'Cocina', peso: 10 },
+  { nombre: 'Salón', peso: 6 },
+  { nombre: 'Baño', peso: 6 },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 type Inquilino = {
   id: number;
@@ -48,15 +71,17 @@ export default function LimpiezaCaseroTab() {
   // — Modal nueva zona —
   const [modalZonaVisible, setModalZonaVisible] = useState(false);
   const [nombre, setNombre] = useState('');
-  const [peso, setPeso] = useState('');
+  const [pesoSeleccionado, setPesoSeleccionado] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  // — Modal asignación fija —
+  // — Modal asignación fija (multi-select) —
   const [zonaSeleccionada, setZonaSeleccionada] = useState<ZonaLimpieza | null>(null);
+  const [seleccionados, setSeleccionados] = useState<number[]>([]);
   const [asignando, setAsignando] = useState(false);
 
-  // — Generar turnos —
+  // — Acciones globales —
   const [generando, setGenerando] = useState(false);
+  const [creandoBase, setCreandoBase] = useState(false);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -93,19 +118,18 @@ export default function LimpiezaCaseroTab() {
   const cerrarModalZona = () => {
     setModalZonaVisible(false);
     setNombre('');
-    setPeso('');
+    setPesoSeleccionado(null);
   };
 
   const handleGuardar = async () => {
-    const pesoNum = parseFloat(peso);
-    if (!nombre.trim() || isNaN(pesoNum) || pesoNum <= 0) return;
+    if (!nombre.trim() || pesoSeleccionado === null) return;
     setGuardando(true);
     try {
       const { data } = await api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, {
         nombre: nombre.trim(),
-        peso: pesoNum,
+        peso: pesoSeleccionado,
       });
-      setZonas((prev) => [...prev, data]);
+      setZonas((prev) => [...prev, { ...data, asignaciones_fijas: [] }]);
       cerrarModalZona();
     } catch (err: any) {
       Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo crear la zona.' });
@@ -114,51 +138,81 @@ export default function LimpiezaCaseroTab() {
     }
   };
 
-  const puedeGuardar = nombre.trim().length > 0 && parseFloat(peso) > 0;
+  const puedeGuardar = nombre.trim().length > 0 && pesoSeleccionado !== null;
 
-  // — Asignación fija —
-  const abrirModalAsignacion = (zona: ZonaLimpieza) => setZonaSeleccionada(zona);
-  const cerrarModalAsignacion = () => { setZonaSeleccionada(null); };
+  // — Starter Pack —
+  const handleGenerarZonasBasicas = async () => {
+    setCreandoBase(true);
+    try {
+      const resultados = await Promise.all(
+        ZONAS_BASE.map((z) => api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, z))
+      );
+      setZonas(resultados.map((r) => ({ ...r.data, asignaciones_fijas: [] })));
+    } catch (err: any) {
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudieron crear las zonas base.' });
+    } finally {
+      setCreandoBase(false);
+    }
+  };
 
-  const handleAsignar = async (usuarioId: number) => {
+  // — Asignación fija multi-select —
+  const abrirModalAsignacion = (zona: ZonaLimpieza) => {
+    setZonaSeleccionada(zona);
+    setSeleccionados((zona.asignaciones_fijas ?? []).map((a) => a.usuario_id));
+  };
+
+  const cerrarModalAsignacion = () => {
+    setZonaSeleccionada(null);
+    setSeleccionados([]);
+  };
+
+  const toggleSeleccion = (usuarioId: number) => {
+    setSeleccionados((prev) =>
+      prev.includes(usuarioId) ? prev.filter((x) => x !== usuarioId) : [...prev, usuarioId]
+    );
+  };
+
+  const handleGuardarAsignacion = async () => {
     if (!zonaSeleccionada) return;
     setAsignando(true);
     try {
-      const { data } = await api.post<AsignacionFija>(
+      const { data } = await api.post<AsignacionFija[]>(
         `/viviendas/${id}/limpieza/zonas/${zonaSeleccionada.id}/asignacion`,
-        { usuario_id: usuarioId }
+        { usuario_ids: seleccionados }
       );
       setZonas((prev) =>
         prev.map((z) =>
-          z.id === zonaSeleccionada.id
-            ? { ...z, asignaciones_fijas: [{ id: data.id, usuario_id: data.usuario_id, usuario: data.usuario }] }
-            : z
+          z.id === zonaSeleccionada.id ? { ...z, asignaciones_fijas: data } : z
         )
       );
       cerrarModalAsignacion();
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo asignar.' });
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo guardar la asignación.' });
     } finally {
       setAsignando(false);
     }
   };
 
-  const handleQuitarAsignacion = async () => {
-    if (!zonaSeleccionada) return;
-    setAsignando(true);
-    try {
-      await api.delete(`/viviendas/${id}/limpieza/zonas/${zonaSeleccionada.id}/asignacion`);
-      setZonas((prev) =>
-        prev.map((z) =>
-          z.id === zonaSeleccionada.id ? { ...z, asignaciones_fijas: [] } : z
-        )
-      );
-      cerrarModalAsignacion();
-    } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo quitar la asignación.' });
-    } finally {
-      setAsignando(false);
-    }
+  const handleEliminarZona = (zona: ZonaLimpieza) => {
+    Alert.alert(
+      'Eliminar zona',
+      `¿Eliminar "${zona.nombre}"? Se borrarán también sus asignaciones y turnos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/viviendas/${id}/limpieza/zonas/${zona.id}`);
+              setZonas((prev) => prev.filter((z) => z.id !== zona.id));
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar la zona.' });
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleGenerarTurnos = async () => {
@@ -183,7 +237,12 @@ export default function LimpiezaCaseroTab() {
     `${inq.nombre}${inq.apellidos ? ` ${inq.apellidos[0]}.` : ''}`;
 
   const renderZona = ({ item }: { item: ZonaLimpieza }) => {
-    const asignacion = item.asignaciones_fijas[0] ?? null;
+    const asignaciones = item.asignaciones_fijas ?? [];
+    const etiquetaFijos =
+      asignaciones.length > 0
+        ? `👤 Fijos: ${asignaciones.map((a) => nombreCorto(a.usuario)).join(', ')}`
+        : null;
+
     return (
       <Card style={{ marginBottom: Theme.spacing.md }}>
         <View style={styles.cardRow}>
@@ -193,22 +252,36 @@ export default function LimpiezaCaseroTab() {
               {item.activa ? 'Activa' : 'Inactiva'}
             </Text>
           </View>
+          <Pressable onPress={() => handleEliminarZona(item)} hitSlop={8} style={{ paddingLeft: 8 }}>
+            <Text style={styles.eliminarBtn}>✕</Text>
+          </Pressable>
         </View>
-        <Text style={styles.zonaPeso}>Peso: {item.peso}</Text>
+        <Text style={styles.zonaPeso}>{etiquetaEsfuerzo(item.peso)}</Text>
         <View style={styles.asignacionRow}>
-          {asignacion ? (
-            <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
-              <Text style={styles.asignacionFija}>👤 Fijo: {nombreCorto(asignacion.usuario)}</Text>
-            </Pressable>
-          ) : (
-            <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
-              <Text style={styles.asignarLink}>+ Asignar inquilino fijo</Text>
-            </Pressable>
-          )}
+          <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
+            {etiquetaFijos ? (
+              <Text style={styles.asignacionFija}>{etiquetaFijos}</Text>
+            ) : (
+              <Text style={styles.asignarLink}>+ Asignar inquilino(s) fijo(s)</Text>
+            )}
+          </Pressable>
         </View>
       </Card>
     );
   };
+
+  const emptyComponent = (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No hay zonas definidas todavía.</Text>
+      <CustomButton
+        label={creandoBase ? 'Creando...' : 'Generar zonas básicas'}
+        variant="outline"
+        onPress={handleGenerarZonasBasicas}
+        disabled={creandoBase}
+        style={{ marginTop: Theme.spacing.md }}
+      />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -227,9 +300,7 @@ export default function LimpiezaCaseroTab() {
           data={zonas}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderZona}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No hay zonas definidas. Pulsa + para añadir la primera.</Text>
-          }
+          ListEmptyComponent={emptyComponent}
         />
       )}
 
@@ -248,6 +319,20 @@ export default function LimpiezaCaseroTab() {
         >
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitulo}>Nueva zona</Text>
+
+            {/* Quick Chips */}
+            <View style={styles.chipRow}>
+              {QUICK_CHIPS.map((chip) => (
+                <Pressable
+                  key={chip}
+                  style={({ pressed }) => [styles.chip, pressed && styles.botonPressed]}
+                  onPress={() => setNombre(chip)}
+                >
+                  <Text style={styles.chipTexto}>{chip}</Text>
+                </Pressable>
+              ))}
+            </View>
+
             <CustomInput
               label="Nombre de la zona"
               placeholder="ej. Cocina, Baño 1, Pasillo..."
@@ -255,13 +340,31 @@ export default function LimpiezaCaseroTab() {
               onChangeText={setNombre}
               maxLength={80}
             />
-            <CustomInput
-              label="Peso (esfuerzo relativo)"
-              placeholder="ej. 10"
-              value={peso}
-              onChangeText={setPeso}
-              keyboardType="decimal-pad"
-            />
+
+            {/* T-Shirt Sizing */}
+            <Text style={styles.tshirtLabel}>Esfuerzo</Text>
+            <View style={styles.tshirtRow}>
+              {TALLAS.map((talla) => (
+                <Pressable
+                  key={talla.peso}
+                  style={[
+                    styles.tshirtBtn,
+                    pesoSeleccionado === talla.peso && styles.tshirtBtnActivo,
+                  ]}
+                  onPress={() => setPesoSeleccionado(talla.peso)}
+                >
+                  <Text
+                    style={[
+                      styles.tshirtBtnTexto,
+                      pesoSeleccionado === talla.peso && styles.tshirtBtnTextoActivo,
+                    ]}
+                  >
+                    {talla.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             <View style={styles.modalAcciones}>
               <Pressable
                 style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
@@ -289,7 +392,7 @@ export default function LimpiezaCaseroTab() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal asignación fija */}
+      {/* Modal asignación fija — multi-select */}
       <Modal
         visible={zonaSeleccionada !== null}
         animationType="slide"
@@ -298,7 +401,7 @@ export default function LimpiezaCaseroTab() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitulo}>Asignar inquilino fijo</Text>
+            <Text style={styles.modalTitulo}>Asignar fijos</Text>
             {zonaSeleccionada && (
               <Text style={styles.modalSubtitulo}>{zonaSeleccionada.nombre}</Text>
             )}
@@ -306,45 +409,46 @@ export default function LimpiezaCaseroTab() {
               <Text style={styles.emptyText}>No hay inquilinos en esta vivienda.</Text>
             ) : (
               inquilinos.map((inq) => {
-                const esActual = zonaSeleccionada?.asignaciones_fijas[0]?.usuario_id === inq.id;
+                const seleccionado = seleccionados.includes(inq.id);
                 return (
                   <Pressable
                     key={inq.id}
                     style={({ pressed }) => [
                       styles.inquilinoRow,
-                      esActual && styles.inquilinoRowActual,
+                      seleccionado && styles.inquilinoRowActual,
                       pressed && styles.botonPressed,
                     ]}
-                    onPress={() => handleAsignar(inq.id)}
+                    onPress={() => toggleSeleccion(inq.id)}
                     disabled={asignando}
                   >
-                    <Text style={[styles.inquilinoNombre, esActual && styles.inquilinoNombreActual]}>
+                    <Text style={[styles.inquilinoNombre, seleccionado && styles.inquilinoNombreActual]}>
                       {inq.nombre} {inq.apellidos ?? ''}
                     </Text>
-                    {esActual && <Text style={styles.checkmark}>✓</Text>}
+                    {seleccionado && <Text style={styles.checkmark}>✓</Text>}
                   </Pressable>
                 );
               })
             )}
-            {(zonaSeleccionada?.asignaciones_fijas.length ?? 0) > 0 && (
+            <View style={[styles.modalAcciones, { marginTop: Theme.spacing.md }]}>
               <Pressable
-                style={({ pressed }) => [styles.botonQuitarAsignacion, pressed && styles.botonPressed]}
-                onPress={handleQuitarAsignacion}
+                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
+                onPress={cerrarModalAsignacion}
+                disabled={asignando}
+              >
+                <Text style={styles.botonCancelarTexto}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.botonGuardar, pressed && !asignando && styles.botonPressed]}
+                onPress={handleGuardarAsignacion}
                 disabled={asignando}
               >
                 {asignando ? (
-                  <ActivityIndicator color={Theme.colors.danger} />
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.botonQuitarTexto}>Quitar asignación</Text>
+                  <Text style={styles.botonGuardarTexto}>Guardar</Text>
                 )}
               </Pressable>
-            )}
-            <Pressable
-              style={({ pressed }) => [styles.botonCancelar, { marginTop: Theme.spacing.xs }, pressed && styles.botonPressed]}
-              onPress={cerrarModalAsignacion}
-            >
-              <Text style={styles.botonCancelarTexto}>Cancelar</Text>
-            </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
