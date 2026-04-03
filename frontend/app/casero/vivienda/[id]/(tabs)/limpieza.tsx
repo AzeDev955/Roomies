@@ -183,7 +183,7 @@ export default function LimpiezaCaseroTab() {
     `${inq.nombre}${inq.apellidos ? ` ${inq.apellidos[0]}.` : ''}`;
 
   const renderZona = ({ item }: { item: ZonaLimpieza }) => {
-    const asignacion = item.asignaciones_fijas[0] ?? null;
+    const asignacion = (item.asignaciones_fijas ?? [])[0] ?? null;
     return (
       <Card style={{ marginBottom: Theme.spacing.md }}>
         <View style={styles.cardRow}>
@@ -306,7 +306,7 @@ export default function LimpiezaCaseroTab() {
               <Text style={styles.emptyText}>No hay inquilinos en esta vivienda.</Text>
             ) : (
               inquilinos.map((inq) => {
-                const esActual = zonaSeleccionada?.asignaciones_fijas[0]?.usuario_id === inq.id;
+                const esActual = (zonaSeleccionada?.asignaciones_fijas ?? [])[0]?.usuario_id === inq.id;
                 return (
                   <Pressable
                     key={inq.id}
@@ -326,7 +326,7 @@ export default function LimpiezaCaseroTab() {
                 );
               })
             )}
-            {(zonaSeleccionada?.asignaciones_fijas.length ?? 0) > 0 && (
+            {((zonaSeleccionada?.asignaciones_fijas ?? []).length > 0) && (
               <Pressable
                 style={({ pressed }) => [styles.botonQuitarAsignacion, pressed && styles.botonPressed]}
                 onPress={handleQuitarAsignacion}
