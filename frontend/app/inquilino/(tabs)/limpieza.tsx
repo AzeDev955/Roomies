@@ -5,26 +5,52 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import api from '@/services/api';
-import { Card } from '@/components/common/Card';
 import { styles } from '@/styles/inquilino/limpieza.styles';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Helpers UI ────────────────────────────────────────────────────────────────
 
 const ETIQUETA_ESFUERZO: Record<number, string> = { 3: 'Ligera', 6: 'Normal', 10: 'Intensa' };
-
 const etiquetaEsfuerzo = (peso: number) =>
-  ETIQUETA_ESFUERZO[peso] ? `Esfuerzo: ${ETIQUETA_ESFUERZO[peso]}` : `Peso: ${peso}`;
+  ETIQUETA_ESFUERZO[peso] ?? `Peso ${peso}`;
 
-const ESTADO_LABEL: Record<string, string> = {
-  PENDIENTE: 'Pendiente',
-  HECHO: '✓ Hecho',
-  NO_HECHO: '✗ No hecho',
+const ZONA_ICONS: Record<string, string> = {
+  cocina: 'restaurant-outline',
+  'baño': 'water-outline', 'baño 1': 'water-outline', 'baño 2': 'water-outline',
+  'salón': 'tv-outline', salon: 'tv-outline',
+  pasillo: 'footsteps-outline',
 };
+const zonaIcon = (nombre: string) =>
+  (ZONA_ICONS[nombre.toLowerCase()] ?? 'sparkles-outline') as any;
+
+const AvatarInitials = ({
+  nombre,
+  apellidos,
+  size = 44,
+}: {
+  nombre: string;
+  apellidos: string | null;
+  size?: number;
+}) => {
+  const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: '#EAF0FF', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    }}>
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
+        {initials}
+      </Text>
+    </View>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 type Turno = {
   id: number;
@@ -108,10 +134,7 @@ export default function LimpiezaInquilinoTab() {
     return `${fmt(lunes)} — ${fmt(domingo)}`;
   };
 
-  const nombreCorto = (t: Turno) =>
-    `${t.usuario.nombre}${t.usuario.apellidos ? ` ${t.usuario.apellidos[0]}.` : ''}`;
-
-  // ── Loading ───────────────────────────────────────────────────────────────
+  // ── Loading / sin vivienda ────────────────────────────────────────────────
 
   if (loading) {
     return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
@@ -130,109 +153,103 @@ export default function LimpiezaInquilinoTab() {
   const misTurnos = turnos.filter((t) => t.usuario_id === miUsuarioId);
   const turnosResto = turnos.filter((t) => t.usuario_id !== miUsuarioId);
 
-  const turnosPorCompanero = turnosResto.reduce<
-    Record<number, { nombre: string; turnos: Turno[] }>
-  >((acc, t) => {
-    if (!acc[t.usuario_id]) acc[t.usuario_id] = { nombre: nombreCorto(t), turnos: [] };
-    acc[t.usuario_id].turnos.push(t);
-    return acc;
-  }, {});
-
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.semanaLabel}>{getSemanaLabel()}</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
-        {/* ── Mi Tarea ── */}
-        <Text style={styles.seccionTitulo}>Mi Tarea</Text>
+        {/* ── Cabecera ── */}
+        <View style={styles.header}>
+          <Text style={styles.headerSemana}>{getSemanaLabel()}</Text>
+          <Text style={styles.headerTitulo}>Mis Tareas</Text>
+          <Text style={styles.headerSubtitulo}>Mantén el orden para una mejor convivencia.</Text>
+        </View>
+
+        {/* ── Mis turnos ── */}
         {misTurnos.length === 0 ? (
-          <Text style={[styles.emptyText, { textAlign: 'left', marginTop: 0, marginBottom: Theme.spacing.lg }]}>
-            No tienes turnos asignados esta semana.
-          </Text>
+          <View style={styles.miTareaVacia}>
+            <Text style={styles.miTareaVaciaTexto}>No tienes tareas asignadas esta semana.</Text>
+          </View>
         ) : (
           misTurnos.map((t) => {
             const esPendiente = t.estado === 'PENDIENTE';
             const esHecho = t.estado === 'HECHO';
             return (
-              <Card key={t.id} style={{ marginBottom: Theme.spacing.md }}>
-                <Text style={styles.zonaNombreMia}>{t.zona.nombre}</Text>
-                <Text style={styles.esfuerzoTexto}>{etiquetaEsfuerzo(t.zona.peso)}</Text>
-                <View style={styles.estadoRow}>
-                  <View
-                    style={[
-                      styles.estadoBadge,
-                      esHecho
-                        ? styles.estadoBadgeHecho
-                        : esPendiente
-                        ? styles.estadoBadgePendiente
-                        : styles.estadoBadgeNoHecho,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.estadoTexto,
-                        esHecho
-                          ? styles.estadoTextoHecho
-                          : esPendiente
-                          ? styles.estadoTextoPendiente
-                          : styles.estadoTextoNoHecho,
-                      ]}
-                    >
-                      {ESTADO_LABEL[t.estado]}
+              <View key={t.id} style={[styles.miTareaCard, esHecho && styles.miTareaCardHecha]}>
+                {/* Zona + icono */}
+                <View style={styles.miTareaTop}>
+                  <View style={styles.miTareaTexto}>
+                    <Text style={styles.miTareaZona}>{t.zona.nombre}</Text>
+                    <Text style={styles.miTareaEsfuerzo}>
+                      ESFUERZO: {etiquetaEsfuerzo(t.zona.peso).toUpperCase()}
                     </Text>
                   </View>
-                  {esPendiente && (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.botonHecho,
-                        pressed && styles.botonHechoPressed,
-                      ]}
-                      onPress={() => handleMarcarHecho(t.id)}
-                      disabled={marcando === t.id}
-                    >
-                      {marcando === t.id ? (
-                        <ActivityIndicator color={Theme.colors.surface} size="small" />
-                      ) : (
-                        <Text style={styles.botonHechoTexto}>✅ Marcar como Hecho</Text>
-                      )}
-                    </Pressable>
-                  )}
+                  <View style={[styles.miTareaIconBox, esHecho && styles.miTareaIconBoxHecha]}>
+                    <Ionicons
+                      name={zonaIcon(t.zona.nombre)}
+                      size={22}
+                      color={esHecho ? '#248A3D' : Theme.colors.primary}
+                    />
+                  </View>
                 </View>
-              </Card>
+
+                {/* Botón o badge hecho */}
+                {esPendiente ? (
+                  <Pressable
+                    style={({ pressed }) => [styles.botonHecho, pressed && styles.botonHechoPressed]}
+                    onPress={() => handleMarcarHecho(t.id)}
+                    disabled={marcando === t.id}
+                  >
+                    {marcando === t.id ? (
+                      <ActivityIndicator color={Theme.colors.surface} size="small" />
+                    ) : (
+                      <>
+                        <Ionicons name="checkmark-circle" size={20} color={Theme.colors.surface} />
+                        <Text style={styles.botonHechoTexto}>Marcar como Hecho</Text>
+                      </>
+                    )}
+                  </Pressable>
+                ) : (
+                  <View style={styles.badgeHecho}>
+                    <Ionicons name="checkmark-circle" size={15} color="#248A3D" />
+                    <Text style={styles.badgeHechoTexto}>Completado</Text>
+                  </View>
+                )}
+              </View>
             );
           })
         )}
 
-        {/* ── Compañeros ── */}
-        {Object.keys(turnosPorCompanero).length > 0 && (
+        {/* ── Turnos de la casa ── */}
+        {turnosResto.length > 0 && (
           <>
-            <Text style={[styles.seccionTitulo, { marginTop: Theme.spacing.lg }]}>
-              Turnos de la casa
-            </Text>
-            {Object.values(turnosPorCompanero).map((grupo) => (
-              <Card key={grupo.nombre} style={{ marginBottom: Theme.spacing.sm }}>
-                <Text style={styles.companeroNombre}>{grupo.nombre}</Text>
-                {grupo.turnos.map((t) => (
-                  <View key={t.id} style={styles.companeroTurnoRow}>
-                    <Text style={styles.companeroZona}>• {t.zona.nombre}</Text>
-                    <Text
-                      style={
-                        t.estado === 'HECHO'
-                          ? styles.companeroEstadoHecho
-                          : styles.companeroEstadoPendiente
-                      }
-                    >
-                      {ESTADO_LABEL[t.estado]}
+            <Text style={styles.seccionTitulo}>Turnos de la casa</Text>
+            {turnosResto.map((t) => {
+              const esPendiente = t.estado === 'PENDIENTE';
+              const nombreCompleto = `${t.usuario.nombre}${t.usuario.apellidos ? ` ${t.usuario.apellidos}` : ''}`;
+              return (
+                <View key={t.id} style={styles.companeroRow}>
+                  <AvatarInitials nombre={t.usuario.nombre} apellidos={t.usuario.apellidos} />
+                  <View style={styles.companeroInfo}>
+                    <View style={styles.companeroTurnoTop}>
+                      <Text style={styles.companeroZonaNombre}>{t.zona.nombre}</Text>
+                      <Text style={esPendiente ? styles.companeroEstadoPendiente : styles.companeroEstadoHecho}>
+                        {esPendiente ? 'PENDIENTE' : 'HECHO'}
+                      </Text>
+                    </View>
+                    <Text style={styles.companeroAsignado}>
+                      ASIGNADO A {t.usuario.nombre.toUpperCase()}
                     </Text>
                   </View>
-                ))}
-              </Card>
-            ))}
+                  <Ionicons name={zonaIcon(t.zona.nombre)} size={18} color={Theme.colors.textTertiary} />
+                </View>
+              );
+            })}
           </>
         )}
 
+        {/* Sin ningún turno */}
         {turnos.length === 0 && (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
@@ -240,6 +257,7 @@ export default function LimpiezaInquilinoTab() {
             </Text>
           </View>
         )}
+
       </ScrollView>
     </View>
   );
