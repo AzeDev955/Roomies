@@ -95,10 +95,10 @@ export const actualizarZona: express.RequestHandler = async (req, res) => {
 export const asignarZonaFija: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params['id'] as string, 10);
   const zonaId = parseInt(req.params['zonaId'] as string, 10);
-  const { usuario_id } = req.body as { usuario_id: number };
+  const { usuario_ids } = req.body as { usuario_ids: number[] };
 
-  if (!usuario_id) {
-    res.status(400).json({ error: 'usuario_id es obligatorio.' });
+  if (!Array.isArray(usuario_ids)) {
+    res.status(400).json({ error: 'usuario_ids debe ser un array de números.' });
     return;
   }
 
@@ -114,25 +114,33 @@ export const asignarZonaFija: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const habitacion = await prisma.habitacion.findFirst({
-    where: { vivienda_id: viviendaId, inquilino_id: usuario_id },
-  });
-  if (!habitacion) {
-    res.status(403).json({ error: 'El usuario no es inquilino de esta vivienda.' });
-    return;
+  if (usuario_ids.length > 0) {
+    const habitaciones = await prisma.habitacion.findMany({
+      where: { vivienda_id: viviendaId, inquilino_id: { in: usuario_ids } },
+      select: { inquilino_id: true },
+    });
+    const validos = new Set(habitaciones.map((h) => h.inquilino_id));
+    const invalidos = usuario_ids.filter((uid) => !validos.has(uid));
+    if (invalidos.length > 0) {
+      res.status(403).json({ error: 'Uno o más usuarios no son inquilinos de esta vivienda.' });
+      return;
+    }
   }
 
-  const asignacion = await prisma.asignacionLimpiezaFija.upsert({
-    where: { zona_id_usuario_id: { zona_id: zonaId, usuario_id } },
-    create: { zona_id: zonaId, usuario_id },
-    update: {},
-    include: {
-      usuario: { select: { id: true, nombre: true, apellidos: true } },
-      zona: true,
-    },
+  // Sincronización atómica: eliminar todas las asignaciones actuales y crear las nuevas.
+  const asignaciones = await prisma.$transaction(async (tx) => {
+    await tx.asignacionLimpiezaFija.deleteMany({ where: { zona_id: zonaId } });
+    if (usuario_ids.length === 0) return [];
+    await tx.asignacionLimpiezaFija.createMany({
+      data: usuario_ids.map((uid) => ({ zona_id: zonaId, usuario_id: uid })),
+    });
+    return tx.asignacionLimpiezaFija.findMany({
+      where: { zona_id: zonaId },
+      include: { usuario: { select: { id: true, nombre: true, apellidos: true } } },
+    });
   });
 
-  res.status(200).json(asignacion);
+  res.status(200).json(asignaciones);
 };
 
 export const quitarAsignacionFija: express.RequestHandler = async (req, res) => {

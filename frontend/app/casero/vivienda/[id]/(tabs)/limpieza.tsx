@@ -51,8 +51,9 @@ export default function LimpiezaCaseroTab() {
   const [peso, setPeso] = useState('');
   const [guardando, setGuardando] = useState(false);
 
-  // — Modal asignación fija —
+  // — Modal asignación fija (multi-select) —
   const [zonaSeleccionada, setZonaSeleccionada] = useState<ZonaLimpieza | null>(null);
+  const [seleccionados, setSeleccionados] = useState<number[]>([]);
   const [asignando, setAsignando] = useState(false);
 
   // — Generar turnos —
@@ -105,7 +106,7 @@ export default function LimpiezaCaseroTab() {
         nombre: nombre.trim(),
         peso: pesoNum,
       });
-      setZonas((prev) => [...prev, data]);
+      setZonas((prev) => [...prev, { ...data, asignaciones_fijas: [] }]);
       cerrarModalZona();
     } catch (err: any) {
       Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo crear la zona.' });
@@ -116,46 +117,39 @@ export default function LimpiezaCaseroTab() {
 
   const puedeGuardar = nombre.trim().length > 0 && parseFloat(peso) > 0;
 
-  // — Asignación fija —
-  const abrirModalAsignacion = (zona: ZonaLimpieza) => setZonaSeleccionada(zona);
-  const cerrarModalAsignacion = () => { setZonaSeleccionada(null); };
-
-  const handleAsignar = async (usuarioId: number) => {
-    if (!zonaSeleccionada) return;
-    setAsignando(true);
-    try {
-      const { data } = await api.post<AsignacionFija>(
-        `/viviendas/${id}/limpieza/zonas/${zonaSeleccionada.id}/asignacion`,
-        { usuario_id: usuarioId }
-      );
-      setZonas((prev) =>
-        prev.map((z) =>
-          z.id === zonaSeleccionada.id
-            ? { ...z, asignaciones_fijas: [{ id: data.id, usuario_id: data.usuario_id, usuario: data.usuario }] }
-            : z
-        )
-      );
-      cerrarModalAsignacion();
-    } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo asignar.' });
-    } finally {
-      setAsignando(false);
-    }
+  // — Asignación fija multi-select —
+  const abrirModalAsignacion = (zona: ZonaLimpieza) => {
+    setZonaSeleccionada(zona);
+    setSeleccionados((zona.asignaciones_fijas ?? []).map((a) => a.usuario_id));
   };
 
-  const handleQuitarAsignacion = async () => {
+  const cerrarModalAsignacion = () => {
+    setZonaSeleccionada(null);
+    setSeleccionados([]);
+  };
+
+  const toggleSeleccion = (usuarioId: number) => {
+    setSeleccionados((prev) =>
+      prev.includes(usuarioId) ? prev.filter((x) => x !== usuarioId) : [...prev, usuarioId]
+    );
+  };
+
+  const handleGuardarAsignacion = async () => {
     if (!zonaSeleccionada) return;
     setAsignando(true);
     try {
-      await api.delete(`/viviendas/${id}/limpieza/zonas/${zonaSeleccionada.id}/asignacion`);
+      const { data } = await api.post<AsignacionFija[]>(
+        `/viviendas/${id}/limpieza/zonas/${zonaSeleccionada.id}/asignacion`,
+        { usuario_ids: seleccionados }
+      );
       setZonas((prev) =>
         prev.map((z) =>
-          z.id === zonaSeleccionada.id ? { ...z, asignaciones_fijas: [] } : z
+          z.id === zonaSeleccionada.id ? { ...z, asignaciones_fijas: data } : z
         )
       );
       cerrarModalAsignacion();
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo quitar la asignación.' });
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo guardar la asignación.' });
     } finally {
       setAsignando(false);
     }
@@ -183,7 +177,12 @@ export default function LimpiezaCaseroTab() {
     `${inq.nombre}${inq.apellidos ? ` ${inq.apellidos[0]}.` : ''}`;
 
   const renderZona = ({ item }: { item: ZonaLimpieza }) => {
-    const asignacion = (item.asignaciones_fijas ?? [])[0] ?? null;
+    const asignaciones = item.asignaciones_fijas ?? [];
+    const etiquetaFijos =
+      asignaciones.length > 0
+        ? `👤 Fijos: ${asignaciones.map((a) => nombreCorto(a.usuario)).join(', ')}`
+        : null;
+
     return (
       <Card style={{ marginBottom: Theme.spacing.md }}>
         <View style={styles.cardRow}>
@@ -196,15 +195,13 @@ export default function LimpiezaCaseroTab() {
         </View>
         <Text style={styles.zonaPeso}>Peso: {item.peso}</Text>
         <View style={styles.asignacionRow}>
-          {asignacion ? (
-            <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
-              <Text style={styles.asignacionFija}>👤 Fijo: {nombreCorto(asignacion.usuario)}</Text>
-            </Pressable>
-          ) : (
-            <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
-              <Text style={styles.asignarLink}>+ Asignar inquilino fijo</Text>
-            </Pressable>
-          )}
+          <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
+            {etiquetaFijos ? (
+              <Text style={styles.asignacionFija}>{etiquetaFijos}</Text>
+            ) : (
+              <Text style={styles.asignarLink}>+ Asignar inquilino(s) fijo(s)</Text>
+            )}
+          </Pressable>
         </View>
       </Card>
     );
@@ -289,7 +286,7 @@ export default function LimpiezaCaseroTab() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal asignación fija */}
+      {/* Modal asignación fija — multi-select */}
       <Modal
         visible={zonaSeleccionada !== null}
         animationType="slide"
@@ -298,7 +295,7 @@ export default function LimpiezaCaseroTab() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitulo}>Asignar inquilino fijo</Text>
+            <Text style={styles.modalTitulo}>Asignar fijos</Text>
             {zonaSeleccionada && (
               <Text style={styles.modalSubtitulo}>{zonaSeleccionada.nombre}</Text>
             )}
@@ -306,45 +303,46 @@ export default function LimpiezaCaseroTab() {
               <Text style={styles.emptyText}>No hay inquilinos en esta vivienda.</Text>
             ) : (
               inquilinos.map((inq) => {
-                const esActual = (zonaSeleccionada?.asignaciones_fijas ?? [])[0]?.usuario_id === inq.id;
+                const seleccionado = seleccionados.includes(inq.id);
                 return (
                   <Pressable
                     key={inq.id}
                     style={({ pressed }) => [
                       styles.inquilinoRow,
-                      esActual && styles.inquilinoRowActual,
+                      seleccionado && styles.inquilinoRowActual,
                       pressed && styles.botonPressed,
                     ]}
-                    onPress={() => handleAsignar(inq.id)}
+                    onPress={() => toggleSeleccion(inq.id)}
                     disabled={asignando}
                   >
-                    <Text style={[styles.inquilinoNombre, esActual && styles.inquilinoNombreActual]}>
+                    <Text style={[styles.inquilinoNombre, seleccionado && styles.inquilinoNombreActual]}>
                       {inq.nombre} {inq.apellidos ?? ''}
                     </Text>
-                    {esActual && <Text style={styles.checkmark}>✓</Text>}
+                    {seleccionado && <Text style={styles.checkmark}>✓</Text>}
                   </Pressable>
                 );
               })
             )}
-            {((zonaSeleccionada?.asignaciones_fijas ?? []).length > 0) && (
+            <View style={[styles.modalAcciones, { marginTop: Theme.spacing.md }]}>
               <Pressable
-                style={({ pressed }) => [styles.botonQuitarAsignacion, pressed && styles.botonPressed]}
-                onPress={handleQuitarAsignacion}
+                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
+                onPress={cerrarModalAsignacion}
+                disabled={asignando}
+              >
+                <Text style={styles.botonCancelarTexto}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.botonGuardar, pressed && !asignando && styles.botonPressed]}
+                onPress={handleGuardarAsignacion}
                 disabled={asignando}
               >
                 {asignando ? (
-                  <ActivityIndicator color={Theme.colors.danger} />
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.botonQuitarTexto}>Quitar asignación</Text>
+                  <Text style={styles.botonGuardarTexto}>Guardar</Text>
                 )}
               </Pressable>
-            )}
-            <Pressable
-              style={({ pressed }) => [styles.botonCancelar, { marginTop: Theme.spacing.xs }, pressed && styles.botonPressed]}
-              onPress={cerrarModalAsignacion}
-            >
-              <Text style={styles.botonCancelarTexto}>Cancelar</Text>
-            </Pressable>
+            </View>
           </View>
         </View>
       </Modal>

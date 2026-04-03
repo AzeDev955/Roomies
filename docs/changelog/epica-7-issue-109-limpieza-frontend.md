@@ -1,4 +1,4 @@
-# Épica 7 — Issue #109 (Fases 3, 4 y 6): Interfaz de Configuración de Limpieza
+# Épica 7 — Issue #109 (Fases 3, 4, 6 y 7): Interfaz de Configuración de Limpieza
 
 **Fecha:** 2026-04-03  
 **Rama:** dev  
@@ -112,5 +112,33 @@ Añadidos: `asignacionRow`, `asignacionFija`, `asignarLink`, `modalSubtitulo`, `
 
 ## Decisiones técnicas
 
-- **Un solo inquilino por zona**: el modelo `AsignacionLimpiezaFija` tiene `@@unique([zona_id, usuario_id])` pero el algoritmo asume una asignación por zona. La UI toma `asignaciones_fijas[0]` y reemplaza al asignar uno nuevo.
-- **Remoción pendiente de backend**: el frontend llama a `DELETE /viviendas/:id/limpieza/zonas/:zonaId/asignacion`; si el endpoint no existe aún, el toast de error informa al usuario sin romper el estado local.
+- **Sync en lugar de upsert**: el endpoint de asignación ahora hace delete+createMany en transacción. Más simple que rastrear qué IDs añadir/quitar individualmente, y garantiza que el estado en BD siempre coincide exactamente con lo que el casero envió.
+- **Sub-rotación via balance existente**: la Fase A del algoritmo no necesita estado adicional para rotar entre co-responsables — reutiliza `balance_limpieza` exactamente igual que la Fase B. El efecto emergente es una rotación justa sin lógica de turno explícita.
+- **"Quitar todos" = guardar con array vacío**: eliminar el modal de "Quitar asignación" simplifica la UX. Desmarcar a todos en el multi-select y pulsar Guardar tiene el mismo efecto con menos superficie de UI.
+
+---
+
+## Fase 7 — Multi-asignación y sub-rotación (baños compartidos)
+
+### `backend/src/controllers/limpieza.controller.ts` — `asignarZonaFija`
+
+**Contrato del endpoint cambiado:** recibe `{ usuario_ids: number[] }` en lugar de `{ usuario_id: number }`.
+
+**Operación sync atómica** dentro de `prisma.$transaction`: deleteMany → createMany → findMany. Si `usuario_ids` es `[]`, solo se ejecuta el deleteMany → equivale a "quitar todos".
+
+### `backend/src/services/limpieza.service.ts` — Fase A con sub-rotación
+
+```
+asignadosActivos = asignaciones_fijas.filter(a => a.usuario está ACTIVO)
+elegido = argmin(asignadosActivos, u => cargaSemanal[u] + balance_limpieza[u])
+```
+
+Si Ana y Juan comparten Baño 1: el que tenga menor carga efectiva esa semana recibe el turno. La Fase C actualiza su balance → la próxima semana el otro tendrá menor carga. Rotación automática sin estado adicional.
+
+### `frontend/app/casero/vivienda/[id]/(tabs)/limpieza.tsx`
+
+- `seleccionados: number[]` — IDs marcados en el modal, inicializados desde `asignaciones_fijas` actuales.
+- `toggleSeleccion(id)` — añade o quita del array (comportamiento checkbox).
+- `handleGuardarAsignacion` — envía `{ usuario_ids: seleccionados }`, actualiza estado local con la respuesta.
+- Card muestra todos los asignados: `"👤 Fijos: Juan G., María P."`.
+- Modal: botón "Guardar" al final en lugar de acción inmediata al tocar.
