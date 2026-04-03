@@ -116,4 +116,66 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   botonPressed: { opacity: 0.7 },
+
+  // — Asignación fija en card —
+  asignacionRow: {
+    marginTop: Theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border,
+    paddingTop: Theme.spacing.sm,
+  },
+  asignacionFija: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.primary,
+    fontWeight: '600',
+  },
+  asignarLink: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textTertiary,
+  },
+
+  // — Modal asignación: lista de inquilinos —
+  modalSubtitulo: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textSecondary,
+    marginTop: -Theme.spacing.sm,
+    marginBottom: Theme.spacing.xs,
+  },
+  inquilinoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Theme.spacing.md,
+    paddingHorizontal: Theme.spacing.sm,
+    borderRadius: Theme.radius.sm,
+  },
+  inquilinoRowActual: {
+    backgroundColor: Theme.colors.background,
+  },
+  inquilinoNombre: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.text,
+  },
+  inquilinoNombreActual: {
+    color: Theme.colors.primary,
+    fontWeight: '600',
+  },
+  checkmark: {
+    fontSize: 16,
+    color: Theme.colors.primary,
+    fontWeight: '700',
+  },
+  botonQuitarAsignacion: {
+    marginTop: Theme.spacing.sm,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.danger,
+    borderRadius: Theme.radius.md,
+    alignItems: 'center',
+  },
+  botonQuitarTexto: {
+    color: Theme.colors.danger,
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+  },
 });

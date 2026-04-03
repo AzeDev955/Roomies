@@ -1,4 +1,4 @@
-# Épica 7 — Issue #109 (Fase 3): Interfaz de Configuración de Limpieza
+# Épica 7 — Issue #109 (Fases 3 y 4): Interfaz de Configuración de Limpieza
 
 **Fecha:** 2026-04-03  
 **Rama:** dev  
@@ -58,4 +58,37 @@ Incluye: `container`, `content`, `emptyText`, `cardRow`, `zonaNombre`, `badge` (
 - **`useGlobalSearchParams` en lugar de `useLocalSearchParams`**: patrón ya establecido en `tablon.tsx` e `incidencias.tsx`. Los tabs nombrados no exponen directamente los params del segmento `[id]` padre.
 - **`useEffect` en lugar de `useFocusEffect`**: la lista de zonas no cambia desde otras pantallas — no es necesario recargar en cada foco. Se recarga solo al montar el componente (cambio de vivienda).
 - **`parseFloat` para el peso**: permite valores decimales (ej. `7.5`) además de enteros, consistente con el tipo `Float` del schema Prisma.
-- **Sin gestión de asignaciones fijas en esta fase**: la pantalla muestra solo lectura de zonas con sus badges. La asignación fija de inquilinos a zonas se implementará en la Fase 4.
+---
+
+## Fase 4 — Asignación de zonas fijas (Baños)
+
+### Cambios en `limpieza.tsx`
+
+**Nuevos tipos:** `Inquilino`, `AsignacionFija`. `ZonaLimpieza` ahora incluye `asignaciones_fijas: AsignacionFija[]`.
+
+**Carga de inquilinos:** `GET /viviendas/:id` en paralelo con la carga de zonas (ambos en `Promise.all`). Se extraen los inquilinos filtrando `habitaciones` con `inquilino !== null`.
+
+**Tarjeta de zona actualizada:** sección de asignación bajo el peso, separada por un borde sutil:
+- Si hay asignación → `"👤 Fijo: Nombre A."` en `primary` (pressable para cambiarla)
+- Si no → `"+ Asignar inquilino fijo"` en `textTertiary` (pressable para asignar)
+
+**Modal de asignación:** segundo modal independiente del de nueva zona. Muestra el nombre de la zona como subtítulo y lista a todos los inquilinos como filas presionables. El inquilino actualmente asignado aparece resaltado con fondo `background` y checkmark `✓`. Si ya existe asignación, aparece el botón "Quitar asignación" (borde rojo, texto `danger`).
+
+**Actualización de estado local:** tras una asignación o remoción exitosa, se actualiza `zonas` con `map()` sin recargar desde el servidor — la respuesta del POST incluye el objeto completo con `usuario` embebido.
+
+**Endpoint de remoción:** llama a `DELETE /viviendas/:id/limpieza/zonas/:zonaId/asignacion`. Este endpoint aún no existe en el backend — pendiente de implementación en Fase 5.
+
+### Nuevos estilos en `limpieza.styles.ts`
+
+Añadidos: `asignacionRow`, `asignacionFija`, `asignarLink`, `modalSubtitulo`, `inquilinoRow`, `inquilinoRowActual`, `inquilinoNombre`, `inquilinoNombreActual`, `checkmark`, `botonQuitarAsignacion`, `botonQuitarTexto`.
+
+---
+
+## Decisiones técnicas
+
+- **`useGlobalSearchParams` en lugar de `useLocalSearchParams`**: patrón ya establecido en `tablon.tsx` e `incidencias.tsx`. Los tabs nombrados no exponen directamente los params del segmento `[id]` padre.
+- **`useEffect` en lugar de `useFocusEffect`**: la lista de zonas no cambia desde otras pantallas — no es necesario recargar en cada foco. Se recarga solo al montar el componente (cambio de vivienda).
+- **`parseFloat` para el peso**: permite valores decimales (ej. `7.5`) además de enteros, consistente con el tipo `Float` del schema Prisma.
+- **`Promise.all` para carga paralela**: zonas e inquilinos se cargan simultáneamente para minimizar el tiempo de spinner inicial.
+- **Un solo inquilino por zona**: el modelo `AsignacionLimpiezaFija` tiene `@@unique([zona_id, usuario_id])` pero el algoritmo asume una asignación por zona. La UI toma `asignaciones_fijas[0]` y reemplaza al asignar uno nuevo.
+- **Remoción pendiente de backend**: el frontend llama a `DELETE /viviendas/:id/limpieza/zonas/:zonaId/asignacion`; si el endpoint no existe aún, el toast de error informa al usuario sin romper el estado local.
