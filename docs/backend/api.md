@@ -810,3 +810,161 @@ Elimina un anuncio.
 | `401` | Sin token. |
 | `403` | El usuario no es el autor ni el casero de la vivienda. |
 | `404` | Anuncio no encontrado. |
+
+---
+
+## Limpieza — `/viviendas/:id/limpieza`
+
+Todos los endpoints requieren que el usuario autenticado sea el **casero propietario** de la vivienda.
+
+### POST `/viviendas/:id/limpieza/zonas`
+
+Crea una nueva zona limpiable en la vivienda.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID de la vivienda |
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `nombre` | string | Sí | Nombre descriptivo (ej. "Cocina", "Baño 1") |
+| `peso` | number | Sí | Esfuerzo relativo positivo (ej. `10`) |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Zona creada. Devuelve el objeto `ZonaLimpieza`. |
+| `400` | Faltan campos o `peso` no es positivo. |
+| `403` | La vivienda no pertenece al casero autenticado. |
+
+**Ejemplo respuesta 201:**
+```json
+{ "id": 1, "vivienda_id": 3, "nombre": "Cocina", "peso": 10, "activa": true }
+```
+
+---
+
+### GET `/viviendas/:id/limpieza/zonas`
+
+Lista todas las zonas de la vivienda, incluyendo sus asignaciones fijas.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Array de zonas con `asignaciones_fijas[]` embebidas. |
+| `403` | La vivienda no pertenece al casero autenticado. |
+
+**Ejemplo respuesta 200:**
+```json
+[
+  {
+    "id": 1,
+    "vivienda_id": 3,
+    "nombre": "Cocina",
+    "peso": 10,
+    "activa": true,
+    "asignaciones_fijas": []
+  },
+  {
+    "id": 2,
+    "vivienda_id": 3,
+    "nombre": "Baño 1",
+    "peso": 7,
+    "activa": true,
+    "asignaciones_fijas": [
+      {
+        "id": 1,
+        "zona_id": 2,
+        "usuario_id": 5,
+        "usuario": { "id": 5, "nombre": "Ana", "apellidos": "García" }
+      }
+    ]
+  }
+]
+```
+
+---
+
+### PUT `/viviendas/:id/limpieza/zonas/:zonaId`
+
+Actualiza el nombre, peso o estado activo de una zona.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID de la vivienda |
+| `zonaId` | ID de la zona |
+
+**Body (JSON):** Todos los campos son opcionales.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `nombre` | string | Nuevo nombre de la zona |
+| `peso` | number | Nuevo peso (debe ser positivo) |
+| `activa` | boolean | `false` excluye la zona del reparto |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Zona actualizada. Devuelve el objeto completo. |
+| `400` | `peso` no es positivo. |
+| `403` | La vivienda no pertenece al casero autenticado. |
+| `404` | Zona no encontrada en esa vivienda. |
+
+---
+
+### POST `/viviendas/:id/limpieza/zonas/:zonaId/asignacion`
+
+Asigna una zona de forma fija a un inquilino (bypass de rotación). Idempotente: si ya existe la asignación, la devuelve sin error.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID de la vivienda |
+| `zonaId` | ID de la zona |
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `usuario_id` | number | Sí | ID del inquilino a asignar |
+
+**Validaciones:**
+- El usuario debe tener una habitación activa en la vivienda (`inquilino_id` en alguna `Habitacion` de esa vivienda).
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Asignación creada o ya existente. Devuelve el objeto con `zona` y `usuario` embebidos. |
+| `400` | `usuario_id` ausente. |
+| `403` | La vivienda no pertenece al casero, o el usuario no es inquilino de la vivienda. |
+| `404` | Zona no encontrada en esa vivienda. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "id": 1,
+  "zona_id": 2,
+  "usuario_id": 5,
+  "zona": { "id": 2, "vivienda_id": 3, "nombre": "Baño 1", "peso": 7, "activa": true },
+  "usuario": { "id": 5, "nombre": "Ana", "apellidos": "García" }
+}
+```
