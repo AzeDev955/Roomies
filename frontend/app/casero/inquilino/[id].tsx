@@ -105,6 +105,15 @@ export default function PerfilInquilinoScreen() {
           onPress={() => Linking.openURL(`mailto:${perfil.email}`)}
           style={styles.botonEmail}
         />
+
+        {perfil.telefono && (
+          <CustomButton
+            label="Llamar"
+            variant="outline"
+            onPress={() => Linking.openURL(`tel:${perfil.telefono}`)}
+            style={styles.botonEmail}
+          />
+        )}
       </ScrollView>
     </>
   );
