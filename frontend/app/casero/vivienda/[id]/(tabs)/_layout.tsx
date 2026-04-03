@@ -66,6 +66,15 @@ export default function ViviendaTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="limpieza"
+        options={{
+          title: 'Limpieza',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="sparkles-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

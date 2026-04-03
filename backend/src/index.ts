@@ -6,6 +6,7 @@ import viviendaRoutes from './routes/vivienda.routes';
 import inquilinoRoutes from './routes/inquilino.routes';
 import incidenciaRoutes from './routes/incidencia.routes';
 import anuncioRoutes from './routes/anuncio.routes';
+import limpiezaRoutes from './routes/limpieza.routes';
 
 const app = express();
 const PORT = 3000;
@@ -22,6 +23,7 @@ app.use('/api/viviendas', viviendaRoutes);
 app.use('/api/inquilino', inquilinoRoutes);
 app.use('/api/incidencias', incidenciaRoutes);
 app.use('/api/anuncios', anuncioRoutes);
+app.use('/api/viviendas', limpiezaRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
