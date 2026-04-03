@@ -143,6 +143,32 @@ export const asignarZonaFija: express.RequestHandler = async (req, res) => {
   res.status(200).json(asignaciones);
 };
 
+export const eliminarZona: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const zonaId = parseInt(req.params['zonaId'] as string, 10);
+
+  const vivienda = await verificarPropiedadVivienda(viviendaId, req.usuario!.id);
+  if (!vivienda) {
+    res.status(403).json({ error: 'No tienes permiso sobre esta vivienda.' });
+    return;
+  }
+
+  const zona = await prisma.zonaLimpieza.findFirst({ where: { id: zonaId, vivienda_id: viviendaId } });
+  if (!zona) {
+    res.status(404).json({ error: 'Zona no encontrada.' });
+    return;
+  }
+
+  // Eliminar registros dependientes antes de borrar la zona (sin cascade en schema).
+  await prisma.$transaction([
+    prisma.turnoLimpieza.deleteMany({ where: { zona_id: zonaId } }),
+    prisma.asignacionLimpiezaFija.deleteMany({ where: { zona_id: zonaId } }),
+    prisma.zonaLimpieza.delete({ where: { id: zonaId } }),
+  ]);
+
+  res.status(204).send();
+};
+
 export const quitarAsignacionFija: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params['id'] as string, 10);
   const zonaId = parseInt(req.params['zonaId'] as string, 10);

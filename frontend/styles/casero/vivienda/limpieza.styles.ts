@@ -18,6 +18,68 @@ export const styles = StyleSheet.create({
     marginBottom: 0,
   },
 
+  // — Empty state —
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: Theme.spacing.xl,
+    paddingHorizontal: Theme.spacing.lg,
+  },
+
+  // — Quick Chips —
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Theme.spacing.sm,
+    marginBottom: Theme.spacing.xs,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.background,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  chipTexto: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+
+  // — T-Shirt Sizing —
+  tshirtLabel: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Theme.spacing.sm,
+  },
+  tshirtRow: {
+    flexDirection: 'row',
+    gap: Theme.spacing.sm,
+  },
+  tshirtBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+  },
+  tshirtBtnActivo: {
+    borderColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.primary + '12',
+  },
+  tshirtBtnTexto: {
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.textMedium,
+  },
+  tshirtBtnTextoActivo: {
+    color: Theme.colors.primary,
+  },
+
   // — Card de zona —
   cardRow: {
     flexDirection: 'row',
@@ -44,6 +106,11 @@ export const styles = StyleSheet.create({
   },
   badgeTextoActiva: { color: '#2e7d32' },
   badgeTextoInactiva: { color: Theme.colors.textTertiary },
+  eliminarBtn: {
+    fontSize: 14,
+    color: Theme.colors.textTertiary,
+    fontWeight: '600',
+  },
   zonaPeso: {
     fontSize: Theme.typography.caption,
     color: Theme.colors.textSecondary,

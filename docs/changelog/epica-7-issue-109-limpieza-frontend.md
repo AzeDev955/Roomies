@@ -1,4 +1,4 @@
-# Épica 7 — Issue #109 (Fases 3, 4, 6 y 7): Interfaz de Configuración de Limpieza
+# Épica 7 — Issue #109 (Fases 3, 4, 6, 7 y 8): Interfaz de Configuración de Limpieza
 
 **Fecha:** 2026-04-03  
 **Rama:** dev  
@@ -142,3 +142,59 @@ Si Ana y Juan comparten Baño 1: el que tenga menor carga efectiva esa semana re
 - `handleGuardarAsignacion` — envía `{ usuario_ids: seleccionados }`, actualiza estado local con la respuesta.
 - Card muestra todos los asignados: `"👤 Fijos: Juan G., María P."`.
 - Modal: botón "Guardar" al final en lugar de acción inmediata al tocar.
+
+---
+
+## Fase 8 — T-Shirt Sizing, Quick Chips y Starter Pack
+
+### T-Shirt Sizing (abstracción del peso)
+
+El input de texto libre para `peso` se reemplaza por tres botones exclusivos:
+
+| Botón | Peso interno |
+|---|---|
+| Ligera | 3 |
+| Normal | 6 |
+| Intensa | 10 |
+
+El estado `pesoSeleccionado: number | null` reemplaza al string `peso`. El botón "Guardar" permanece deshabilitado hasta que se selecciona una talla. El casero nunca ve números — solo etiquetas semánticas.
+
+**En la tarjeta (`renderZona`):** `"Peso: 10"` → `"Esfuerzo: Intensa"` vía el mapa `ETIQUETA_ESFUERZO`. Para valores que no están en el mapa (creados con la API directamente) se muestra `"Peso: X"` como fallback.
+
+### Quick Chips
+
+Fila de pastillas presionables encima del `CustomInput` de nombre: `Cocina`, `Baño`, `Salón`, `Pasillo`. Al pulsar, rellenan el campo nombre — reducen friction para los casos más comunes sin eliminar la edición libre.
+
+### Starter Pack (empty state)
+
+Cuando no hay zonas (`zonas.length === 0`), el `ListEmptyComponent` muestra el texto vacío y un `<CustomButton variant="outline">` "Generar zonas básicas".
+
+Al pulsar, `handleGenerarZonasBasicas` hace tres POST en paralelo (`Promise.all`): Cocina (Intensa/10), Salón (Normal/6), Baño (Normal/6). Las zonas creadas se añaden al estado local con `asignaciones_fijas: []`. Estado separado `creandoBase` para no bloquear el botón de generar turnos.
+
+### Estilos añadidos en `limpieza.styles.ts`
+
+`emptyContainer`, `chipRow`, `chip`, `chipTexto`, `tshirtLabel`, `tshirtRow`, `tshirtBtn`, `tshirtBtnActivo`, `tshirtBtnTexto`, `tshirtBtnTextoActivo`.
+
+### Decisiones técnicas
+
+- **`primary + '12'` como fondo del botón activo**: añadir `12` al hex del color primario da un 7% de opacidad — más ligero que un tint fijo, automáticamente consistente si el color primario cambia.
+- **`pesoSeleccionado: number | null`**: null explícito en lugar de `0` evita que el botón "Guardar" se active accidentalmente si el casero no ha elegido talla.
+- **Starter Pack con `Promise.all`**: crea las tres zonas en paralelo en lugar de secuencialmente. Si alguna falla, el `catch` muestra toast pero las creadas exitosamente sí aparecen (no hay rollback, diseño intencional para MVP).
+
+---
+
+## Fase 9 — Eliminación de zonas
+
+### Backend
+
+**`eliminarZona`** (`DELETE /viviendas/:id/limpieza/zonas/:zonaId`):
+- Verifica propiedad de vivienda y existencia de zona.
+- Ejecuta `prisma.$transaction([deleteMany turnos, deleteMany asignaciones, delete zona])` — el schema no define `onDelete: Cascade`, así que los registros dependientes se eliminan explícitamente antes de borrar la zona.
+
+### Frontend
+
+**Botón ✕** en el `cardRow` de cada zona, junto al badge de estado. Al pulsar:
+1. `Alert.alert` con confirmación destructiva — el mensaje advierte que se borran asignaciones y turnos.
+2. Si confirma → `DELETE /viviendas/:id/limpieza/zonas/:zonaId` → `setZonas(prev.filter(...))`.
+
+Estilo `eliminarBtn`: mismo patrón que el ✕ del tablón de anuncios (`textTertiary`, `fontWeight 600`).

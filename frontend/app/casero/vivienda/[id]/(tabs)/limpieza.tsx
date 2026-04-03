@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
@@ -18,6 +19,28 @@ import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { styles } from '@/styles/casero/vivienda/limpieza.styles';
+
+// ── T-Shirt Sizing ────────────────────────────────────────────────────────────
+const TALLAS = [
+  { label: 'Ligera', peso: 3 },
+  { label: 'Normal', peso: 6 },
+  { label: 'Intensa', peso: 10 },
+] as const;
+
+const ETIQUETA_ESFUERZO: Record<number, string> = { 3: 'Ligera', 6: 'Normal', 10: 'Intensa' };
+
+const etiquetaEsfuerzo = (peso: number) =>
+  ETIQUETA_ESFUERZO[peso] ? `Esfuerzo: ${ETIQUETA_ESFUERZO[peso]}` : `Peso: ${peso}`;
+
+const QUICK_CHIPS = ['Cocina', 'Baño', 'Salón', 'Pasillo'];
+
+const ZONAS_BASE = [
+  { nombre: 'Cocina', peso: 10 },
+  { nombre: 'Salón', peso: 6 },
+  { nombre: 'Baño', peso: 6 },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 type Inquilino = {
   id: number;
@@ -48,7 +71,7 @@ export default function LimpiezaCaseroTab() {
   // — Modal nueva zona —
   const [modalZonaVisible, setModalZonaVisible] = useState(false);
   const [nombre, setNombre] = useState('');
-  const [peso, setPeso] = useState('');
+  const [pesoSeleccionado, setPesoSeleccionado] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   // — Modal asignación fija (multi-select) —
@@ -56,8 +79,9 @@ export default function LimpiezaCaseroTab() {
   const [seleccionados, setSeleccionados] = useState<number[]>([]);
   const [asignando, setAsignando] = useState(false);
 
-  // — Generar turnos —
+  // — Acciones globales —
   const [generando, setGenerando] = useState(false);
+  const [creandoBase, setCreandoBase] = useState(false);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -94,17 +118,16 @@ export default function LimpiezaCaseroTab() {
   const cerrarModalZona = () => {
     setModalZonaVisible(false);
     setNombre('');
-    setPeso('');
+    setPesoSeleccionado(null);
   };
 
   const handleGuardar = async () => {
-    const pesoNum = parseFloat(peso);
-    if (!nombre.trim() || isNaN(pesoNum) || pesoNum <= 0) return;
+    if (!nombre.trim() || pesoSeleccionado === null) return;
     setGuardando(true);
     try {
       const { data } = await api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, {
         nombre: nombre.trim(),
-        peso: pesoNum,
+        peso: pesoSeleccionado,
       });
       setZonas((prev) => [...prev, { ...data, asignaciones_fijas: [] }]);
       cerrarModalZona();
@@ -115,7 +138,22 @@ export default function LimpiezaCaseroTab() {
     }
   };
 
-  const puedeGuardar = nombre.trim().length > 0 && parseFloat(peso) > 0;
+  const puedeGuardar = nombre.trim().length > 0 && pesoSeleccionado !== null;
+
+  // — Starter Pack —
+  const handleGenerarZonasBasicas = async () => {
+    setCreandoBase(true);
+    try {
+      const resultados = await Promise.all(
+        ZONAS_BASE.map((z) => api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, z))
+      );
+      setZonas(resultados.map((r) => ({ ...r.data, asignaciones_fijas: [] })));
+    } catch (err: any) {
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudieron crear las zonas base.' });
+    } finally {
+      setCreandoBase(false);
+    }
+  };
 
   // — Asignación fija multi-select —
   const abrirModalAsignacion = (zona: ZonaLimpieza) => {
@@ -155,6 +193,28 @@ export default function LimpiezaCaseroTab() {
     }
   };
 
+  const handleEliminarZona = (zona: ZonaLimpieza) => {
+    Alert.alert(
+      'Eliminar zona',
+      `¿Eliminar "${zona.nombre}"? Se borrarán también sus asignaciones y turnos.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/viviendas/${id}/limpieza/zonas/${zona.id}`);
+              setZonas((prev) => prev.filter((z) => z.id !== zona.id));
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar la zona.' });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleGenerarTurnos = async () => {
     setGenerando(true);
     try {
@@ -192,8 +252,11 @@ export default function LimpiezaCaseroTab() {
               {item.activa ? 'Activa' : 'Inactiva'}
             </Text>
           </View>
+          <Pressable onPress={() => handleEliminarZona(item)} hitSlop={8} style={{ paddingLeft: 8 }}>
+            <Text style={styles.eliminarBtn}>✕</Text>
+          </Pressable>
         </View>
-        <Text style={styles.zonaPeso}>Peso: {item.peso}</Text>
+        <Text style={styles.zonaPeso}>{etiquetaEsfuerzo(item.peso)}</Text>
         <View style={styles.asignacionRow}>
           <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
             {etiquetaFijos ? (
@@ -206,6 +269,19 @@ export default function LimpiezaCaseroTab() {
       </Card>
     );
   };
+
+  const emptyComponent = (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No hay zonas definidas todavía.</Text>
+      <CustomButton
+        label={creandoBase ? 'Creando...' : 'Generar zonas básicas'}
+        variant="outline"
+        onPress={handleGenerarZonasBasicas}
+        disabled={creandoBase}
+        style={{ marginTop: Theme.spacing.md }}
+      />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -224,9 +300,7 @@ export default function LimpiezaCaseroTab() {
           data={zonas}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderZona}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No hay zonas definidas. Pulsa + para añadir la primera.</Text>
-          }
+          ListEmptyComponent={emptyComponent}
         />
       )}
 
@@ -245,6 +319,20 @@ export default function LimpiezaCaseroTab() {
         >
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitulo}>Nueva zona</Text>
+
+            {/* Quick Chips */}
+            <View style={styles.chipRow}>
+              {QUICK_CHIPS.map((chip) => (
+                <Pressable
+                  key={chip}
+                  style={({ pressed }) => [styles.chip, pressed && styles.botonPressed]}
+                  onPress={() => setNombre(chip)}
+                >
+                  <Text style={styles.chipTexto}>{chip}</Text>
+                </Pressable>
+              ))}
+            </View>
+
             <CustomInput
               label="Nombre de la zona"
               placeholder="ej. Cocina, Baño 1, Pasillo..."
@@ -252,13 +340,31 @@ export default function LimpiezaCaseroTab() {
               onChangeText={setNombre}
               maxLength={80}
             />
-            <CustomInput
-              label="Peso (esfuerzo relativo)"
-              placeholder="ej. 10"
-              value={peso}
-              onChangeText={setPeso}
-              keyboardType="decimal-pad"
-            />
+
+            {/* T-Shirt Sizing */}
+            <Text style={styles.tshirtLabel}>Esfuerzo</Text>
+            <View style={styles.tshirtRow}>
+              {TALLAS.map((talla) => (
+                <Pressable
+                  key={talla.peso}
+                  style={[
+                    styles.tshirtBtn,
+                    pesoSeleccionado === talla.peso && styles.tshirtBtnActivo,
+                  ]}
+                  onPress={() => setPesoSeleccionado(talla.peso)}
+                >
+                  <Text
+                    style={[
+                      styles.tshirtBtnTexto,
+                      pesoSeleccionado === talla.peso && styles.tshirtBtnTextoActivo,
+                    ]}
+                  >
+                    {talla.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             <View style={styles.modalAcciones}>
               <Pressable
                 style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
