@@ -40,6 +40,18 @@ const ZONAS_BASE = [
   { nombre: 'Baño', peso: 6 },
 ];
 
+const ESTADO_LABEL: Record<string, string> = {
+  PENDIENTE: 'Pendiente',
+  HECHO: '✓ Hecho',
+  NO_HECHO: '✗ No hecho',
+};
+
+const ESTADO_COLOR: Record<string, string> = {
+  PENDIENTE: Theme.colors.textTertiary,
+  HECHO: '#2e7d32',
+  NO_HECHO: Theme.colors.danger,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Inquilino = {
@@ -62,11 +74,31 @@ type ZonaLimpieza = {
   asignaciones_fijas: AsignacionFija[];
 };
 
+type Turno = {
+  id: number;
+  usuario_id: number;
+  zona_id: number;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estado: 'PENDIENTE' | 'HECHO' | 'NO_HECHO';
+  zona: { id: number; nombre: string; peso: number };
+  usuario: { id: number; nombre: string; apellidos: string | null };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function LimpiezaCaseroTab() {
   const { id } = useGlobalSearchParams<{ id: string }>();
+
+  // — Vista activa —
+  const [vistaActual, setVistaActual] = useState<'CONFIG' | 'CALENDARIO'>('CONFIG');
+
+  // — Config state —
   const [zonas, setZonas] = useState<ZonaLimpieza[]>([]);
   const [inquilinos, setInquilinos] = useState<Inquilino[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generando, setGenerando] = useState(false);
+  const [creandoBase, setCreandoBase] = useState(false);
 
   // — Modal nueva zona —
   const [modalZonaVisible, setModalZonaVisible] = useState(false);
@@ -79,9 +111,9 @@ export default function LimpiezaCaseroTab() {
   const [seleccionados, setSeleccionados] = useState<number[]>([]);
   const [asignando, setAsignando] = useState(false);
 
-  // — Acciones globales —
-  const [generando, setGenerando] = useState(false);
-  const [creandoBase, setCreandoBase] = useState(false);
+  // — Calendario state —
+  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [loadingTurnos, setLoadingTurnos] = useState(false);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -91,6 +123,10 @@ export default function LimpiezaCaseroTab() {
     };
     inicializar();
   }, [id]);
+
+  useEffect(() => {
+    if (vistaActual === 'CALENDARIO') cargarTurnos();
+  }, [vistaActual]);
 
   const cargarZonas = async () => {
     try {
@@ -105,12 +141,22 @@ export default function LimpiezaCaseroTab() {
     try {
       const { data } = await api.get<{ habitaciones: { inquilino: Inquilino | null }[] }>(`/viviendas/${id}`);
       setInquilinos(
-        data.habitaciones
-          .filter((h) => h.inquilino !== null)
-          .map((h) => h.inquilino!)
+        data.habitaciones.filter((h) => h.inquilino !== null).map((h) => h.inquilino!)
       );
     } catch {
       // non-critical
+    }
+  };
+
+  const cargarTurnos = async () => {
+    setLoadingTurnos(true);
+    try {
+      const { data } = await api.get<Turno[]>(`/viviendas/${id}/limpieza/turnos`);
+      setTurnos(data);
+    } catch {
+      Toast.show({ type: 'error', text1: 'No se pudieron cargar los turnos.' });
+    } finally {
+      setLoadingTurnos(false);
     }
   };
 
@@ -181,9 +227,7 @@ export default function LimpiezaCaseroTab() {
         { usuario_ids: seleccionados }
       );
       setZonas((prev) =>
-        prev.map((z) =>
-          z.id === zonaSeleccionada.id ? { ...z, asignaciones_fijas: data } : z
-        )
+        prev.map((z) => (z.id === zonaSeleccionada.id ? { ...z, asignaciones_fijas: data } : z))
       );
       cerrarModalAsignacion();
     } catch (err: any) {
@@ -236,6 +280,19 @@ export default function LimpiezaCaseroTab() {
   const nombreCorto = (inq: Inquilino) =>
     `${inq.nombre}${inq.apellidos ? ` ${inq.apellidos[0]}.` : ''}`;
 
+  const getSemanaLabel = () => {
+    const hoy = new Date();
+    const offset = (hoy.getDay() + 6) % 7;
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() - offset);
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    const fmt = (d: Date) => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    return `${fmt(lunes)} — ${fmt(domingo)}`;
+  };
+
+  // ── Render: card de zona ──────────────────────────────────────────────────
+
   const renderZona = ({ item }: { item: ZonaLimpieza }) => {
     const asignaciones = item.asignaciones_fijas ?? [];
     const etiquetaFijos =
@@ -283,33 +340,108 @@ export default function LimpiezaCaseroTab() {
     </View>
   );
 
+  // ── Render: vista Calendario ──────────────────────────────────────────────
+
+  const renderCalendario = () => {
+    if (loadingTurnos) {
+      return <ActivityIndicator style={{ flex: 1, marginTop: 40 }} size="large" color={Theme.colors.primary} />;
+    }
+
+    if (turnos.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            No hay turnos generados para esta semana.{'\n'}Ve a Configuración y pulsa "Generar turnos".
+          </Text>
+        </View>
+      );
+    }
+
+    const turnosPorUsuario = turnos.reduce<
+      Record<number, { usuario: Turno['usuario']; items: Turno[] }>
+    >((acc, t) => {
+      if (!acc[t.usuario_id]) acc[t.usuario_id] = { usuario: t.usuario, items: [] };
+      acc[t.usuario_id].items.push(t);
+      return acc;
+    }, {});
+
+    return (
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.semanaLabel}>{getSemanaLabel()}</Text>
+        {Object.values(turnosPorUsuario).map((grupo) => (
+          <Card key={grupo.usuario.id} style={{ marginBottom: Theme.spacing.md }}>
+            <Text style={styles.calendarioNombreUsuario}>
+              {grupo.usuario.nombre}
+              {grupo.usuario.apellidos ? ` ${grupo.usuario.apellidos[0]}.` : ''}
+            </Text>
+            {grupo.items.map((t) => (
+              <View key={t.id} style={styles.turnoRow}>
+                <Text style={styles.turnoZona}>{t.zona.nombre}</Text>
+                <Text style={[styles.turnoEstado, { color: ESTADO_COLOR[t.estado] }]}>
+                  {ESTADO_LABEL[t.estado]}
+                </Text>
+              </View>
+            ))}
+          </Card>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  // ── Render principal ──────────────────────────────────────────────────────
+
   return (
     <View style={styles.container}>
-      <CustomButton
-        label={generando ? 'Generando...' : 'Generar Turnos Semanales (Test)'}
-        variant="primary"
-        onPress={handleGenerarTurnos}
-        disabled={generando || loading}
-        style={styles.botonGenerar}
-      />
-      {loading ? (
-        <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />
-      ) : (
-        <FlatList
-          contentContainerStyle={styles.content}
-          data={zonas}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderZona}
-          ListEmptyComponent={emptyComponent}
-        />
-      )}
+      {/* Segmented Control */}
+      <View style={styles.segmentedControl}>
+        <Pressable
+          style={[styles.segTab, vistaActual === 'CALENDARIO' && styles.segTabActivo]}
+          onPress={() => setVistaActual('CALENDARIO')}
+        >
+          <Text style={[styles.segTabTexto, vistaActual === 'CALENDARIO' && styles.segTabTextoActivo]}>
+            Calendario
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.segTab, vistaActual === 'CONFIG' && styles.segTabActivo]}
+          onPress={() => setVistaActual('CONFIG')}
+        >
+          <Text style={[styles.segTabTexto, vistaActual === 'CONFIG' && styles.segTabTextoActivo]}>
+            Configuración
+          </Text>
+        </Pressable>
+      </View>
 
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => setModalZonaVisible(true)}
-      >
-        <Text style={styles.fabTexto}>+</Text>
-      </Pressable>
+      {vistaActual === 'CONFIG' ? (
+        <>
+          <CustomButton
+            label={generando ? 'Generando...' : 'Generar Turnos Semanales (Test)'}
+            variant="primary"
+            onPress={handleGenerarTurnos}
+            disabled={generando || loading}
+            style={styles.botonGenerar}
+          />
+          {loading ? (
+            <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />
+          ) : (
+            <FlatList
+              contentContainerStyle={styles.content}
+              data={zonas}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={renderZona}
+              ListEmptyComponent={emptyComponent}
+            />
+          )}
+          <Pressable
+            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+            onPress={() => setModalZonaVisible(true)}
+          >
+            <Text style={styles.fabTexto}>+</Text>
+          </Pressable>
+        </>
+      ) : (
+        renderCalendario()
+      )}
 
       {/* Modal nueva zona */}
       <Modal visible={modalZonaVisible} animationType="slide" transparent onRequestClose={cerrarModalZona}>
@@ -347,10 +479,7 @@ export default function LimpiezaCaseroTab() {
               {TALLAS.map((talla) => (
                 <Pressable
                   key={talla.peso}
-                  style={[
-                    styles.tshirtBtn,
-                    pesoSeleccionado === talla.peso && styles.tshirtBtnActivo,
-                  ]}
+                  style={[styles.tshirtBtn, pesoSeleccionado === talla.peso && styles.tshirtBtnActivo]}
                   onPress={() => setPesoSeleccionado(talla.peso)}
                 >
                   <Text

@@ -198,3 +198,58 @@ Al pulsar, `handleGenerarZonasBasicas` hace tres POST en paralelo (`Promise.all`
 2. Si confirma → `DELETE /viviendas/:id/limpieza/zonas/:zonaId` → `setZonas(prev.filter(...))`.
 
 Estilo `eliminarBtn`: mismo patrón que el ✕ del tablón de anuncios (`textTertiary`, `fontWeight 600`).
+
+---
+
+## Fase 10 — Calendario de Turnos y Pantalla del Inquilino
+
+### Backend — nuevos endpoints
+
+**`obtenerTurnos`** (`GET /viviendas/:id/limpieza/turnos`):
+- Autorización dual: si no es casero de la vivienda, verifica que el usuario tenga una `Habitacion` en ella. Cubre el acceso del inquilino sin necesidad de un rol en el JWT.
+- Filtra por semana en curso: lunes 00:00 — domingo 23:59:59, calculado dinámicamente.
+- Devuelve los `TurnoLimpieza` con `zona` (id, nombre, peso) y `usuario` (id, nombre, apellidos) embebidos, ordenados por usuario y luego por peso desc.
+
+**`marcarTurnoHecho`** (`PATCH /viviendas/:id/limpieza/turnos/:turnoId/hecho`):
+- Sin body — siempre establece `estado: 'HECHO'`.
+- Seguridad: si `turno.usuario_id !== req.usuario.id`, comprueba si el llamante es casero de la vivienda antes de permitirlo.
+- Devuelve el turno actualizado con las mismas relaciones incluidas que `obtenerTurnos`.
+
+Rutas registradas en `limpieza.routes.ts`:
+```
+GET  /:id/limpieza/turnos
+PATCH /:id/limpieza/turnos/:turnoId/hecho
+```
+
+### Frontend Casero — Segmented Control (Calendario / Configuración)
+
+**`app/casero/vivienda/[id]/(tabs)/limpieza.tsx`** — reestructurado:
+
+- Estado `vistaActual: 'CONFIG' | 'CALENDARIO'`. Por defecto, `'CONFIG'`.
+- `useEffect` sobre `vistaActual`: cuando cambia a `'CALENDARIO'`, llama automáticamente a `cargarTurnos()`.
+- **Vista CONFIG**: contenido existente intacto (botón generar, FlatList de zonas, FAB, modales).
+- **Vista CALENDARIO**: `renderCalendario()` — `ScrollView` con:
+  - `semanaLabel`: fecha de lunes a domingo en formato `"7 abr — 13 abr"`.
+  - Cards agrupadas por `usuario_id`: reduce el array de turnos a `Record<id, { usuario, items[] }>` y renderiza una `Card` por persona con filas `zona.nombre ↔ estado`.
+  - Estado vacío si no hay turnos: mensaje invitando a ir a Configuración y generar.
+
+Estilos añadidos en `limpieza.styles.ts`: `segmentedControl`, `segTab`, `segTabActivo`, `segTabTexto`, `segTabTextoActivo`, `semanaLabel`, `calendarioNombreUsuario`, `turnoRow`, `turnoZona`, `turnoEstado`.
+
+### Frontend Inquilino — Nueva pestaña "Limpieza"
+
+**`app/inquilino/(tabs)/limpieza.tsx`** (nuevo):
+- `useFocusEffect(cargarDatos)`: recarga en cada entrada al tab para reflejar turnos generados por el casero.
+- `cargarDatos`: primero `GET /inquilino/vivienda` (obtiene `viviendaId` + `miUsuarioId`), luego `GET /viviendas/:id/limpieza/turnos`.
+- **"Mi Tarea"**: filtra `turnos` por `usuario_id === miUsuarioId`. Por cada turno:
+  - Nombre de zona en grande, etiqueta de esfuerzo (T-Shirt).
+  - Badge de estado coloreado (verde/gris/rojo).
+  - Botón `✅ Marcar como Hecho` visible solo si estado `PENDIENTE`. Llama a `PATCH .../turnos/:id/hecho` y actualiza el estado local con el turno devuelto por el servidor.
+- **"Turnos de la casa"**: agrupa el resto de turnos por `usuario_id`. Card por compañero con lista de zonas y su estado (sin botón de acción — solo visibilidad).
+- Estado vacío global: si no hay turnos, mensaje explicando que el casero aún no los ha generado.
+
+**`app/inquilino/(tabs)/_layout.tsx`** — pestaña añadida antes de "Perfil":
+```tsx
+<Tabs.Screen name="limpieza" options={{ title: 'Limpieza', tabBarIcon: sparkles-outline }} />
+```
+
+**`styles/inquilino/limpieza.styles.ts`** (nuevo): `container`, `content`, `emptyContainer`, `emptyText`, `semanaLabel`, `seccionTitulo`, `zonaNombreMia`, `esfuerzoTexto`, `estadoRow`, `estadoBadge{Pendiente,Hecho,NoHecho}`, `estadoTexto{Pendiente,Hecho,NoHecho}`, `botonHecho`, `botonHechoPressed`, `botonHechoTexto`, `companeroNombre`, `companeroTurnoRow`, `companeroZona`, `companeroEstado{Hecho,Pendiente}`.
