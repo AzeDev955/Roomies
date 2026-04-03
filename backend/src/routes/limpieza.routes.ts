@@ -1,6 +1,6 @@
 import express from 'express';
 import { verificarToken } from '../middlewares/auth.middleware';
-import { crearZona, listarZonas, actualizarZona, eliminarZona, asignarZonaFija, quitarAsignacionFija, generarTurnos } from '../controllers/limpieza.controller';
+import { crearZona, listarZonas, actualizarZona, eliminarZona, asignarZonaFija, quitarAsignacionFija, generarTurnos, obtenerTurnos, marcarTurnoHecho } from '../controllers/limpieza.controller';
 
 const router = express.Router();
 
@@ -11,5 +11,7 @@ router.delete('/:id/limpieza/zonas/:zonaId', verificarToken, eliminarZona);
 router.post('/:id/limpieza/zonas/:zonaId/asignacion', verificarToken, asignarZonaFija);
 router.delete('/:id/limpieza/zonas/:zonaId/asignacion', verificarToken, quitarAsignacionFija);
 router.post('/:id/limpieza/generar', verificarToken, generarTurnos);
+router.get('/:id/limpieza/turnos', verificarToken, obtenerTurnos);
+router.patch('/:id/limpieza/turnos/:turnoId/hecho', verificarToken, marcarTurnoHecho);
 
 export default router;

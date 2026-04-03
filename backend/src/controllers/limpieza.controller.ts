@@ -195,6 +195,83 @@ export const quitarAsignacionFija: express.RequestHandler = async (req, res) => 
   res.status(204).send();
 };
 
+export const obtenerTurnos: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const usuarioId = req.usuario!.id;
+
+  // Autorización: casero de la vivienda O inquilino con habitación en ella
+  const esCasero = await verificarPropiedadVivienda(viviendaId, usuarioId);
+  if (!esCasero) {
+    const habitacion = await prisma.habitacion.findFirst({
+      where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
+    });
+    if (!habitacion) {
+      res.status(403).json({ error: 'No tienes acceso a esta vivienda.' });
+      return;
+    }
+  }
+
+  // Semana en curso: lunes 00:00 — domingo 23:59:59
+  const hoy = new Date();
+  const offset = (hoy.getDay() + 6) % 7;
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - offset);
+  lunes.setHours(0, 0, 0, 0);
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate() + 6);
+  domingo.setHours(23, 59, 59, 999);
+
+  const turnos = await prisma.turnoLimpieza.findMany({
+    where: {
+      zona: { vivienda_id: viviendaId },
+      fecha_inicio: { gte: lunes },
+      fecha_fin: { lte: domingo },
+    },
+    include: {
+      zona: { select: { id: true, nombre: true, peso: true } },
+      usuario: { select: { id: true, nombre: true, apellidos: true } },
+    },
+    orderBy: [{ usuario_id: 'asc' }, { zona: { peso: 'desc' } }],
+  });
+
+  res.json(turnos);
+};
+
+export const marcarTurnoHecho: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const turnoId = parseInt(req.params['turnoId'] as string, 10);
+  const usuarioId = req.usuario!.id;
+
+  const turno = await prisma.turnoLimpieza.findFirst({
+    where: { id: turnoId, zona: { vivienda_id: viviendaId } },
+  });
+
+  if (!turno) {
+    res.status(404).json({ error: 'Turno no encontrado.' });
+    return;
+  }
+
+  // Autorización: el propio asignado o el casero de la vivienda
+  if (turno.usuario_id !== usuarioId) {
+    const esCasero = await verificarPropiedadVivienda(viviendaId, usuarioId);
+    if (!esCasero) {
+      res.status(403).json({ error: 'Solo puedes marcar tus propios turnos.' });
+      return;
+    }
+  }
+
+  const turnoActualizado = await prisma.turnoLimpieza.update({
+    where: { id: turnoId },
+    data: { estado: 'HECHO' },
+    include: {
+      zona: { select: { id: true, nombre: true, peso: true } },
+      usuario: { select: { id: true, nombre: true, apellidos: true } },
+    },
+  });
+
+  res.json(turnoActualizado);
+};
+
 export const generarTurnos: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params['id'] as string, 10);
 

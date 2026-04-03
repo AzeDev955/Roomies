@@ -251,4 +251,65 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.body,
     fontWeight: '600',
   },
+
+  // — Segmented Control —
+  segmentedControl: {
+    flexDirection: 'row',
+    margin: Theme.spacing.base,
+    marginBottom: 0,
+    backgroundColor: Theme.colors.background,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    overflow: 'hidden',
+  },
+  segTab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  segTabActivo: {
+    backgroundColor: Theme.colors.primary,
+  },
+  segTabTexto: {
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.textMedium,
+  },
+  segTabTextoActivo: {
+    color: Theme.colors.surface,
+  },
+
+  // — Vista Calendario —
+  semanaLabel: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    marginBottom: Theme.spacing.md,
+  },
+  calendarioNombreUsuario: {
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+    color: Theme.colors.text,
+    marginBottom: Theme.spacing.sm,
+  },
+  turnoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.border,
+  },
+  turnoZona: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.text,
+  },
+  turnoEstado: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '600',
+  },
 });
