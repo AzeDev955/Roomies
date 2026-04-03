@@ -32,34 +32,50 @@ enum TipoHabitacion {
   OTRO
 }
 
+enum EstadoPresencia {
+  ACTIVO
+  AUSENTE_VACACIONES
+}
+
+enum EstadoTurno {
+  PENDIENTE
+  HECHO
+  NO_HECHO
+}
+
 model Usuario {
-  id            Int          @id @default(autoincrement())
-  nombre        String
-  apellidos     String?
-  dni           String?      @unique
-  email         String       @unique
-  password_hash String?
-  google_id     String?      @unique
-  telefono      String?
-  rol           RolUsuario
-  viviendas     Vivienda[]
-  habitaciones  Habitacion[]
-  incidencias   Incidencia[]
-  anuncios      Anuncio[]
+  id                 Int                      @id @default(autoincrement())
+  nombre             String
+  apellidos          String?
+  dni                String?                  @unique
+  email              String                   @unique
+  password_hash      String?
+  google_id          String?                  @unique
+  telefono           String?
+  rol                RolUsuario
+  balance_limpieza   Float                    @default(0)
+  estado_presencia   EstadoPresencia          @default(ACTIVO)
+  viviendas          Vivienda[]
+  habitaciones       Habitacion[]
+  incidencias        Incidencia[]
+  anuncios           Anuncio[]
+  turnos_limpieza    TurnoLimpieza[]
+  asignaciones_fijas AsignacionLimpiezaFija[]
 }
 
 model Vivienda {
-  id            Int          @id @default(autoincrement())
-  casero_id     Int
-  casero        Usuario      @relation(fields: [casero_id], references: [id])
-  alias_nombre  String
-  direccion     String
-  codigo_postal String
-  ciudad        String
-  provincia     String
-  habitaciones  Habitacion[]
-  incidencias   Incidencia[]
-  anuncios      Anuncio[]
+  id             Int            @id @default(autoincrement())
+  casero_id      Int
+  casero         Usuario        @relation(fields: [casero_id], references: [id])
+  alias_nombre   String
+  direccion      String
+  codigo_postal  String
+  ciudad         String
+  provincia      String
+  habitaciones   Habitacion[]
+  incidencias    Incidencia[]
+  anuncios       Anuncio[]
+  zonas_limpieza ZonaLimpieza[]
 }
 
 model Habitacion {
@@ -77,13 +93,13 @@ model Habitacion {
 }
 
 model Incidencia {
-  id             Int              @id @default(autoincrement())
+  id             Int                 @id @default(autoincrement())
   vivienda_id    Int
-  vivienda       Vivienda         @relation(fields: [vivienda_id], references: [id])
+  vivienda       Vivienda            @relation(fields: [vivienda_id], references: [id])
   creador_id     Int
-  creador        Usuario          @relation(fields: [creador_id], references: [id])
+  creador        Usuario             @relation(fields: [creador_id], references: [id])
   habitacion_id  Int?
-  habitacion     Habitacion?      @relation(fields: [habitacion_id], references: [id])
+  habitacion     Habitacion?         @relation(fields: [habitacion_id], references: [id])
   titulo         String
   descripcion    String
   estado         EstadoIncidencia    @default(PENDIENTE)
@@ -100,4 +116,41 @@ model Anuncio {
   titulo         String
   contenido      String
   fecha_creacion DateTime @default(now())
+}
+
+// ── Módulo de limpieza ────────────────────────────────────────────────────────
+
+model ZonaLimpieza {
+  id                 Int                      @id @default(autoincrement())
+  vivienda_id        Int
+  vivienda           Vivienda                 @relation(fields: [vivienda_id], references: [id])
+  nombre             String
+  peso               Float
+  activa             Boolean                  @default(true)
+  turnos             TurnoLimpieza[]
+  asignaciones_fijas AsignacionLimpiezaFija[]
+}
+
+/// Tabla de asignaciones fijas: una zona siempre la limpia el mismo usuario,
+/// sin participar en la rotación global. Su peso SÍ cuenta para el balance.
+model AsignacionLimpiezaFija {
+  id         Int          @id @default(autoincrement())
+  zona_id    Int
+  zona       ZonaLimpieza @relation(fields: [zona_id], references: [id])
+  usuario_id Int
+  usuario    Usuario      @relation(fields: [usuario_id], references: [id])
+
+  @@unique([zona_id, usuario_id])
+}
+
+/// Registro semanal del reparto. Generado por el algoritmo al inicio de cada semana.
+model TurnoLimpieza {
+  id           Int          @id @default(autoincrement())
+  usuario_id   Int
+  usuario      Usuario      @relation(fields: [usuario_id], references: [id])
+  zona_id      Int
+  zona         ZonaLimpieza @relation(fields: [zona_id], references: [id])
+  fecha_inicio DateTime
+  fecha_fin    DateTime
+  estado       EstadoTurno  @default(PENDIENTE)
 }
