@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
@@ -14,6 +15,7 @@ import { useState, useEffect } from 'react';
 import { useGlobalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Card } from '@/components/common/Card';
+import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { styles } from '@/styles/casero/vivienda/limpieza.styles';
 
@@ -52,6 +54,9 @@ export default function LimpiezaCaseroTab() {
   // — Modal asignación fija —
   const [zonaSeleccionada, setZonaSeleccionada] = useState<ZonaLimpieza | null>(null);
   const [asignando, setAsignando] = useState(false);
+
+  // — Generar turnos —
+  const [generando, setGenerando] = useState(false);
 
   useEffect(() => {
     const inicializar = async () => {
@@ -156,6 +161,24 @@ export default function LimpiezaCaseroTab() {
     }
   };
 
+  const handleGenerarTurnos = async () => {
+    setGenerando(true);
+    try {
+      await api.post(`/viviendas/${id}/limpieza/generar`);
+      Alert.alert(
+        '¡Turnos generados!',
+        'El algoritmo ha repartido las tareas de limpieza para la próxima semana.'
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'No se pudieron generar los turnos',
+        err.response?.data?.error ?? 'Ha ocurrido un error inesperado.'
+      );
+    } finally {
+      setGenerando(false);
+    }
+  };
+
   const nombreCorto = (inq: Inquilino) =>
     `${inq.nombre}${inq.apellidos ? ` ${inq.apellidos[0]}.` : ''}`;
 
@@ -189,6 +212,13 @@ export default function LimpiezaCaseroTab() {
 
   return (
     <View style={styles.container}>
+      <CustomButton
+        label={generando ? 'Generando...' : 'Generar Turnos Semanales (Test)'}
+        variant="primary"
+        onPress={handleGenerarTurnos}
+        disabled={generando || loading}
+        style={styles.botonGenerar}
+      />
       {loading ? (
         <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />
       ) : (

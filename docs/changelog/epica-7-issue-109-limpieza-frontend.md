@@ -1,4 +1,4 @@
-# Épica 7 — Issue #109 (Fases 3 y 4): Interfaz de Configuración de Limpieza
+# Épica 7 — Issue #109 (Fases 3, 4 y 6): Interfaz de Configuración de Limpieza
 
 **Fecha:** 2026-04-03  
 **Rama:** dev  
@@ -90,5 +90,27 @@ Añadidos: `asignacionRow`, `asignacionFija`, `asignarLink`, `modalSubtitulo`, `
 - **`useEffect` en lugar de `useFocusEffect`**: la lista de zonas no cambia desde otras pantallas — no es necesario recargar en cada foco. Se recarga solo al montar el componente (cambio de vivienda).
 - **`parseFloat` para el peso**: permite valores decimales (ej. `7.5`) además de enteros, consistente con el tipo `Float` del schema Prisma.
 - **`Promise.all` para carga paralela**: zonas e inquilinos se cargan simultáneamente para minimizar el tiempo de spinner inicial.
+---
+
+## Fase 6 — Botón manual de generación de turnos (Testing)
+
+### Cambios en `limpieza.tsx`
+
+**Nuevo estado:** `generando: boolean` — deshabilita el botón y actualiza su label mientras la petición está en vuelo.
+
+**`handleGenerarTurnos`:** llama a `POST /viviendas/:id/limpieza/generar`. Usa `Alert.alert` (nativo, no Toast) porque requiere confirmación de lectura por parte del usuario:
+- **Éxito (201):** `Alert.alert('¡Turnos generados!', '...')` — el casero sabe que el reparto se ha ejecutado.
+- **Error (400):** muestra el `error` del body del backend directamente — así el guard anti-duplicados (`'Ya existen turnos para la próxima semana'`) aparece con texto legible sin código adicional en el frontend.
+
+**`<CustomButton variant="primary">`** posicionado sobre la lista, con margen lateral (`styles.botonGenerar`). Se deshabilita mientras `generando || loading` para evitar doble envío durante la carga inicial de zonas.
+
+### Cambios en `limpieza.styles.ts`
+
+`botonGenerar`: margen `base` en todos los lados, sin `marginBottom` para respetar el spacing interno del `FlatList.contentContainerStyle`.
+
+---
+
+## Decisiones técnicas
+
 - **Un solo inquilino por zona**: el modelo `AsignacionLimpiezaFija` tiene `@@unique([zona_id, usuario_id])` pero el algoritmo asume una asignación por zona. La UI toma `asignaciones_fijas[0]` y reemplaza al asignar uno nuevo.
 - **Remoción pendiente de backend**: el frontend llama a `DELETE /viviendas/:id/limpieza/zonas/:zonaId/asignacion`; si el endpoint no existe aún, el toast de error informa al usuario sin romper el estado local.

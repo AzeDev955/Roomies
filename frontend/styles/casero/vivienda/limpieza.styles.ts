@@ -12,6 +12,12 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
+  // — Botón generar turnos —
+  botonGenerar: {
+    margin: Theme.spacing.base,
+    marginBottom: 0,
+  },
+
   // — Card de zona —
   cardRow: {
     flexDirection: 'row',
