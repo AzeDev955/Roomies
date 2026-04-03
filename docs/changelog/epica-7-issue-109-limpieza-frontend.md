@@ -300,3 +300,40 @@ Integración de mocks HTML/Tailwind del equipo de diseño. Toda la lógica de ne
 
 ### `styles/inquilino/limpieza.styles.ts` — reescritura completa
 Reemplaza la hoja de estilos anterior. Tokens: `header`, `headerSemana`, `headerTitulo`, `headerSubtitulo`, `seccionTitulo`, `miTareaCard`, `miTareaCardHecha`, `miTareaTop`, `miTareaTexto`, `miTareaZona`, `miTareaEsfuerzo`, `miTareaIconBox`, `miTareaIconBoxHecha`, `botonHecho`, `botonHechoPressed`, `botonHechoTexto`, `badgeHecho`, `badgeHechoTexto`, `companeroRow`, `companeroInfo`, `companeroTurnoTop`, `companeroZonaNombre`, `companeroEstado{Pendiente,Hecho}`, `companeroAsignado`.
+
+---
+
+## Fase 12 — Rediseño visual del Dashboard del Inquilino
+
+### Referencia de diseño
+Integración de mock HTML/Tailwind. Toda la lógica de negocio (`useFocusEffect`, `cargarVivienda`, `cargarIncidencias`, `actualizarEstado`, `abandonarVivienda`, `tienePermisoEditar`) permanece intacta.
+
+### `app/inquilino/(tabs)/inicio.tsx`
+
+**Imports añadidos**: `Ionicons` de `@expo/vector-icons`, `CustomButton`.
+
+**Helpers nuevos** (antes del componente):
+- `ZONA_ICONS` — mapea `TipoHabitacion` a iconos Ionicons (`BANO→water-outline`, `COCINA→restaurant-outline`, `SALON→tv-outline`, `OTRO→grid-outline`).
+- `ESTADO_BADGE_BG / ESTADO_BADGE_COLOR` — colores de fondo/texto para badges de incidencia por estado (naranja, primario, verde).
+- `AvatarInitials` — sub-componente puro: círculo `#E5E5EA` con bordes `surface` y sombra, iniciales en `fontWeight 600`.
+- `formatearFechaCorta` — formato corto `"12 oct"` para tarjetas de incidencia.
+- `irAReportarIncidencia` — extrae la navegación al FAB y al botón "Reportar problema" evitando duplicación.
+
+**Sección Saludo**: "¡Hola, {nombre}!" a 34px/800 + subtítulo `{vivienda} · {habitacion}`. El nombre se obtiene de `habitaciones.find(id === miHabitacionId).inquilino.nombre`.
+
+**Sección Compañeros**: `ScrollView horizontal` con `AvatarInitials` (56px) + nombre truncado bajo cada avatar. Sin botón "Invitar" (sin permisos de inquilino).
+
+**Sección Zonas Comunes**: lista vertical de `zonaRow` — icono en `zonaIconBox` (primario/12 de fondo, `borderRadius sm`) + nombre en bold + `chevron-forward`.
+
+**Sección Incidencias** (`renderIncidencia` reescrito):
+- Header: título (17px/700) + `"Tú"` o `"Compañero"` según `creador_id` + fecha corta + badge de estado con `ESTADO_BADGE_BG/COLOR`.
+- Descripción: 2 líneas, `textSecondary`.
+- Selector de estados (si `tienePermisoEditar`) sin cambios funcionales.
+- Botón "Reportar problema" outline al final de la sección (`Pressable` con `Ionicons warning-outline`).
+
+**Botón "Abandonar Vivienda"**: sustituye el `Pressable` custom por `<CustomButton variant="danger">` que llama a `abandonarVivienda`.
+
+### `styles/inquilino/inicio.styles.ts`
+
+Onboarding sin cambios. Dashboard reescrito:
+`greeting`, `greetingHola`, `greetingSubtitulo`, `seccion`, `seccionLabel`, `companerosRow`, `companeroItem`, `companeroNombreCorto`, `zonaRow`, `zonaIconBox`, `zonaRowNombre`, `incidenciaCard`, `incidenciaHeader`, `incidenciaTitulo`, `incidenciaReporter`, `estadoBadge`, `estadoBadgeTexto`, `incidenciaDescripcion`, `botonReportar`, `botonReportarTexto`, `botonAbandonar` (ahora solo `marginTop`).

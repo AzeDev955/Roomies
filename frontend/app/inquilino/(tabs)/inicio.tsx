@@ -1,10 +1,60 @@
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
+import { CustomButton } from '@/components/common/CustomButton';
 import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO, ETIQUETAS_TIPO } from '@/styles/inquilino/inicio.styles';
+
+// ── Helpers UI ────────────────────────────────────────────────────────────────
+
+const ZONA_ICONS: Record<string, any> = {
+  BANO:    'water-outline',
+  COCINA:  'restaurant-outline',
+  SALON:   'tv-outline',
+  OTRO:    'grid-outline',
+};
+
+const ESTADO_BADGE_BG: Record<string, string> = {
+  PENDIENTE:  '#FF950018',
+  EN_PROCESO: Theme.colors.primary + '18',
+  RESUELTA:   Theme.colors.success + '18',
+};
+
+const ESTADO_BADGE_COLOR: Record<string, string> = {
+  PENDIENTE:  '#FF9500',
+  EN_PROCESO: Theme.colors.primary,
+  RESUELTA:   Theme.colors.success,
+};
+
+const AvatarInitials = ({
+  nombre,
+  apellidos,
+  size = 56,
+}: {
+  nombre: string;
+  apellidos: string | null;
+  size?: number;
+}) => {
+  const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center',
+      borderWidth: 2, borderColor: Theme.colors.surface,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
+    }}>
+      <Text style={{ fontSize: size * 0.3, fontWeight: '600', color: Theme.colors.text }}>
+        {initials}
+      </Text>
+    </View>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
@@ -41,6 +91,8 @@ type DatosCasa = {
   miUsuarioId: number;
   habitaciones: HabitacionResumen[];
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function InquilinoInicioScreen() {
   const router = useRouter();
@@ -155,45 +207,10 @@ export default function InquilinoInicioScreen() {
     }
   };
 
-  const formatearFecha = (iso: string) =>
-    new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const formatearFechaCorta = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
-  const renderIncidencia = (item: Incidencia) => {
-    const puedeGestionar = item.creador_id === datosCasa?.miUsuarioId;
-    return (
-      <Pressable
-        key={item.id}
-        style={styles.card}
-        onPress={() => router.push(`/incidencia/${item.id}?puedeGestionar=${puedeGestionar}`)}
-      >
-        <View style={[styles.indicador, { backgroundColor: COLORES_PRIORIDAD[item.prioridad] }]} />
-        <View style={styles.cardBody}>
-          <Text style={styles.cardTitulo}>{item.titulo}</Text>
-          <Text style={styles.cardDescripcion} numberOfLines={2}>{item.descripcion}</Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
-          </View>
-          {tienePermisoEditar(item) ? (
-            <View style={styles.estadoSelector}>
-              {ESTADOS.map((e) => (
-                <Pressable
-                  key={e}
-                  style={[styles.estadoPill, item.estado === e && styles.estadoPillActivo]}
-                  onPress={() => actualizarEstado(item.id, e)}
-                >
-                  <Text style={[styles.estadoPillTexto, item.estado === e && styles.estadoPillTextoActivo]}>
-                    {ETIQUETAS_ESTADO[e]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.estadoSoloLectura}>{ETIQUETAS_ESTADO[item.estado]}</Text>
-          )}
-        </View>
-      </Pressable>
-    );
-  };
+  // ── Onboarding (sin casa) ─────────────────────────────────────────────────
 
   if (!tieneCasa) {
     return (
@@ -230,6 +247,8 @@ export default function InquilinoInicioScreen() {
     );
   }
 
+  // ── Datos derivados ───────────────────────────────────────────────────────
+
   const companeros = (datosCasa?.habitaciones ?? []).filter(
     (h) => h.tipo === 'DORMITORIO' && h.inquilino !== null && h.id !== datosCasa?.miHabitacionId
   );
@@ -237,87 +256,174 @@ export default function InquilinoInicioScreen() {
   const activas = incidencias.filter((i) => i.estado !== 'RESUELTA');
   const historial = incidencias.filter((i) => i.estado === 'RESUELTA');
 
-  return (
-    <View style={styles.dashboardContainer}>
-      <ScrollView contentContainerStyle={styles.dashboardContent}>
-        <Text style={styles.bienvenida}>{datosCasa?.nombreVivienda ?? 'Mi vivienda'}</Text>
-        <Text style={styles.subtituloDashboard}>{datosCasa?.nombreHabitacion ?? 'Mi habitación'}</Text>
+  const miNombre = (datosCasa?.habitaciones ?? [])
+    .find((h) => h.id === datosCasa?.miHabitacionId)?.inquilino?.nombre ?? '';
 
-        {companeros.length > 0 && (
-          <>
-            <Text style={styles.seccionTitulo}>Compañeros de piso</Text>
-            {companeros.map((h) => (
-              <View key={h.id} style={styles.companeroCard}>
-                <Text style={styles.companeroNombre}>
-                  {h.inquilino!.nombre} {h.inquilino!.apellidos ?? ''}
-                </Text>
-                <Text style={styles.companeroHabitacion}>{h.nombre}</Text>
-              </View>
-            ))}
-          </>
-        )}
+  const irAReportarIncidencia = () =>
+    router.push({
+      pathname: '/inquilino/nueva-incidencia',
+      params: {
+        viviendaId: datosCasa?.viviendaId,
+        miHabitacionId: datosCasa?.miHabitacionId,
+        habitacionesJson: JSON.stringify(datosCasa?.habitaciones ?? []),
+      },
+    });
 
-        {zonasComunes.length > 0 && (
-          <>
-            <Text style={styles.seccionTitulo}>Zonas comunes</Text>
-            <View style={styles.zonasFilas}>
-              {zonasComunes.map((h) => (
-                <View key={h.id} style={styles.zonaCard}>
-                  <Text style={styles.zonaNombre}>{h.nombre}</Text>
-                  <Text style={styles.zonaTipo}>{ETIQUETAS_TIPO[h.tipo] ?? h.tipo}</Text>
-                </View>
-              ))}
-            </View>
-          </>
-        )}
+  const renderIncidencia = (item: Incidencia) => {
+    const puedeGestionar = item.creador_id === datosCasa?.miUsuarioId;
+    const esPropia = item.creador_id === datosCasa?.miUsuarioId;
 
-        <Text style={styles.seccionTitulo}>Incidencias</Text>
+    return (
+      <Pressable
+        key={item.id}
+        style={({ pressed }) => [styles.incidenciaCard, pressed && { opacity: 0.9 }]}
+        onPress={() => router.push(`/incidencia/${item.id}?puedeGestionar=${puedeGestionar}`)}
+      >
+        <View style={styles.incidenciaHeader}>
+          <View style={{ flex: 1, marginRight: Theme.spacing.sm }}>
+            <Text style={styles.incidenciaTitulo}>{item.titulo}</Text>
+            <Text style={styles.incidenciaReporter}>
+              {esPropia ? 'Tú' : 'Compañero'} · {formatearFechaCorta(item.fecha_creacion)}
+            </Text>
+          </View>
+          <View style={[styles.estadoBadge, { backgroundColor: ESTADO_BADGE_BG[item.estado] }]}>
+            <Text style={[styles.estadoBadgeTexto, { color: ESTADO_BADGE_COLOR[item.estado] }]}>
+              {item.estado === 'EN_PROCESO' ? 'EN CURSO' : item.estado}
+            </Text>
+          </View>
+        </View>
 
-        {loadingIncidencias ? (
-          <ActivityIndicator color={Theme.colors.primary} style={styles.loaderIncidencias} />
-        ) : (
-          <>
-            {activas.length === 0 && (
-              <Text style={styles.emptyText}>No hay incidencias activas.</Text>
-            )}
-            {activas.map((item) => renderIncidencia(item))}
+        <Text style={styles.incidenciaDescripcion} numberOfLines={2}>
+          {item.descripcion}
+        </Text>
 
-            {historial.length > 0 && (
+        {tienePermisoEditar(item) && (
+          <View style={styles.estadoSelector}>
+            {ESTADOS.map((e) => (
               <Pressable
-                style={styles.historialToggle}
-                onPress={() => setMostrarHistorial((v) => !v)}
+                key={e}
+                style={[styles.estadoPill, item.estado === e && styles.estadoPillActivo]}
+                onPress={(ev) => { ev.stopPropagation?.(); actualizarEstado(item.id, e); }}
               >
-                <Text style={styles.historialToggleTexto}>
-                  {mostrarHistorial
-                    ? 'Ocultar historial'
-                    : `Ver historial (${historial.length})`}
+                <Text style={[styles.estadoPillTexto, item.estado === e && styles.estadoPillTextoActivo]}>
+                  {ETIQUETAS_ESTADO[e]}
                 </Text>
               </Pressable>
-            )}
-            {mostrarHistorial && historial.map((item) => renderIncidencia(item))}
-          </>
+            ))}
+          </View>
+        )}
+      </Pressable>
+    );
+  };
+
+  // ── Dashboard ─────────────────────────────────────────────────────────────
+
+  return (
+    <View style={styles.dashboardContainer}>
+      <ScrollView contentContainerStyle={styles.dashboardContent} showsVerticalScrollIndicator={false}>
+
+        {/* ── Saludo ── */}
+        <View style={styles.greeting}>
+          {miNombre ? (
+            <Text style={styles.greetingHola}>¡Hola, {miNombre}!</Text>
+          ) : null}
+          <Text style={styles.greetingSubtitulo}>
+            {datosCasa?.nombreVivienda ?? ''} · {datosCasa?.nombreHabitacion ?? ''}
+          </Text>
+        </View>
+
+        {/* ── Compañeros ── */}
+        {companeros.length > 0 && (
+          <View style={styles.seccion}>
+            <Text style={styles.seccionLabel}>Mis Compañeros</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.companerosRow}
+            >
+              {companeros.map((h) => (
+                <View key={h.id} style={styles.companeroItem}>
+                  <AvatarInitials nombre={h.inquilino!.nombre} apellidos={h.inquilino!.apellidos} />
+                  <Text style={styles.companeroNombreCorto} numberOfLines={1}>
+                    {h.inquilino!.nombre}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
         )}
 
-        <Pressable
-          style={({ pressed }) => [styles.botonAbandonar, pressed && styles.botonAbandonarPressed]}
+        {/* ── Zonas comunes ── */}
+        {zonasComunes.length > 0 && (
+          <View style={styles.seccion}>
+            <Text style={styles.seccionLabel}>Zonas Comunes</Text>
+            {zonasComunes.map((h) => (
+              <View key={h.id} style={styles.zonaRow}>
+                <View style={styles.zonaIconBox}>
+                  <Ionicons
+                    name={ZONA_ICONS[h.tipo] ?? 'grid-outline'}
+                    size={18}
+                    color={Theme.colors.primary}
+                  />
+                </View>
+                <Text style={styles.zonaRowNombre}>{h.nombre}</Text>
+                <Ionicons name="chevron-forward" size={18} color={Theme.colors.textTertiary} />
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ── Incidencias ── */}
+        <View style={styles.seccion}>
+          <Text style={styles.seccionLabel}>Incidencias Recientes</Text>
+
+          {loadingIncidencias ? (
+            <ActivityIndicator color={Theme.colors.primary} style={styles.loaderIncidencias} />
+          ) : (
+            <>
+              {activas.length === 0 && (
+                <Text style={styles.emptyText}>No hay incidencias activas.</Text>
+              )}
+              {activas.map((item) => renderIncidencia(item))}
+
+              {historial.length > 0 && (
+                <Pressable
+                  style={styles.historialToggle}
+                  onPress={() => setMostrarHistorial((v) => !v)}
+                >
+                  <Text style={styles.historialToggleTexto}>
+                    {mostrarHistorial ? 'Ocultar historial' : `Ver historial (${historial.length})`}
+                  </Text>
+                </Pressable>
+              )}
+              {mostrarHistorial && historial.map((item) => renderIncidencia(item))}
+            </>
+          )}
+
+          {/* Reportar problema */}
+          <Pressable
+            style={({ pressed }) => [styles.botonReportar, pressed && { opacity: 0.7 }]}
+            onPress={irAReportarIncidencia}
+          >
+            <Ionicons name="warning-outline" size={16} color={Theme.colors.textMedium} />
+            <Text style={styles.botonReportarTexto}>Reportar problema</Text>
+          </Pressable>
+        </View>
+
+        {/* ── Abandonar vivienda ── */}
+        <CustomButton
+          label="Abandonar Vivienda"
+          variant="danger"
           onPress={abandonarVivienda}
-        >
-          <Text style={styles.botonAbandonarTexto}>Abandonar Vivienda</Text>
-        </Pressable>
+          style={styles.botonAbandonar}
+        />
+
       </ScrollView>
 
+      {/* FAB */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() =>
-          router.push({
-            pathname: '/inquilino/nueva-incidencia',
-            params: {
-              viviendaId: datosCasa?.viviendaId,
-              miHabitacionId: datosCasa?.miHabitacionId,
-              habitacionesJson: JSON.stringify(datosCasa?.habitaciones ?? []),
-            },
-          })
-        }
+        onPress={irAReportarIncidencia}
       >
         <Text style={styles.fabTexto}>+</Text>
       </Pressable>

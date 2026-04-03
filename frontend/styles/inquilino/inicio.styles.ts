@@ -8,21 +8,21 @@ export const COLORES_PRIORIDAD: Record<string, string> = {
 };
 
 export const ETIQUETAS_ESTADO: Record<string, string> = {
-  PENDIENTE: 'Pendiente',
+  PENDIENTE:  'Pendiente',
   EN_PROCESO: 'En proceso',
-  RESUELTA: 'Resuelta',
+  RESUELTA:   'Resuelta',
 };
 
 export const ETIQUETAS_TIPO: Record<string, string> = {
   DORMITORIO: 'Dormitorio',
-  BANO: 'Baño',
-  COCINA: 'Cocina',
-  SALON: 'Salón',
-  OTRO: 'Otro',
+  BANO:       'Baño',
+  COCINA:     'Cocina',
+  SALON:      'Salón',
+  OTRO:       'Otro',
 };
 
 export const styles = StyleSheet.create({
-  // — Onboarding (sin casa) —
+  // — Onboarding (sin casa) — sin cambios —
   onboardingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -86,169 +86,147 @@ export const styles = StyleSheet.create({
   botonCanjearDisabled: {
     backgroundColor: Theme.colors.primaryDisabled,
   },
-  loaderIncidencias: {
-    marginTop: Theme.spacing.lg,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: Theme.colors.textTertiary,
-    fontSize: 14,
-    marginTop: Theme.spacing.lg,
-  },
 
-  // — Dashboard (con casa) —
+  // — Dashboard container —
   dashboardContainer: {
     flex: 1,
     backgroundColor: Theme.colors.background,
   },
   dashboardContent: {
     padding: Theme.spacing.base,
-    paddingBottom: 96,
+    paddingBottom: 100,
   },
-  bienvenida: {
-    fontSize: Theme.typography.title,
-    fontWeight: '700',
-    color: Theme.colors.text,
-    marginBottom: Theme.spacing.xs,
-  },
-  subtituloDashboard: {
-    fontSize: 14,
-    color: Theme.colors.textSecondary,
-    marginBottom: 20,
-  },
-  seccionTitulo: {
-    fontSize: Theme.typography.input,
-    fontWeight: '600',
-    color: Theme.colors.text,
-    marginBottom: Theme.spacing.md,
+
+  // — Saludo —
+  greeting: {
+    marginBottom: 28,
     marginTop: Theme.spacing.sm,
   },
-
-  // — Compañeros de piso —
-  companeroCard: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
-    paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
+  greetingHola: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    letterSpacing: -0.5,
+    lineHeight: 40,
   },
-  companeroNombre: {
+  greetingSubtitulo: {
     fontSize: Theme.typography.body,
-    fontWeight: '600',
-    color: Theme.colors.text,
-  },
-  companeroHabitacion: {
-    fontSize: Theme.typography.label,
     color: Theme.colors.textSecondary,
+    fontWeight: '500',
+    marginTop: 4,
   },
 
-  // — Zonas comunes —
-  zonasFilas: {
+  // — Sección genérica —
+  seccion: {
+    marginBottom: Theme.spacing.lg,
+  },
+  seccionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    color: Theme.colors.textTertiary,
+    marginBottom: Theme.spacing.md,
+    paddingHorizontal: 2,
+  },
+
+  // — Compañeros (scroll horizontal) —
+  companerosRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.sm,
+    gap: Theme.spacing.lg,
+    paddingHorizontal: 2,
   },
-  zonaCard: {
-    backgroundColor: Theme.colors.surface2,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  companeroItem: {
     alignItems: 'center',
+    gap: 8,
+    width: 64,
   },
-  zonaNombre: {
-    fontSize: 14,
-    fontWeight: '600',
+  companeroNombreCorto: {
+    fontSize: 12,
+    fontWeight: '500',
     color: Theme.colors.text,
-  },
-  zonaTipo: {
-    fontSize: 11,
-    color: Theme.colors.textSecondary,
-    marginTop: 2,
+    textAlign: 'center',
   },
 
-  // — Tarjeta de incidencia —
-  card: {
+  // — Zonas comunes (lista) —
+  zonaRow: {
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.radius.md,
     padding: Theme.spacing.base,
-    marginBottom: Theme.spacing.md,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Theme.spacing.md,
+    alignItems: 'center',
+    gap: Theme.spacing.base,
+    marginBottom: 8,
     shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  indicador: {
-    width: Theme.spacing.md,
-    height: Theme.spacing.md,
-    borderRadius: 6,
-    marginTop: Theme.spacing.xs,
-    flexShrink: 0,
+  zonaIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: Theme.radius.sm,
+    backgroundColor: Theme.colors.primary + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardBody: {
+  zonaRowNombre: {
     flex: 1,
-  },
-  cardTitulo: {
     fontSize: Theme.typography.body,
     fontWeight: '600',
     color: Theme.colors.text,
-    marginBottom: Theme.spacing.xs,
   },
-  cardDescripcion: {
+
+  // — Incidencia card —
+  incidenciaCard: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.md,
+    padding: Theme.spacing.base + 4,
+    marginBottom: Theme.spacing.md,
+    shadowColor: Theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  incidenciaHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Theme.spacing.sm,
+  },
+  incidenciaTitulo: {
+    fontSize: Theme.typography.body + 2,
+    fontWeight: '700',
+    color: Theme.colors.text,
+    marginBottom: 3,
+  },
+  incidenciaReporter: {
+    fontSize: 12,
+    color: Theme.colors.textTertiary,
+  },
+  estadoBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Theme.radius.sm,
+  },
+  estadoBadgeTexto: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  incidenciaDescripcion: {
     fontSize: Theme.typography.label,
     color: Theme.colors.textSecondary,
     lineHeight: 18,
-    marginBottom: Theme.spacing.sm,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.sm,
-  },
-  cardEstado: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textTertiary,
-    fontWeight: '500',
-  },
-  cardFecha: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textMuted,
   },
 
-  // — Abandonar vivienda —
-  botonAbandonar: {
-    width: '100%',
-    borderWidth: 1.5,
-    borderColor: Theme.colors.danger,
-    borderRadius: Theme.radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: Theme.spacing.xl,
-    marginBottom: Theme.spacing.sm,
-  },
-  botonAbandonarTexto: {
-    color: Theme.colors.danger,
-    fontSize: Theme.typography.body,
-    fontWeight: '600',
-  },
-
-  // — Selector de estado de incidencia —
+  // — Selector de estado (editable) —
   estadoSelector: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: 10,
+    marginTop: 12,
   },
   estadoPill: {
     flex: 1,
@@ -268,25 +246,26 @@ export const styles = StyleSheet.create({
   estadoPillTextoActivo: {
     color: Theme.colors.surface,
   },
-  estadoSoloLectura: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textTertiary,
-    fontWeight: '500',
-    marginTop: 6,
-  },
 
-  // — Enlace tablón —
-  enlaceTablon: {
-    paddingVertical: Theme.spacing.sm,
-    marginBottom: Theme.spacing.xs,
+  // — Reportar problema —
+  botonReportar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.md,
+    paddingVertical: 14,
+    marginTop: Theme.spacing.md,
   },
-  enlaceTablonTexto: {
-    fontSize: 14,
-    color: Theme.colors.primary,
+  botonReportarTexto: {
+    fontSize: Theme.typography.body,
     fontWeight: '600',
+    color: Theme.colors.textMedium,
   },
 
-  // — Historial —
+  // — Historial toggle —
   historialToggle: {
     paddingVertical: Theme.spacing.md,
     alignItems: 'center',
@@ -296,6 +275,22 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.label,
     color: Theme.colors.primary,
     fontWeight: '600',
+  },
+
+  // — Loader —
+  loaderIncidencias: {
+    marginTop: Theme.spacing.lg,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: Theme.colors.textTertiary,
+    fontSize: 14,
+    marginVertical: Theme.spacing.md,
+  },
+
+  // — Abandonar vivienda —
+  botonAbandonar: {
+    marginTop: Theme.spacing.xl,
   },
 
   // — FAB —
@@ -322,5 +317,4 @@ export const styles = StyleSheet.create({
     fontWeight: '300',
   },
   fabPressed: { opacity: 0.8 },
-  botonAbandonarPressed: { opacity: 0.7 },
 });
