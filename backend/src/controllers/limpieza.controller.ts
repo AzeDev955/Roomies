@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
+import { generarTurnosSemanales } from '../services/limpieza.service';
 
 const verificarPropiedadVivienda = async (viviendaId: number, caseroId: number) => {
   const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
@@ -132,4 +133,47 @@ export const asignarZonaFija: express.RequestHandler = async (req, res) => {
   });
 
   res.status(200).json(asignacion);
+};
+
+export const quitarAsignacionFija: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+  const zonaId = parseInt(req.params['zonaId'] as string, 10);
+
+  const vivienda = await verificarPropiedadVivienda(viviendaId, req.usuario!.id);
+  if (!vivienda) {
+    res.status(403).json({ error: 'No tienes permiso sobre esta vivienda.' });
+    return;
+  }
+
+  const zona = await prisma.zonaLimpieza.findFirst({ where: { id: zonaId, vivienda_id: viviendaId } });
+  if (!zona) {
+    res.status(404).json({ error: 'Zona no encontrada.' });
+    return;
+  }
+
+  const asignacion = await prisma.asignacionLimpiezaFija.findFirst({ where: { zona_id: zonaId } });
+  if (!asignacion) {
+    res.status(404).json({ error: 'Esta zona no tiene asignación fija.' });
+    return;
+  }
+
+  await prisma.asignacionLimpiezaFija.delete({ where: { id: asignacion.id } });
+  res.status(204).send();
+};
+
+export const generarTurnos: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params['id'] as string, 10);
+
+  const vivienda = await verificarPropiedadVivienda(viviendaId, req.usuario!.id);
+  if (!vivienda) {
+    res.status(403).json({ error: 'No tienes permiso sobre esta vivienda.' });
+    return;
+  }
+
+  try {
+    await generarTurnosSemanales(viviendaId);
+    res.status(201).json({ mensaje: 'Turnos de limpieza generados correctamente.' });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message ?? 'No se pudieron generar los turnos.' });
+  }
 };
