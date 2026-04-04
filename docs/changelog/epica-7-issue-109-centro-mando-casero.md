@@ -26,6 +26,31 @@
 
 ---
 
+## Feature: Modal de perfil de compañero (Inquilino Dashboard)
+
+**Archivos:** `app/inquilino/(tabs)/inicio.tsx`, `styles/inquilino/inicio.styles.ts`
+
+- Cada item de la sección "Mis Compañeros" envuelto en `Pressable` → abre modal
+- Estado `companeroModal: InquilinoResumen | null` controla visibilidad
+- `Modal` nativo (`transparent`, `animationType="slide"`) con fondo `rgba(0,0,0,0.5)`
+- Contenido: `AvatarInitials` 72px + nombre completo + `CustomButton variant="outline"` Cerrar
+- Toque en el backdrop cierra el modal
+- Estilos añadidos: `modalBackdrop`, `modalCardWrapper`, `modalContenido`, `modalNombre`
+- **Nota técnica**: email/teléfono no se muestran porque `InquilinoResumen` (devuelto por
+  `/inquilino/vivienda`) no incluye esos campos; la pantalla muestra los datos disponibles sin
+  realizar llamadas adicionales
+
+## Fix: Botón Expulsar en pantalla Editar Habitación
+
+**Archivos:** `app/casero/vivienda/[id]/(tabs)/index.tsx`, `app/casero/vivienda/[id]/editar-habitacion.tsx`
+
+- `handleEditarHabitacion` pasa nuevo param `inquilinoId: String(hab.inquilino?.id ?? '')`
+- `editar-habitacion.tsx`: lee `inquilinoId` de `useLocalSearchParams`
+- Handler `expulsarInquilino` → `Alert` de confirmación → `DELETE /viviendas/${id}/habitaciones/${habId}/inquilino` → `router.back()`
+- `CustomButton variant="danger"` "Expulsar al inquilino" visible únicamente si `inquilinoId` es no vacío
+
+---
+
 ## Resumen
 
 Rediseño visual completo del tab "Resumen" de la vivienda del casero

@@ -293,6 +293,30 @@ export const styles = StyleSheet.create({
     marginTop: Theme.spacing.xl,
   },
 
+  // — Modal compañero —
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Theme.spacing.xl,
+  },
+  modalCardWrapper: {
+    width: '100%',
+  },
+  modalContenido: {
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+  },
+  modalNombre: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+
   // — FAB —
   fab: {
     position: 'absolute',

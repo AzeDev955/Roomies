@@ -1,8 +1,9 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
+import { CustomButton } from '@/components/common/CustomButton';
 import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
@@ -18,7 +19,7 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
 
 export default function EditarHabitacionScreen() {
   const router = useRouter();
-  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam } =
+  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam, inquilinoId } =
     useLocalSearchParams<{
       id: string;
       habId: string;
@@ -26,6 +27,7 @@ export default function EditarHabitacionScreen() {
       tipo: string;
       esHabitable: string;
       metrosCuadrados: string;
+      inquilinoId: string;
     }>();
 
   const tipoInicial = (TIPOS.includes(tipoParam as TipoHabitacion) ? tipoParam : 'DORMITORIO') as TipoHabitacion;
@@ -35,6 +37,32 @@ export default function EditarHabitacionScreen() {
   const [esHabitable, setEsHabitable] = useState(esHabitableParam === 'true');
   const [metrosCuadrados, setMetrosCuadrados] = useState(metrosParam ?? '');
   const [loading, setLoading] = useState(false);
+  const [expulsando, setExpulsando] = useState(false);
+
+  const expulsarInquilino = () => {
+    Alert.alert(
+      '¿Expulsar inquilino?',
+      'Esta acción desvinculará al usuario de la habitación.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Expulsar',
+          style: 'destructive',
+          onPress: async () => {
+            setExpulsando(true);
+            try {
+              await api.delete(`/viviendas/${id}/habitaciones/${habId}/inquilino`);
+              router.back();
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo expulsar al inquilino.' });
+            } finally {
+              setExpulsando(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleTipoChange = (t: TipoHabitacion) => {
     setTipo(t);
@@ -127,6 +155,16 @@ export default function EditarHabitacionScreen() {
             <Text style={styles.botonTexto}>Guardar cambios</Text>
           )}
         </Pressable>
+
+        {!!inquilinoId && (
+          <CustomButton
+            label={expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
+            variant="danger"
+            onPress={expulsarInquilino}
+            disabled={expulsando}
+            style={{ marginTop: 12 }}
+          />
+        )}
       </ScrollView>
     </View>
   );

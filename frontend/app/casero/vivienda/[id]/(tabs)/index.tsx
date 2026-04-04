@@ -200,6 +200,7 @@ export default function ResumenViviendaTab() {
         tipo: hab.tipo,
         esHabitable: String(hab.es_habitable),
         metrosCuadrados: String(hab.metros_cuadrados ?? ''),
+        inquilinoId: String(hab.inquilino?.id ?? ''),
       },
     });
   };

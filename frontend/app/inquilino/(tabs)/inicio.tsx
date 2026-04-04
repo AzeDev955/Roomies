@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
+import { Card } from '@/components/common/Card';
 import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO, ETIQUETAS_TIPO } from '@/styles/inquilino/inicio.styles';
 
 // ── Helpers UI ────────────────────────────────────────────────────────────────
@@ -103,6 +104,7 @@ export default function InquilinoInicioScreen() {
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loadingIncidencias, setLoadingIncidencias] = useState(false);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [companeroModal, setCompaneroModal] = useState<InquilinoResumen | null>(null);
 
   const cargarVivienda = async () => {
     try {
@@ -342,12 +344,16 @@ export default function InquilinoInicioScreen() {
               contentContainerStyle={styles.companerosRow}
             >
               {companeros.map((h) => (
-                <View key={h.id} style={styles.companeroItem}>
+                <Pressable
+                  key={h.id}
+                  style={({ pressed }) => [styles.companeroItem, pressed && { opacity: 0.75 }]}
+                  onPress={() => setCompaneroModal(h.inquilino!)}
+                >
                   <AvatarInitials nombre={h.inquilino!.nombre} apellidos={h.inquilino!.apellidos} />
                   <Text style={styles.companeroNombreCorto} numberOfLines={1}>
                     {h.inquilino!.nombre}
                   </Text>
-                </View>
+                </Pressable>
               ))}
             </ScrollView>
           </View>
@@ -427,6 +433,39 @@ export default function InquilinoInicioScreen() {
       >
         <Text style={styles.fabTexto}>+</Text>
       </Pressable>
+
+      {/* ── Modal compañero ── */}
+      <Modal
+        visible={!!companeroModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCompaneroModal(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setCompaneroModal(null)}>
+          <Pressable style={styles.modalCardWrapper} onPress={() => {}}>
+            <Card>
+              {companeroModal && (
+                <View style={styles.modalContenido}>
+                  <AvatarInitials
+                    nombre={companeroModal.nombre}
+                    apellidos={companeroModal.apellidos}
+                    size={72}
+                  />
+                  <Text style={styles.modalNombre}>
+                    {companeroModal.nombre}{companeroModal.apellidos ? ` ${companeroModal.apellidos}` : ''}
+                  </Text>
+                  <CustomButton
+                    label="Cerrar"
+                    variant="outline"
+                    onPress={() => setCompaneroModal(null)}
+                    style={{ marginTop: 8 }}
+                  />
+                </View>
+              )}
+            </Card>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
