@@ -1,13 +1,21 @@
 import { View, Text, FlatList, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
+import { CustomButton } from '@/components/common/CustomButton';
+import { Card } from '@/components/common/Card';
 import { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { styles } from '@/styles/casero/viviendas.styles';
+import { Theme } from '@/constants/theme';
 import api from '@/services/api';
-import { Card } from '@/components/common/Card';
 
-type Habitacion = { id: number; nombre: string };
+type Habitacion = {
+  id: number;
+  nombre: string;
+  tipo: string;
+  inquilino_id: number | null;
+};
 type IncidenciaActiva = { prioridad: 'VERDE' | 'AMARILLO' | 'ROJO' };
 type Vivienda = {
   id: number;
@@ -15,15 +23,6 @@ type Vivienda = {
   direccion: string;
   habitaciones: Habitacion[];
   incidencias: IncidenciaActiva[];
-};
-
-const ORDEN_PRIORIDAD: Record<string, number> = { VERDE: 0, AMARILLO: 1, ROJO: 2 };
-
-const getMaxPrioridad = (incidencias: IncidenciaActiva[]): 'VERDE' | 'AMARILLO' | 'ROJO' | null => {
-  if (incidencias.length === 0) return null;
-  return incidencias.reduce((max, i) =>
-    ORDEN_PRIORIDAD[i.prioridad] > ORDEN_PRIORIDAD[max.prioridad] ? i : max
-  ).prioridad;
 };
 
 export default function ViviendasScreen() {
@@ -49,12 +48,6 @@ export default function ViviendasScreen() {
     }, [])
   );
 
-  const BADGE_POR_PRIORIDAD = {
-    VERDE: styles.badgeVerde,
-    AMARILLO: styles.badgeAmarillo,
-    ROJO: styles.badgeRojo,
-  } as const;
-
   if (loading) return <LoadingScreen />;
 
   return (
@@ -63,34 +56,84 @@ export default function ViviendasScreen() {
         data={viviendas}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Text style={styles.headerTitulo}>Mis Propiedades</Text>
+            <Text style={styles.headerSubtitulo}>Gestiona tus pisos y habitaciones</Text>
+          </View>
+        }
         ListEmptyComponent={
-          <View>
-            <Text style={styles.emptyText}>Aún no tienes viviendas registradas.</Text>
-            <Text style={styles.emptySubtext}>Pulsa el botón + para añadir tu primera vivienda.</Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="home-outline" size={64} color={Theme.colors.textTertiary} />
+            <Text style={styles.emptyTitulo}>Aún no tienes propiedades</Text>
+            <Text style={styles.emptySubtitulo}>Comienza a gestionar tu patrimonio añadiendo tu primera vivienda.</Text>
+            <CustomButton
+              label="Comenzar"
+              variant="primary"
+              onPress={() => router.push('/casero/nueva-vivienda')}
+              style={styles.emptyBoton}
+            />
           </View>
         }
         renderItem={({ item }) => {
-          const maxPrioridad = getMaxPrioridad(item.incidencias);
+          const habitacionesHabitables = item.habitaciones.filter(
+            (h) => h.tipo === 'DORMITORIO'
+          );
+          const inquilinosActuales = habitacionesHabitables.filter(
+            (h) => h.inquilino_id !== null
+          ).length;
+
           return (
-            <Card onPress={() => router.push(`/casero/vivienda/${item.id}`)}>
-              {maxPrioridad !== null && (
-                <View style={[styles.badge, BADGE_POR_PRIORIDAD[maxPrioridad]]}>
-                  <Text style={styles.badgeTexto}>{item.incidencias.length}</Text>
+            <Pressable
+              style={({ pressed }) => [styles.cardWrapper, pressed && styles.cardWrapperPressed]}
+              onPress={() => router.push(`/casero/vivienda/${item.id}`)}
+            >
+              <Card style={styles.card}>
+                <View style={styles.cardImagePlaceholder}>
+                  <Ionicons name="business-outline" size={48} color={Theme.colors.primary} />
                 </View>
-              )}
-              <Text style={styles.cardTitle}>{item.alias_nombre}</Text>
-              <Text style={styles.cardAddress}>{item.direccion}</Text>
-              <Text style={styles.cardRooms}>{item.habitaciones?.length ?? 0} habitaciones</Text>
-            </Card>
+
+                <View style={styles.cardBody}>
+                  <View style={styles.cardBodyRow}>
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardTitulo}>{item.alias_nombre}</Text>
+                      <View style={styles.cardDireccionFila}>
+                        <Ionicons name="location-outline" size={14} color={Theme.colors.textSecondary} />
+                        <Text style={styles.cardDireccion}>{item.direccion}</Text>
+                      </View>
+                      <View style={styles.chips}>
+                        <View style={styles.chipHabitaciones}>
+                          <Ionicons name="bed-outline" size={12} color="#1D4ED8" />
+                          <Text style={styles.chipHabitacionesTexto}>
+                            {habitacionesHabitables.length} Habitaciones
+                          </Text>
+                        </View>
+                        <View style={styles.chipInquilinos}>
+                          <Ionicons name="people-outline" size={12} color="#065F46" />
+                          <Text style={styles.chipInquilinosTexto}>
+                            {inquilinosActuales} Inquilinos
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={24} color={Theme.colors.textTertiary} />
+                  </View>
+                </View>
+              </Card>
+            </Pressable>
           );
         }}
       />
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => router.push('/casero/nueva-vivienda')}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
+
+      {viviendas.length > 0 && (
+        <Pressable
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+          onPress={() => router.push('/casero/nueva-vivienda')}
+        >
+          <Ionicons name="add" size={24} color={Theme.colors.surface} />
+          <Text style={styles.fabTexto}>Nueva Vivienda</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

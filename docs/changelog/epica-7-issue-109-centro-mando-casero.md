@@ -2,7 +2,35 @@
 
 **Fecha:** 2026-04-04  
 **Rama:** refactor/refactorizacion-visual  
-**Archivos modificados:** 2
+**Archivos modificados:** 4
+
+---
+
+## Rediseño de la lista de viviendas (`/casero/viviendas`)
+
+**Archivos:** `app/casero/(tabs)/viviendas.tsx`, `styles/casero/viviendas.styles.ts`
+
+### Corrección de contadores
+- Tipo `Habitacion` ampliado con `tipo: string` e `inquilino_id: number | null`
+- `habitacionesHabitables`: filtra `hab.tipo === 'DORMITORIO'` (antes contaba el total del array)
+- `inquilinosActuales`: cuenta las habitaciones habitables con `inquilino_id !== null`
+
+### Cambios visuales
+- **Header** — "Mis Propiedades" (28 px / 800) + subtítulo "Gestiona tus pisos y habitaciones"
+- **Image placeholder** — `View` 120 px, fondo `primary + 1A` (10 % opacidad), icono `business-outline` 48 px centrado
+- **Tarjeta** — `Pressable` wrapper con feedback `cardWrapperPressed` (opacity 0.88) envuelve `Card`
+  - Fila inferior: `alias_nombre` (20 px / 700) + `location-outline` + `direccion` + chips + `chevron-forward`
+  - Chip azul (`#EFF6FF`/`#1D4ED8`) con `bed-outline` — muestra habitaciones habitables
+  - Chip verde (`#ECFDF5`/`#065F46`) con `people-outline` — muestra inquilinos actuales
+- **Empty state** — icono `home-outline` 64 px + título + subtítulo + `CustomButton variant="primary"` "Comenzar"
+- **FAB rediseñado** — `borderRadius 32`, pill horizontal con icono `add` + texto "Nueva Vivienda"; visible solo si `viviendas.length > 0` (el empty state tiene su propio botón)
+- Importados `Ionicons`, `Theme` y `CustomButton`; eliminados `ORDEN_PRIORIDAD`, `getMaxPrioridad`, `BADGE_POR_PRIORIDAD` (badges de incidencia eliminados de la lista)
+
+### Estilos eliminados
+`cardTitle`, `cardAddress`, `cardRooms`, `loaderContainer`, `emptyText`, `emptySubtext`, `fabText`, `badge`, `badgeVerde`, `badgeAmarillo`, `badgeRojo`, `badgeTexto`
+
+### Estilos añadidos
+`header`, `headerTitulo`, `headerSubtitulo`, `cardWrapper`, `cardWrapperPressed`, `card`, `cardImagePlaceholder`, `cardBody`, `cardBodyRow`, `cardInfo`, `cardTitulo`, `cardDireccionFila`, `cardDireccion`, `chips`, `chipHabitaciones*`, `chipInquilinos*`, `emptyContainer`, `emptyTitulo`, `emptySubtitulo`, `emptyBoton`, `fabTexto`
 
 ---
 
