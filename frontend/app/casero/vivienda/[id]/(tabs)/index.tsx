@@ -249,12 +249,21 @@ export default function ResumenViviendaTab() {
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.accionBtn, pressed && styles.accionBtnPressed]}
-            onPress={() => router.push(`/casero/vivienda/${id}/tablon`)}
+            onPress={() =>
+              router.push({
+                pathname: '/inquilino/nueva-incidencia',
+                params: {
+                  viviendaId: vivienda.id,
+                  miHabitacionId: 0,
+                  habitacionesJson: JSON.stringify(vivienda.habitaciones),
+                },
+              })
+            }
           >
-            <View style={styles.accionIconTablon}>
-              <Ionicons name="clipboard-outline" size={22} color={Theme.colors.primary} />
+            <View style={styles.accionIconNuevaInc}>
+              <Ionicons name="add-circle-outline" size={22} color="#059669" />
             </View>
-            <Text style={styles.accionLabel}>Tablón</Text>
+            <Text style={styles.accionLabel}>Nueva Incidencia</Text>
           </Pressable>
         </View>
 
@@ -264,7 +273,11 @@ export default function ResumenViviendaTab() {
         {[...vivienda.habitaciones]
           .sort((a, b) => Number(b.es_habitable) - Number(a.es_habitable) || a.id - b.id)
           .map((habitacion) => (
-            <View key={habitacion.id} style={styles.habCard}>
+            <Pressable
+              key={habitacion.id}
+              style={({ pressed }) => [styles.habCard, pressed && styles.habCardPressed]}
+              onPress={() => handleEditarHabitacion(habitacion)}
+            >
 
               {/* Fila superior: icono+nombre / inquilino+avatar */}
               <View style={styles.habCardTop}>
@@ -355,31 +368,7 @@ export default function ResumenViviendaTab() {
                 </View>
               )}
 
-              {/* Expulsar inquilino */}
-              {habitacion.tipo === 'DORMITORIO' && habitacion.inquilino && (
-                <View style={styles.expulsarFila}>
-                  <Pressable onPress={() => handleExpulsarInquilino(habitacion)}>
-                    <Text style={styles.expulsarTexto}>EXPULSAR</Text>
-                  </Pressable>
-                </View>
-              )}
-
-              {/* Editar / Eliminar */}
-              <View style={styles.accionFila}>
-                <CustomButton
-                  label="Editar"
-                  variant="primary"
-                  onPress={() => handleEditarHabitacion(habitacion)}
-                  style={{ flex: 1, paddingVertical: 8, borderRadius: 8 }}
-                />
-                <CustomButton
-                  label="Eliminar"
-                  variant="danger"
-                  onPress={() => handleEliminarHabitacion(habitacion)}
-                  style={{ flex: 1, paddingVertical: 8, borderRadius: 8 }}
-                />
-              </View>
-            </View>
+            </Pressable>
           ))}
 
         {/* Añadir habitación */}

@@ -92,6 +92,11 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
   },
+  accionIconNuevaInc: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 16,
+    padding: 12,
+  },
   accionLabel: {
     fontSize: Theme.typography.label,
     fontWeight: '600',
@@ -120,6 +125,7 @@ export const styles = StyleSheet.create({
     elevation: 2,
     gap: Theme.spacing.md,
   },
+  habCardPressed: { opacity: 0.88 },
   habCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -223,26 +229,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: Theme.typography.caption,
     color: Theme.colors.textMedium,
-  },
-
-  // — Expulsar —
-  expulsarFila: {
-    borderTopWidth: 1,
-    borderTopColor: '#FEF2F2',
-    paddingTop: Theme.spacing.sm,
-    alignItems: 'flex-end',
-  },
-  expulsarTexto: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Theme.colors.danger,
-    letterSpacing: 0.5,
-  },
-
-  // — Editar / Eliminar —
-  accionFila: {
-    flexDirection: 'row',
-    gap: Theme.spacing.sm,
   },
 
   // — Botón añadir habitación —

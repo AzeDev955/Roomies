@@ -6,6 +6,26 @@
 
 ---
 
+## Corrección de usabilidad (fix posterior)
+
+### Tarjetas de habitación
+- `View` habCard reemplazado por `Pressable` con `onPress → handleEditarHabitacion`  
+  y feedback visual `habCardPressed` (opacity 0.88)
+- Eliminados botones "Expulsar", "Editar" y "Eliminar" de la lista; toda la interacción
+  de gestión se centraliza en la pantalla `editar-habitacion`
+- Los `Pressable` internos (avatar del inquilino → perfil, biometría de código,
+  incidencias individuales) funcionan correctamente sin propagar el toque a la tarjeta
+
+### Quick actions
+- Botón "Tablón" sustituido por "Nueva Incidencia" (icono `add-circle-outline`, verde `#059669`)
+- Navega a `/inquilino/nueva-incidencia` pasando `viviendaId`, `miHabitacionId: 0`
+  y `habitacionesJson` (reutiliza el único formulario de creación de incidencias existente;
+  el casero no tiene pantalla propia para este flujo)
+- Estilos eliminados: `expulsarFila`, `expulsarTexto`, `accionFila`
+- Estilos añadidos: `accionIconNuevaInc`, `habCardPressed`
+
+---
+
 ## Resumen
 
 Rediseño visual completo del tab "Resumen" de la vivienda del casero
