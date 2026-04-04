@@ -316,6 +316,21 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: -0.3,
   },
+  modalDato: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'stretch',
+    paddingHorizontal: 4,
+  },
+  modalDatoTexto: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textSecondary,
+    flex: 1,
+  },
+  modalCargando: {
+    marginVertical: Theme.spacing.md,
+  },
 
   // — FAB —
   fab: {

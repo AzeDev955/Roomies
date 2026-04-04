@@ -36,9 +36,21 @@
 - Contenido: `AvatarInitials` 72px + nombre completo + `CustomButton variant="outline"` Cerrar
 - Toque en el backdrop cierra el modal
 - Estilos añadidos: `modalBackdrop`, `modalCardWrapper`, `modalContenido`, `modalNombre`
-- **Nota técnica**: email/teléfono no se muestran porque `InquilinoResumen` (devuelto por
-  `/inquilino/vivienda`) no incluye esos campos; la pantalla muestra los datos disponibles sin
-  realizar llamadas adicionales
+- Al abrir el modal se lanza `GET /inquilino/companeros/:id`; mientras carga muestra
+  `ActivityIndicator`; al resolverse muestra email (`mail-outline`) y teléfono (`call-outline`)
+  si el servidor los devuelve (ambos condicionales con `!!`)
+- Cerrar modal limpia también `loadingCompañero`
+
+## Backend: nuevo endpoint `GET /inquilino/companeros/:id`
+
+**Archivos:** `backend/src/controllers/inquilino.controller.ts`, `backend/src/routes/inquilino.routes.ts`, `docs/backend/api.md`
+
+- Handler `obtenerPerfilCompañero`: verifica que el solicitante tiene habitación asignada,
+  luego verifica que el compañero vive en la **misma vivienda** (`vivienda_id` coincide)
+- Devuelve `{ id, nombre, apellidos, email, telefono }` del compañero
+- Ruta registrada antes de `/:id/perfil` para evitar colisión de segmentos dinámicos:
+  `/companeros/:id` (literal+dinámico) ≠ `/:id/perfil` (dinámico+literal)
+- Documentado en `docs/backend/api.md`
 
 ## Fix: Botón Expulsar en pantalla Editar Habitación
 

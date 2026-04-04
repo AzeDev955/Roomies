@@ -77,6 +77,11 @@ type InquilinoResumen = {
   apellidos: string | null;
 };
 
+type CompañeroDetalle = InquilinoResumen & {
+  email?: string;
+  telefono?: string | null;
+};
+
 type HabitacionResumen = {
   id: number;
   nombre: string;
@@ -104,7 +109,21 @@ export default function InquilinoInicioScreen() {
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loadingIncidencias, setLoadingIncidencias] = useState(false);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
-  const [companeroModal, setCompaneroModal] = useState<InquilinoResumen | null>(null);
+  const [companeroModal, setCompaneroModal] = useState<CompañeroDetalle | null>(null);
+  const [loadingCompañero, setLoadingCompañero] = useState(false);
+
+  const abrirCompañero = async (inq: InquilinoResumen) => {
+    setCompaneroModal(inq);
+    setLoadingCompañero(true);
+    try {
+      const { data } = await api.get<CompañeroDetalle>(`/inquilino/companeros/${inq.id}`);
+      setCompaneroModal(data);
+    } catch {
+      // Mantenemos los datos básicos ya mostrados
+    } finally {
+      setLoadingCompañero(false);
+    }
+  };
 
   const cargarVivienda = async () => {
     try {
@@ -347,7 +366,7 @@ export default function InquilinoInicioScreen() {
                 <Pressable
                   key={h.id}
                   style={({ pressed }) => [styles.companeroItem, pressed && { opacity: 0.75 }]}
-                  onPress={() => setCompaneroModal(h.inquilino!)}
+                  onPress={() => abrirCompañero(h.inquilino!)}
                 >
                   <AvatarInitials nombre={h.inquilino!.nombre} apellidos={h.inquilino!.apellidos} />
                   <Text style={styles.companeroNombreCorto} numberOfLines={1}>
@@ -441,7 +460,7 @@ export default function InquilinoInicioScreen() {
         animationType="slide"
         onRequestClose={() => setCompaneroModal(null)}
       >
-        <Pressable style={styles.modalBackdrop} onPress={() => setCompaneroModal(null)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => { setCompaneroModal(null); setLoadingCompañero(false); }}>
           <Pressable style={styles.modalCardWrapper} onPress={() => {}}>
             <Card>
               {companeroModal && (
@@ -454,6 +473,26 @@ export default function InquilinoInicioScreen() {
                   <Text style={styles.modalNombre}>
                     {companeroModal.nombre}{companeroModal.apellidos ? ` ${companeroModal.apellidos}` : ''}
                   </Text>
+
+                  {loadingCompañero ? (
+                    <ActivityIndicator color={Theme.colors.primary} style={styles.modalCargando} />
+                  ) : (
+                    <>
+                      {!!companeroModal.email && (
+                        <View style={styles.modalDato}>
+                          <Ionicons name="mail-outline" size={16} color={Theme.colors.textSecondary} />
+                          <Text style={styles.modalDatoTexto}>{companeroModal.email}</Text>
+                        </View>
+                      )}
+                      {!!companeroModal.telefono && (
+                        <View style={styles.modalDato}>
+                          <Ionicons name="call-outline" size={16} color={Theme.colors.textSecondary} />
+                          <Text style={styles.modalDatoTexto}>{companeroModal.telefono}</Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+
                   <CustomButton
                     label="Cerrar"
                     variant="outline"
