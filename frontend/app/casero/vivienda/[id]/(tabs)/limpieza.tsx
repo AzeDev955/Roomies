@@ -10,6 +10,7 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useEffect } from 'react';
@@ -19,6 +20,39 @@ import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { styles } from '@/styles/casero/vivienda/limpieza.styles';
+
+// ── Helpers UI ────────────────────────────────────────────────────────────────
+
+const ZONA_ICONS: Record<string, string> = {
+  cocina: 'restaurant-outline',
+  'baño': 'water-outline', 'baño 1': 'water-outline', 'baño 2': 'water-outline',
+  'salón': 'tv-outline', salon: 'tv-outline',
+  pasillo: 'footsteps-outline',
+};
+const zonaIcon = (nombre: string) =>
+  (ZONA_ICONS[nombre.toLowerCase()] ?? 'sparkles-outline') as any;
+
+const AvatarInitials = ({
+  nombre,
+  apellidos,
+  size = 48,
+}: {
+  nombre: string;
+  apellidos: string | null;
+  size?: number;
+}) => {
+  const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: '#E8E8E8', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.textMedium }}>
+        {initials}
+      </Text>
+    </View>
+  );
+};
 
 // ── T-Shirt Sizing ────────────────────────────────────────────────────────────
 const TALLAS = [
@@ -367,21 +401,27 @@ export default function LimpiezaCaseroTab() {
 
     return (
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Navegación de semana */}
-        <View style={styles.semanaNav}>
+        {/* ── Cabecera ── */}
+        <View style={styles.calendarioHeader}>
+          <View>
+            <Text style={styles.calendarioGestion}>Gestión</Text>
+            <Text style={styles.calendarioTitulo}>Limpieza</Text>
+          </View>
           <Pressable
-            onPress={() => navegar(-1)}
-            hitSlop={12}
-            style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}
+            style={({ pressed }) => [styles.calendarioBtnConfig, pressed && { opacity: 0.7 }]}
+            onPress={() => setVistaActual('CONFIG')}
           >
+            <Text style={styles.calendarioBtnConfigTexto}>Configurar Zonas</Text>
+          </Pressable>
+        </View>
+
+        {/* ── Navegación de semana ── */}
+        <View style={styles.semanaNav}>
+          <Pressable onPress={() => navegar(-1)} hitSlop={12} style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}>
             <Text style={styles.semanaNavTexto}>‹</Text>
           </Pressable>
           <Text style={styles.semanaLabel}>{getSemanaLabel(fechaObjetivo)}</Text>
-          <Pressable
-            onPress={() => navegar(1)}
-            hitSlop={12}
-            style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}
-          >
+          <Pressable onPress={() => navegar(1)} hitSlop={12} style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}>
             <Text style={styles.semanaNavTexto}>›</Text>
           </Pressable>
         </View>
@@ -399,20 +439,41 @@ export default function LimpiezaCaseroTab() {
           </View>
         ) : (
           Object.values(turnosPorUsuario).map((grupo) => (
-            <Card key={grupo.usuario.id} style={{ marginBottom: Theme.spacing.md }}>
-              <Text style={styles.calendarioNombreUsuario}>
-                {grupo.usuario.nombre}
-                {grupo.usuario.apellidos ? ` ${grupo.usuario.apellidos[0]}.` : ''}
-              </Text>
-              {grupo.items.map((t) => (
-                <View key={t.id} style={styles.turnoRow}>
-                  <Text style={styles.turnoZona}>{t.zona.nombre}</Text>
-                  <Text style={[styles.turnoEstado, { color: ESTADO_COLOR[t.estado] }]}>
-                    {ESTADO_LABEL[t.estado]}
+            <View key={grupo.usuario.id} style={styles.userCard}>
+              {/* Avatar + nombre */}
+              <View style={styles.userCardHeader}>
+                <AvatarInitials nombre={grupo.usuario.nombre} apellidos={grupo.usuario.apellidos} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.userNombre}>
+                    {grupo.usuario.nombre}{grupo.usuario.apellidos ? ` ${grupo.usuario.apellidos}` : ''}
+                  </Text>
+                  <Text style={styles.userSubtitle}>
+                    {grupo.items.length} {grupo.items.length === 1 ? 'tarea' : 'tareas'}
                   </Text>
                 </View>
+              </View>
+
+              {/* Turnos */}
+              {grupo.items.map((t) => (
+                <View key={t.id} style={styles.turnoRow}>
+                  <View style={styles.turnoIconWrapper}>
+                    <Ionicons name={zonaIcon(t.zona.nombre)} size={15} color={Theme.colors.primary} />
+                  </View>
+                  <Text style={styles.turnoZona}>{t.zona.nombre}</Text>
+                  <View style={[
+                    styles.turnoEstadoBadge,
+                    t.estado === 'HECHO' ? styles.turnoEstadoBadgeHecho : styles.turnoEstadoBadgePendiente,
+                  ]}>
+                    <Text style={[
+                      styles.turnoEstadoTexto,
+                      t.estado === 'HECHO' ? styles.turnoEstadoTextoHecho : styles.turnoEstadoTextoPendiente,
+                    ]}>
+                      {t.estado === 'HECHO' ? 'Hecho' : 'Pendiente'}
+                    </Text>
+                  </View>
+                </View>
               ))}
-            </Card>
+            </View>
           ))
         )}
       </ScrollView>

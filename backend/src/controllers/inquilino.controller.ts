@@ -34,6 +34,43 @@ export const obtenerPerfilInquilino: express.RequestHandler = async (req, res) =
   });
 };
 
+export const obtenerPerfilCompañero: express.RequestHandler = async (req, res) => {
+  const compId = Number(req.params['id']);
+  if (isNaN(compId)) {
+    res.status(400).json({ error: 'ID inválido.' });
+    return;
+  }
+
+  const miHabitacion = await prisma.habitacion.findFirst({
+    where: { inquilino_id: req.usuario!.id },
+    select: { vivienda_id: true },
+  });
+
+  if (!miHabitacion) {
+    res.status(403).json({ error: 'No tienes una vivienda asignada.' });
+    return;
+  }
+
+  const suHabitacion = await prisma.habitacion.findFirst({
+    where: {
+      inquilino_id: compId,
+      vivienda_id: miHabitacion.vivienda_id,
+    },
+    include: {
+      inquilino: {
+        select: { id: true, nombre: true, apellidos: true, email: true, telefono: true },
+      },
+    },
+  });
+
+  if (!suHabitacion?.inquilino) {
+    res.status(403).json({ error: 'No tienes acceso al perfil de este compañero.' });
+    return;
+  }
+
+  res.status(200).json(suHabitacion.inquilino);
+};
+
 export const unirseHabitacion: express.RequestHandler = async (req, res) => {
   if (req.usuario!.rol !== RolUsuario.INQUILINO) {
     res.status(403).json({ error: 'Solo los inquilinos pueden unirse a una habitación.' });

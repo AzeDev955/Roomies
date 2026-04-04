@@ -253,3 +253,87 @@ Estilos añadidos en `limpieza.styles.ts`: `segmentedControl`, `segTab`, `segTab
 ```
 
 **`styles/inquilino/limpieza.styles.ts`** (nuevo): `container`, `content`, `emptyContainer`, `emptyText`, `semanaLabel`, `seccionTitulo`, `zonaNombreMia`, `esfuerzoTexto`, `estadoRow`, `estadoBadge{Pendiente,Hecho,NoHecho}`, `estadoTexto{Pendiente,Hecho,NoHecho}`, `botonHecho`, `botonHechoPressed`, `botonHechoTexto`, `companeroNombre`, `companeroTurnoRow`, `companeroZona`, `companeroEstado{Hecho,Pendiente}`.
+
+---
+
+## Fase 11 — Rediseño visual basado en mocks (UI/UX)
+
+### Referencia de diseño
+
+Integración de mocks HTML/Tailwind del equipo de diseño. Toda la lógica de negocio (endpoints, estados React, handlers) se ha mantenido intacta. Solo se han sustituido el JSX de renderizado y los StyleSheet.
+
+### Sub-componentes añadidos (en ambos archivos)
+
+**`AvatarInitials`** — componente funcional puro, definido en el mismo archivo:
+- Calcula iniciales a partir de `nombre[0] + apellidos[0]`.
+- Parametrizable por `size` (default 44/48 según pantalla).
+- Fondo `#EAF0FF` (inquilino) / `#E8E8E8` (casero) con texto en el color correspondiente.
+
+**`zonaIcon(nombre)`** — helper que mapea el nombre de zona a un icono de `@expo/vector-icons/Ionicons`:
+- `cocina` → `restaurant-outline`, `baño*` → `water-outline`, `salón` → `tv-outline`, `pasillo` → `footsteps-outline`, resto → `sparkles-outline`.
+
+### `app/casero/vivienda/[id]/(tabs)/limpieza.tsx` — vista CALENDARIO
+
+**Cabecera nueva**: etiqueta `"GESTIÓN"` (11px, primario, uppercase, tracking 1.5) + título `"Limpieza"` (36px, black, tracking -0.5) + botón pill `"Configurar Zonas"` que activa `setVistaActual('CONFIG')`.
+
+**Navegación de semana** rediseñada: pill card blanca con sombra, chevrones `‹ ›` en `textMedium`.
+
+**Cards de usuario** (`userCard`): `borderRadius: 24`, sombra ligera, borde `rgba(0,0,0,0.04)`.
+- Header: `AvatarInitials` (48px, fondo gris) + nombre completo en bold + conteo de tareas en uppercase tiny.
+- Filas de turno: fondo `background`, `borderRadius: 16`, icono en wrapper primario/15 + nombre en bold + badge de estado.
+- Badge `HECHO`: `#E1F5E8` / `#248A3D`. Badge `PENDIENTE`: `surface2` / `textTertiary`.
+
+### `app/inquilino/(tabs)/limpieza.tsx`
+
+**Cabecera**: semana en `primary` uppercase, `"Mis Tareas"` en 30px/800, subtítulo gris.
+
+**Cards "Mi Tarea"** (`miTareaCard`): `borderRadius: 24`, sombra.
+- Top row: nombre de zona en 22px/700 + etiqueta de esfuerzo uppercase + `miTareaIconBox` con `primary + '0D'` de fondo (verde `#E1F5E8` si hecho).
+- Botón `"Marcar como Hecho"`: full-width, `borderRadius: 16`, fila con `Ionicons checkmark-circle` + texto.
+- Estado hecho: sustituye el botón por badge `"Completado"` en `#E1F5E8`.
+
+**Filas de compañeros** (planas, una por turno en lugar de agrupadas por persona):
+- `AvatarInitials` (44px, fondo `#EAF0FF`, texto primario) + zona en bold + estado en uppercase (`orange` pendiente / verde hecho) + `"ASIGNADO A CARLOS"` en tiny uppercase + icono de zona a la derecha.
+
+### `styles/casero/vivienda/limpieza.styles.ts` — tokens añadidos/actualizados
+`calendarioHeader`, `calendarioGestion`, `calendarioTitulo`, `calendarioBtnConfig`, `calendarioBtnConfigTexto`, `semanaNav` (pill card), `userCard`, `userCardHeader`, `userNombre`, `userSubtitle`, `turnoRow`, `turnoIconWrapper`, `turnoZona`, `turnoEstadoBadge{Hecho,Pendiente}`, `turnoEstadoTexto{Hecho,Pendiente}`.
+
+### `styles/inquilino/limpieza.styles.ts` — reescritura completa
+Reemplaza la hoja de estilos anterior. Tokens: `header`, `headerSemana`, `headerTitulo`, `headerSubtitulo`, `seccionTitulo`, `miTareaCard`, `miTareaCardHecha`, `miTareaTop`, `miTareaTexto`, `miTareaZona`, `miTareaEsfuerzo`, `miTareaIconBox`, `miTareaIconBoxHecha`, `botonHecho`, `botonHechoPressed`, `botonHechoTexto`, `badgeHecho`, `badgeHechoTexto`, `companeroRow`, `companeroInfo`, `companeroTurnoTop`, `companeroZonaNombre`, `companeroEstado{Pendiente,Hecho}`, `companeroAsignado`.
+
+---
+
+## Fase 12 — Rediseño visual del Dashboard del Inquilino
+
+### Referencia de diseño
+Integración de mock HTML/Tailwind. Toda la lógica de negocio (`useFocusEffect`, `cargarVivienda`, `cargarIncidencias`, `actualizarEstado`, `abandonarVivienda`, `tienePermisoEditar`) permanece intacta.
+
+### `app/inquilino/(tabs)/inicio.tsx`
+
+**Imports añadidos**: `Ionicons` de `@expo/vector-icons`, `CustomButton`.
+
+**Helpers nuevos** (antes del componente):
+- `ZONA_ICONS` — mapea `TipoHabitacion` a iconos Ionicons (`BANO→water-outline`, `COCINA→restaurant-outline`, `SALON→tv-outline`, `OTRO→grid-outline`).
+- `ESTADO_BADGE_BG / ESTADO_BADGE_COLOR` — colores de fondo/texto para badges de incidencia por estado (naranja, primario, verde).
+- `AvatarInitials` — sub-componente puro: círculo `#E5E5EA` con bordes `surface` y sombra, iniciales en `fontWeight 600`.
+- `formatearFechaCorta` — formato corto `"12 oct"` para tarjetas de incidencia.
+- `irAReportarIncidencia` — extrae la navegación al FAB y al botón "Reportar problema" evitando duplicación.
+
+**Sección Saludo**: "¡Hola, {nombre}!" a 34px/800 + subtítulo `{vivienda} · {habitacion}`. El nombre se obtiene de `habitaciones.find(id === miHabitacionId).inquilino.nombre`.
+
+**Sección Compañeros**: `ScrollView horizontal` con `AvatarInitials` (56px) + nombre truncado bajo cada avatar. Sin botón "Invitar" (sin permisos de inquilino).
+
+**Sección Zonas Comunes**: lista vertical de `zonaRow` — icono en `zonaIconBox` (primario/12 de fondo, `borderRadius sm`) + nombre en bold + `chevron-forward`.
+
+**Sección Incidencias** (`renderIncidencia` reescrito):
+- Header: título (17px/700) + `"Tú"` o `"Compañero"` según `creador_id` + fecha corta + badge de estado con `ESTADO_BADGE_BG/COLOR`.
+- Descripción: 2 líneas, `textSecondary`.
+- Selector de estados (si `tienePermisoEditar`) sin cambios funcionales.
+- Botón "Reportar problema" outline al final de la sección (`Pressable` con `Ionicons warning-outline`).
+
+**Botón "Abandonar Vivienda"**: sustituye el `Pressable` custom por `<CustomButton variant="danger">` que llama a `abandonarVivienda`.
+
+### `styles/inquilino/inicio.styles.ts`
+
+Onboarding sin cambios. Dashboard reescrito:
+`greeting`, `greetingHola`, `greetingSubtitulo`, `seccion`, `seccionLabel`, `companerosRow`, `companeroItem`, `companeroNombreCorto`, `zonaRow`, `zonaIconBox`, `zonaRowNombre`, `incidenciaCard`, `incidenciaHeader`, `incidenciaTitulo`, `incidenciaReporter`, `estadoBadge`, `estadoBadgeTexto`, `incidenciaDescripcion`, `botonReportar`, `botonReportarTexto`, `botonAbandonar` (ahora solo `marginTop`).

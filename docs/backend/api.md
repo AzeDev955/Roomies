@@ -526,6 +526,33 @@ Devuelve la vivienda completa del inquilino logueado, incluyendo todas las habit
 
 ---
 
+### GET `/inquilino/companeros/:id`
+
+Devuelve el perfil de contacto de un compañero de piso. Solo accesible si ambos usuarios viven en la misma vivienda.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>` (rol `INQUILINO`)
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Perfil del compañero. |
+| `400` | ID no numérico. |
+| `403` | El inquilino no tiene vivienda asignada, o el compañero no vive en la misma vivienda. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "id": 5,
+  "nombre": "Ana",
+  "apellidos": "García",
+  "email": "ana@example.com",
+  "telefono": "+34 600 000 000"
+}
+```
+
+---
+
 ## Incidencias (`/incidencias`)
 
 > ### Sistema de prioridades por colores

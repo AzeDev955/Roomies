@@ -280,20 +280,62 @@ export const styles = StyleSheet.create({
     color: Theme.colors.surface,
   },
 
-  // — Vista Calendario —
+  // — Vista Calendario: cabecera ────────────────────────────────────────────
+  calendarioHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 28,
+  },
+  calendarioGestion: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Theme.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  calendarioTitulo: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: Theme.colors.text,
+    letterSpacing: -0.5,
+    lineHeight: 40,
+  },
+  calendarioBtnConfig: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: Theme.colors.primary + '1A',
+    borderRadius: Theme.radius.md,
+  },
+  calendarioBtnConfigTexto: {
+    fontSize: Theme.typography.label,
+    fontWeight: '600',
+    color: Theme.colors.primary,
+  },
+
+  // — Navegación de semana ──────────────────────────────────────────────────
   semanaNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Theme.spacing.md,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.lg,
+    paddingVertical: 12,
+    paddingHorizontal: Theme.spacing.base,
+    marginBottom: 20,
+    shadowColor: Theme.colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   semanaNavBtn: {
     paddingHorizontal: Theme.spacing.sm,
   },
   semanaNavTexto: {
-    fontSize: 26,
+    fontSize: 24,
     color: Theme.colors.textMedium,
-    lineHeight: 30,
+    lineHeight: 28,
   },
   semanaLabel: {
     fontSize: Theme.typography.caption,
@@ -304,26 +346,78 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     flex: 1,
   },
-  calendarioNombreUsuario: {
-    fontSize: Theme.typography.body,
+
+  // — Card de usuario (calendario) ──────────────────────────────────────────
+  userCard: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: Theme.spacing.md,
+    shadowColor: Theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  userCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 16,
+  },
+  userNombre: {
+    fontSize: Theme.typography.body + 2,
     fontWeight: '700',
     color: Theme.colors.text,
-    marginBottom: Theme.spacing.sm,
   },
+  userSubtitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
+
+  // — Fila de turno (nueva) ─────────────────────────────────────────────────
   turnoRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border,
+    gap: 10,
+    padding: 12,
+    backgroundColor: Theme.colors.background,
+    borderRadius: 16,
+    marginTop: Theme.spacing.sm,
+  },
+  turnoIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Theme.colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   turnoZona: {
+    flex: 1,
     fontSize: Theme.typography.body,
+    fontWeight: '600',
     color: Theme.colors.text,
   },
-  turnoEstado: {
-    fontSize: Theme.typography.caption,
-    fontWeight: '600',
+  turnoEstadoBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Theme.radius.full,
   },
+  turnoEstadoBadgeHecho: { backgroundColor: '#E1F5E8' },
+  turnoEstadoBadgePendiente: { backgroundColor: Theme.colors.surface2 },
+  turnoEstadoTexto: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  turnoEstadoTextoHecho: { color: '#248A3D' },
+  turnoEstadoTextoPendiente: { color: Theme.colors.textTertiary },
 });
