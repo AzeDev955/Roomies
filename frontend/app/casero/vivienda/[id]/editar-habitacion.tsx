@@ -64,6 +64,28 @@ export default function EditarHabitacionScreen() {
     );
   };
 
+  const eliminarHabitacion = () => {
+    Alert.alert(
+      'Eliminar habitación',
+      `¿Eliminar "${nombre.trim()}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/viviendas/${id}/habitaciones/${habId}`);
+              router.back();
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar la habitación.' });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleTipoChange = (t: TipoHabitacion) => {
     setTipo(t);
     if (t !== 'DORMITORIO') setEsHabitable(false);
@@ -165,6 +187,13 @@ export default function EditarHabitacionScreen() {
             style={{ marginTop: 12 }}
           />
         )}
+
+        <CustomButton
+          label="Eliminar habitación"
+          variant="danger"
+          onPress={eliminarHabitacion}
+          style={{ marginTop: 8 }}
+        />
       </ScrollView>
     </View>
   );
