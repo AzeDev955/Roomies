@@ -8,10 +8,10 @@ import { RolUsuario } from '../generated/prisma/client';
 import { enviarMagicLink } from '../services/email.service';
 
 export const register: express.RequestHandler = async (req, res) => {
-  const { nombre, apellidos, dni, email, password, telefono, rol } = req.body as {
+  const { nombre, apellidos, documento_identidad, email, password, telefono, rol } = req.body as {
     nombre: string;
     apellidos: string;
-    dni: string;
+    documento_identidad: string;
     email: string;
     password: string;
     telefono: string;
@@ -19,11 +19,11 @@ export const register: express.RequestHandler = async (req, res) => {
   };
 
   const existing = await prisma.usuario.findFirst({
-    where: { OR: [{ email }, { dni }] },
+    where: { OR: [{ email }, { documento_identidad }] },
   });
 
   if (existing) {
-    res.status(400).json({ error: 'El email o DNI ya está registrado.' });
+    res.status(400).json({ error: 'El email o documento de identidad ya está registrado.' });
     return;
   }
 
@@ -34,7 +34,7 @@ export const register: express.RequestHandler = async (req, res) => {
     data: {
       nombre,
       apellidos,
-      dni,
+      documento_identidad,
       email,
       password_hash,
       telefono,

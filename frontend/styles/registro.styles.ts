@@ -24,6 +24,48 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 36,
   },
+  // — Selector de tipo de documento —
+  labelDoc: {
+    fontSize: Theme.typography.label,
+    fontWeight: '600',
+    color: Theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Theme.spacing.sm,
+  },
+  docFila: {
+    flexDirection: 'row',
+    gap: Theme.spacing.md,
+    marginBottom: Theme.spacing.sm,
+  },
+  docChip: {
+    flex: 1,
+    borderRadius: Theme.radius.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface2,
+  },
+  docChipActivo: {
+    backgroundColor: Theme.colors.primary,
+    borderColor: Theme.colors.primary,
+  },
+  docChipTexto: {
+    fontSize: Theme.typography.label,
+    fontWeight: '600',
+    color: Theme.colors.text,
+  },
+  docChipTextoActivo: {
+    color: Theme.colors.surface,
+  },
+  errorTexto: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.danger,
+    marginTop: -Theme.spacing.sm,
+    marginBottom: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.xs,
+  },
   // — Selector de rol —
   labelRol: {
     fontSize: Theme.typography.label,
