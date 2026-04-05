@@ -24,25 +24,51 @@ Registra un nuevo usuario en el sistema.
 | `telefono` | string | Sí | Teléfono de contacto |
 | `rol` | `CASERO` \| `INQUILINO` | Sí | Rol del usuario |
 
+**Comportamiento:**
+1. Crea el usuario con `correo_verificado: false` y un `token_verificacion` aleatorio (hex-32).
+2. Envía un correo HTML con un botón "Verificar mi cuenta" apuntando a `GET /auth/verificar/:token`.
+3. El envío de correo es asíncrono — no bloquea la respuesta al cliente.
+4. **No devuelve JWT**. El usuario debe verificar su correo antes de poder hacer login.
+
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `201` | Usuario creado correctamente. Devuelve el objeto usuario sin `password_hash`. |
+| `201` | Usuario creado. Devuelve `{ mensaje }` indicando que debe revisar el correo. |
 | `400` | El email o DNI ya está registrado. |
 
 **Ejemplo respuesta 201:**
 ```json
 {
-  "id": 1,
-  "nombre": "Ana",
-  "apellidos": "García López",
-  "dni": "12345678A",
-  "email": "ana@example.com",
-  "telefono": "600123456",
-  "rol": "CASERO"
+  "mensaje": "Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión."
 }
 ```
+
+---
+
+### GET `/auth/verificar/:token`
+
+Verifica el correo de un usuario mediante el magic link recibido por email.
+
+**Auth requerida:** No
+
+**Parámetros de ruta:**
+
+| Parámetro | Descripción |
+|---|---|
+| `token` | Token hex-32 generado en el registro |
+
+**Comportamiento:**
+- Busca al usuario por `token_verificacion`.
+- Si no existe o ya fue usado → responde `200` con una página HTML de error.
+- Si existe → actualiza `correo_verificado: true` y `token_verificacion: null`, luego redirige al deep link de la app.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `302` | Token válido. Redirige a `roomies://verificacion?status=success`. |
+| `200` | Token inválido o ya utilizado. Devuelve HTML con mensaje de error. |
 
 ---
 
@@ -65,6 +91,7 @@ Autentica un usuario y devuelve un JWT.
 |---|---|
 | `200` | Login correcto. Devuelve token JWT + datos del usuario sin `password_hash`. |
 | `401` | Credenciales inválidas (email no existe o contraseña incorrecta). |
+| `403` | El correo del usuario aún no ha sido verificado. |
 
 **Ejemplo respuesta 200:**
 ```json
