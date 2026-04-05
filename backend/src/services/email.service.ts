@@ -1,5 +1,10 @@
 import nodemailer from 'nodemailer';
 
+// ── Diagnóstico de variables de entorno ──────────────────────────────────────
+console.log('[email.service] EMAIL_USER:', process.env['EMAIL_USER'] ?? '⚠️  NO DEFINIDA');
+console.log('[email.service] EMAIL_PASS:', process.env['EMAIL_PASS'] ? '****** (definida)' : '⚠️  NO DEFINIDA');
+console.log('[email.service] BACKEND_URL:', process.env['BACKEND_URL'] ?? '⚠️  NO DEFINIDA (fallback localhost:3001)');
+
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
@@ -11,6 +16,8 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
+  debug: true,
+  logger: true,
 });
 
 transporter.verify((error) => {
@@ -24,8 +31,11 @@ transporter.verify((error) => {
 export async function enviarMagicLink(email: string, nombre: string, token: string): Promise<void> {
   const url = `${process.env['BACKEND_URL'] ?? 'http://localhost:3001'}/api/auth/verificar/${token}`;
 
+  console.log(`[enviarMagicLink] Intentando enviar a: ${email}`);
+  console.log(`[enviarMagicLink] URL del magic link: ${url}`);
+
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"Roomies App" <${process.env['EMAIL_USER']}>`,
       to: email,
       subject: '¡Bienvenido a Roomies! Verifica tu cuenta',
@@ -48,6 +58,8 @@ export async function enviarMagicLink(email: string, nombre: string, token: stri
         </div>
       `,
     });
+
+    console.log(`[enviarMagicLink] ✅ Correo enviado. messageId: ${info.messageId}`);
   } catch (error) {
     console.error('❌ Error al enviar el correo:', error);
     throw error;
