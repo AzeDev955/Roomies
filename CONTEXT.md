@@ -77,12 +77,19 @@ Roomies/
 │   │   │   │   ├── viviendas.tsx       ← lista de viviendas del casero
 │   │   │   │   ├── tablon.tsx          ← tablón del casero (auto-fetch viviendaId)
 │   │   │   │   └── perfil.tsx          ← re-export de app/perfil.tsx
+│   │   │   ├── inquilino/
+│   │   │   │   └── [id].tsx            ← perfil del inquilino (accesible desde tarjeta de habitación)
 │   │   │   └── vivienda/
-│   │   │       ├── [id].tsx            ← detalle vivienda + habitaciones + inquilinos
 │   │   │       └── [id]/
+│   │   │           ├── _layout.tsx
 │   │   │           ├── nueva-habitacion.tsx
-│   │   │           ├── editar-habitacion.tsx
-│   │   │           └── incidencias.tsx ← lista de incidencias de la vivienda
+│   │   │           ├── editar-habitacion.tsx   ← incluye Expulsar inquilino + Eliminar habitación
+│   │   │           └── (tabs)/
+│   │   │               ├── _layout.tsx         ← Tab bar vivienda: Resumen | Incidencias | Tablón | Limpieza
+│   │   │               ├── index.tsx           ← Centro de Mando: header card + quick actions + habitaciones
+│   │   │               ├── incidencias.tsx     ← lista de incidencias de la vivienda
+│   │   │               ├── tablon.tsx          ← tablón de la vivienda
+│   │   │               └── limpieza.tsx        ← calendario y gestión de limpieza
 │   │   ├── inquilino/
 │   │   │   ├── _layout.tsx             ← Stack del inquilino
 │   │   │   ├── nueva-incidencia.tsx
@@ -117,12 +124,15 @@ Roomies/
 │   │   ├── casero/
 │   │   │   ├── viviendas.styles.ts
 │   │   │   ├── nueva-vivienda.styles.ts
+│   │   │   ├── inquilino/
+│   │   │   │   └── perfil.styles.ts        ← estilos de casero/inquilino/[id].tsx
 │   │   │   └── vivienda/
-│   │   │       ├── detalle.styles.ts       ← estilos de [id].tsx
+│   │   │       ├── detalle.styles.ts       ← estilos de (tabs)/index.tsx (Centro de Mando)
 │   │   │       ├── incidencias.styles.ts
+│   │   │       ├── limpieza.styles.ts
 │   │   │       └── nueva-habitacion.styles.ts  ← reutilizado también por editar-habitacion.tsx
 │   │   ├── inquilino/
-│   │   │   ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD
+│   │   │   ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD, estilos del modal compañero
 │   │   │   └── nueva-incidencia.styles.ts  ← incluye COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD
 │   │   ├── incidencia/
 │   │   │   └── detalle.styles.ts
@@ -235,11 +245,13 @@ Roomies/
 
 ### Inquilino — `/inquilino`
 
-| Método | Ruta                    | Auth | Descripción                                                      |
-| ------ | ----------------------- | ---- | ---------------------------------------------------------------- |
-| POST   | `/inquilino/unirse`     | Sí   | Canjear código de invitación                                     |
-| GET    | `/inquilino/vivienda`   | Sí   | Vivienda completa del inquilino (habitaciones + inquilinos)      |
-| DELETE | `/inquilino/habitacion` | Sí   | El inquilino abandona su habitación (pone `inquilino_id` a null) |
+| Método | Ruta                         | Auth | Descripción                                                                                          |
+| ------ | ---------------------------- | ---- | ---------------------------------------------------------------------------------------------------- |
+| POST   | `/inquilino/unirse`          | Sí   | Canjear código de invitación                                                                         |
+| GET    | `/inquilino/vivienda`        | Sí   | Vivienda completa del inquilino (habitaciones + inquilinos)                                          |
+| DELETE | `/inquilino/habitacion`      | Sí   | El inquilino abandona su habitación (pone `inquilino_id` a null)                                     |
+| GET    | `/inquilino/companeros/:id`  | Sí   | Perfil del compañero (nombre, apellidos, email, telefono). Verifica que ambos comparten vivienda     |
+| GET    | `/inquilino/:id/perfil`      | Sí   | Perfil del inquilino accesible por el casero. Verifica que el inquilino vive en una propiedad suya   |
 
 ### Incidencias — `/incidencias`
 
@@ -344,6 +356,7 @@ El backend en Docker ejecuta al arrancar:
 - **Variables de entorno**: solo `EXPO_PUBLIC_*` son accesibles en el frontend. Se leen con `process.env.EXPO_PUBLIC_*`.
 - **Autocompletado de habitaciones**: al seleccionar tipo BANO, COCINA o SALON en los formularios de habitación, el campo nombre se rellena automáticamente con el nombre canónico. Sigue siendo editable.
 - **Portapapeles y códigos**: los códigos se almacenan con prefijo `ROOM-` en la BD, pero al copiar al portapapeles se limpia el prefijo con `/^room[-\s]*/i` para que el inquilino solo pegue la parte alfanumérica.
+- **Contadores en lista de viviendas**: `habitacionesHabitables` filtra `hab.tipo === 'DORMITORIO'`; `inquilinosActuales` cuenta las habitables con `inquilino_id !== null`. No usar `habitaciones.length` directamente (incluye zonas comunes).
 
 ### Routing (expo-router)
 
@@ -354,7 +367,8 @@ El backend en Docker ejecuta al arrancar:
 - Cada rol tiene su propio grupo `(tabs)` con tres pestañas:
   - **Casero**: Mis viviendas (`viviendas`) · Tablón (`tablon`) · Perfil (`perfil`)
   - **Inquilino**: Mi vivienda (`inicio`) · Tablón (`tablon`) · Perfil (`perfil`)
-- Las pantallas de formulario/detalle (nueva vivienda, detalle vivienda, nueva incidencia, detalle incidencia) se apilan sobre el tab bar gracias al `Stack` en `casero/_layout.tsx` e `inquilino/_layout.tsx`.
+- La pantalla de detalle de vivienda (`casero/vivienda/[id]`) también usa un grupo `(tabs)` propio con cuatro pestañas: **Resumen** (`index`) · **Incidencias** · **Tablón** · **Limpieza**. El layout tiene botón ← nativo y su propio tab bar.
+- Las pantallas de formulario (nueva vivienda, nueva habitación, editar habitación, nueva incidencia, detalle incidencia, perfil de inquilino) se apilan sobre el tab bar gracias al `Stack` en `casero/_layout.tsx` e `inquilino/_layout.tsx`.
 - El tablón es un tab autónomo: obtiene `viviendaId` vía API en lugar de recibirlo por URL.
 - La pestaña "Perfil" de cada rol es un re-export de `app/perfil.tsx` para evitar duplicación.
 
@@ -390,7 +404,7 @@ El backend en Docker ejecuta al arrancar:
 2. `POST /inquilino/unirse` con `{ codigo_invitacion: "ROOM-XXXXXX" }` → queda asignado a la habitación.
 3. Accede al dashboard `inquilino/(tabs)/inicio`:
    - `GET /inquilino/vivienda` carga la vivienda completa con todas las habitaciones e inquilinos.
-   - Sección "Compañeros de piso": dormitorios con inquilino asignado (excepto el propio).
+   - Sección "Compañeros de piso": dormitorios con inquilino asignado (excepto el propio). Cada compañero es tappable: abre un `Modal` con fondo semitransparente que muestra nombre, apellidos y — tras fetch async a `GET /inquilino/companeros/:id` — email (icono `mail-outline`) y teléfono (icono `call-outline`) si están disponibles.
    - Sección "Zonas comunes": habitaciones que no son DORMITORIO.
    - Sección "Incidencias": `GET /incidencias` filtra por la vivienda del inquilino.
 4. Puede crear incidencias desde `inquilino/nueva-incidencia`:
@@ -399,8 +413,8 @@ El backend en Docker ejecuta al arrancar:
    - En el dashboard, cada tarjeta de incidencia muestra un selector de estado (3 pills: Pendiente / En proceso / Resuelta) si el inquilino tiene permiso, o el estado como texto de solo lectura si no. Permisos: es creador **o** la incidencia está en su dormitorio **o** está en una zona común.
 5. **Ciclo de vida**:
    - El inquilino puede abandonar su habitación: botón "Abandonar Vivienda" (outline rojo) al final del dashboard → `DELETE /inquilino/habitacion` → la pantalla regresa al onboarding de forma inmediata (reset de estado local, sin navegación).
-   - El casero puede expulsar a un inquilino: botón "Expulsar" dentro de la tarjeta de habitación ocupada → `DELETE /viviendas/:id/habitaciones/:habId/inquilino` → la tarjeta se actualiza de forma reactiva sin recargar la pantalla.
-   - Eliminar la habitación en sí sigue fallando (400) si aún tiene inquilino asignado.
+   - El casero puede expulsar a un inquilino: pulsando la tarjeta de habitación → `editar-habitacion` → botón "Expulsar al inquilino" (visible solo si hay inquilino) → `DELETE /viviendas/:id/habitaciones/:habId/inquilino` → `router.back()`.
+   - Eliminar la habitación también se hace desde `editar-habitacion` (botón "Eliminar habitación", siempre visible); falla en backend (400) si aún tiene inquilino asignado.
 
 ---
 
