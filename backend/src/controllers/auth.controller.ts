@@ -28,9 +28,8 @@ export const register: express.RequestHandler = async (req, res) => {
   }
 
   const password_hash = await bcrypt.hash(password, 10);
-  const token_verificacion = crypto.randomBytes(32).toString('hex');
 
-  await prisma.usuario.create({
+  const usuario = await prisma.usuario.create({
     data: {
       nombre,
       apellidos,
@@ -39,19 +38,23 @@ export const register: express.RequestHandler = async (req, res) => {
       password_hash,
       telefono,
       rol,
-      correo_verificado: false,
-      token_verificacion,
+      correo_verificado: true, // Verificación deshabilitada temporalmente por bloqueo SMTP en producción
     },
   });
 
-  // Enviar el magic link en segundo plano — no bloqueamos la respuesta
-  enviarMagicLink(email, nombre, token_verificacion).catch((err) =>
-    console.error('Error enviando magic link:', err)
+  // enviarMagicLink deshabilitado temporalmente — puertos SMTP bloqueados en Railway
+  // enviarMagicLink(email, nombre, token_verificacion).catch((err) =>
+  //   console.error('Error enviando magic link:', err)
+  // );
+
+  const token = jwt.sign(
+    { id: usuario.id, rol: usuario.rol },
+    process.env['JWT_SECRET']!,
+    { expiresIn: '7d' }
   );
 
-  res.status(201).json({
-    mensaje: 'Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión.',
-  });
+  const { password_hash: _omit, ...usuarioSinPassword } = usuario;
+  res.status(201).json({ token, usuario: usuarioSinPassword });
 };
 
 export const verificarEmail: express.RequestHandler = async (req, res) => {
@@ -100,10 +103,11 @@ export const login: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  if (!usuario.correo_verificado) {
-    res.status(403).json({ error: 'Debes verificar tu correo antes de iniciar sesión.' });
-    return;
-  }
+  // Guard de correo_verificado deshabilitado temporalmente — puertos SMTP bloqueados en Railway
+  // if (!usuario.correo_verificado) {
+  //   res.status(403).json({ error: 'Debes verificar tu correo antes de iniciar sesión.' });
+  //   return;
+  // }
 
   const passwordOk = await bcrypt.compare(password, usuario.password_hash);
 
