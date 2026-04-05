@@ -1,9 +1,11 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
+import { enviarMagicLink } from '../services/email.service';
 
 export const register: express.RequestHandler = async (req, res) => {
   const { nombre, apellidos, documento_identidad, email, password, telefono, rol } = req.body as {
@@ -26,13 +28,59 @@ export const register: express.RequestHandler = async (req, res) => {
   }
 
   const password_hash = await bcrypt.hash(password, 10);
+  const token_verificacion = crypto.randomBytes(32).toString('hex');
 
-  const usuario = await prisma.usuario.create({
-    data: { nombre, apellidos, documento_identidad, email, password_hash, telefono, rol },
+  await prisma.usuario.create({
+    data: {
+      nombre,
+      apellidos,
+      documento_identidad,
+      email,
+      password_hash,
+      telefono,
+      rol,
+      correo_verificado: false,
+      token_verificacion,
+    },
   });
 
-  const { password_hash: _omit, ...usuarioSinPassword } = usuario;
-  res.status(201).json(usuarioSinPassword);
+  // Enviar el magic link en segundo plano — no bloqueamos la respuesta
+  enviarMagicLink(email, nombre, token_verificacion).catch((err) =>
+    console.error('Error enviando magic link:', err)
+  );
+
+  res.status(201).json({
+    mensaje: 'Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión.',
+  });
+};
+
+export const verificarEmail: express.RequestHandler = async (req, res) => {
+  const { token } = req.params as { token: string };
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { token_verificacion: token },
+  });
+
+  if (!usuario) {
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head><meta charset="UTF-8"><title>Enlace inválido</title></head>
+      <body style="font-family:Arial,sans-serif;text-align:center;padding:60px;color:#212529;">
+        <h2 style="color:#FF3B30;">Enlace inválido o expirado</h2>
+        <p>Este enlace de verificación no existe o ya fue utilizado.</p>
+      </body>
+      </html>
+    `);
+    return;
+  }
+
+  await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: { correo_verificado: true, token_verificacion: null },
+  });
+
+  res.redirect('roomies://verificacion?status=success');
 };
 
 export const login: express.RequestHandler = async (req, res) => {
@@ -49,6 +97,11 @@ export const login: express.RequestHandler = async (req, res) => {
 
   if (!usuario.password_hash) {
     res.status(401).json({ error: 'Esta cuenta usa Google para iniciar sesión.' });
+    return;
+  }
+
+  if (!usuario.correo_verificado) {
+    res.status(403).json({ error: 'Debes verificar tu correo antes de iniciar sesión.' });
     return;
   }
 
@@ -106,12 +159,13 @@ export const loginConGoogle: express.RequestHandler = async (req, res) => {
         email,
         google_id: googleId,
         rol: RolUsuario.INQUILINO,
+        correo_verificado: true, // Google ya verificó el email
       },
     });
   } else if (!usuario.google_id) {
     usuario = await prisma.usuario.update({
       where: { id: usuario.id },
-      data: { google_id: googleId },
+      data: { google_id: googleId, correo_verificado: true },
     });
   }
 

@@ -1,10 +1,11 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, Alert } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { styles } from '@/styles/index.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
@@ -18,6 +19,16 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const url = Linking.useURL();
+
+  useEffect(() => {
+    if (!url) return;
+    const { path, queryParams } = Linking.parse(url);
+    if (path === 'verificacion' && queryParams?.['status'] === 'success') {
+      Alert.alert('¡Éxito!', 'Tu correo ha sido verificado. Ya puedes iniciar sesión.');
+    }
+  }, [url]);
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,

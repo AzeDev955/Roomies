@@ -164,8 +164,10 @@ Roomies/
 | `email`         | String unique  |                                               |
 | `password_hash` | String?        | null si el usuario se registró con Google     |
 | `google_id`     | String? unique | null si el usuario se registró con email/pass |
-| `telefono`      | String?        | obligatorio en registro manual                |
-| `rol`           | RolUsuario     | `CASERO` \| `INQUILINO`                       |
+| `telefono`           | String?        | obligatorio en registro manual                |
+| `rol`                | RolUsuario     | `CASERO` \| `INQUILINO`                       |
+| `correo_verificado`  | Boolean        | `@default(false)`; el login lo exige en `true` |
+| `token_verificacion` | String?        | token hex-32 generado al registrarse; null tras verificar |
 
 ### `Vivienda`
 
@@ -225,8 +227,9 @@ Roomies/
 
 | Método | Ruta             | Auth | Descripción                                                                                           |
 | ------ | ---------------- | ---- | ----------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/register` | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol` |
-| POST   | `/auth/login`    | No   | Login con email/pass                                                                                  |
+| POST   | `/auth/register`         | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol`. Devuelve `{ mensaje }`. Envía magic link al email. |
+| GET    | `/auth/verificar/:token` | No   | Verifica el correo. Si OK → redirect `roomies://verificacion?status=success`. |
+| POST   | `/auth/login`            | No   | Login con email/pass. Devuelve `403` si `correo_verificado` es `false`.      |
 | POST   | `/auth/google`   | No   | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean`                           |
 | GET    | `/auth/me`       | Sí   | Perfil del usuario autenticado                                                                        |
 | PATCH  | `/auth/rol`      | Sí   | Actualiza el rol del usuario y re-emite el JWT. Body: `{ rol: "CASERO" \| "INQUILINO" }`              |
