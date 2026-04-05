@@ -3,10 +3,10 @@ import dns from 'node:dns';
 
 dns.setDefaultResultOrder('ipv4first');
 
-// ── Diagnóstico de variables de entorno ──────────────────────────────────────
-console.log('[email.service] EMAIL_USER:', process.env['EMAIL_USER'] ?? '⚠️  NO DEFINIDA');
-console.log('[email.service] EMAIL_PASS:', process.env['EMAIL_PASS'] ? '****** (definida)' : '⚠️  NO DEFINIDA');
-console.log('[email.service] BACKEND_URL:', process.env['BACKEND_URL'] ?? '⚠️  NO DEFINIDA (fallback localhost:3001)');
+// ── Diagnóstico de variables de entorno (deshabilitado) ──────────────────────
+// console.log('[email.service] EMAIL_USER:', process.env['EMAIL_USER'] ?? '⚠️  NO DEFINIDA');
+// console.log('[email.service] EMAIL_PASS:', process.env['EMAIL_PASS'] ? '****** (definida)' : '⚠️  NO DEFINIDA');
+// console.log('[email.service] BACKEND_URL:', process.env['BACKEND_URL'] ?? '⚠️  NO DEFINIDA (fallback localhost:3001)');
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -24,13 +24,14 @@ const transporter = nodemailer.createTransport({
   logger: true,
 });
 
-transporter.verify((error) => {
-  if (error) {
-    console.error('❌ Error de conexión Nodemailer:', error);
-  } else {
-    console.log('✅ Nodemailer conectado a Gmail correctamente');
-  }
-});
+// transporter.verify deshabilitado temporalmente — verificación SMTP pendiente de resolución de red
+// transporter.verify((error) => {
+//   if (error) {
+//     console.error('❌ Error de conexión Nodemailer:', error);
+//   } else {
+//     console.log('✅ Nodemailer conectado a Gmail correctamente');
+//   }
+// });
 
 export async function enviarMagicLink(email: string, nombre: string, token: string): Promise<void> {
   const url = `${process.env['BACKEND_URL'] ?? 'http://localhost:3001'}/api/auth/verificar/${token}`;

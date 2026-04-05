@@ -103,9 +103,13 @@ export default function RegistroScreen() {
 
     setLoading(true);
     try {
-      await api.post('/auth/register', { nombre, apellidos, documento_identidad, email, telefono, password, rol });
-      Toast.show({ type: 'success', text1: '¡Cuenta creada!', text2: 'Ya puedes iniciar sesión con tus credenciales.' });
-      router.replace('/');
+      const { data } = await api.post<{ token: string; usuario: { rol: string } }>(
+        '/auth/register',
+        { nombre, apellidos, documento_identidad, email, telefono, password, rol }
+      );
+      await guardarToken(data.token);
+      const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
+      router.replace(destino);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo crear la cuenta. Inténtalo de nuevo.';
       Toast.show({ type: 'error', text1: mensaje });
