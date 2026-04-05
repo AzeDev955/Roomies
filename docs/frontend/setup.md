@@ -152,6 +152,31 @@ Cada rol tiene su propio grupo `(tabs)` con tres pestañas:
 
 El grupo `(tabs)` es transparente en URLs: `/casero/viviendas` resuelve a `casero/(tabs)/viviendas.tsx`. Las rutas que no son tabs (detalle de vivienda, nueva vivienda, nueva incidencia, detalle de incidencia) se apilan sobre el tab bar gracias al `Stack` en `casero/_layout.tsx` e `inquilino/_layout.tsx`.
 
+### Deep Linking — Custom Scheme `roomies://`
+
+`app.json` define `"scheme": "roomies"`. El sistema operativo intercepta cualquier URL con ese prefijo y abre la app directamente.
+
+El único deep link activo actualmente es el que emite el backend al verificar el correo:
+
+```
+roomies://verificacion?status=success
+```
+
+`app/index.tsx` escucha este link con `Linking.useURL()`:
+
+```tsx
+const url = Linking.useURL();
+useEffect(() => {
+  if (!url) return;
+  const { path, queryParams } = Linking.parse(url);
+  if (path === 'verificacion' && queryParams?.['status'] === 'success') {
+    Alert.alert('¡Éxito!', 'Tu correo ha sido verificado. Ya puedes iniciar sesión.');
+  }
+}, [url]);
+```
+
+> En Expo Go el deep link funciona siempre. En APK nativo (`com.azeron955.roomies`) el sistema registra el scheme durante la instalación — no se necesita configuración adicional de Android.
+
 ### Guard de sesión en `_layout.tsx`
 
 Al montar la app, el layout raíz verifica automáticamente si existe un JWT válido:
@@ -350,3 +375,5 @@ adb logcat -s ReactNativeJS AndroidRuntime
 | Auth biométrica por habitación | Estado `Record<number, boolean>` independiente — revelar un código no afecta al resto |
 | Google OAuth via backend verification | El `idToken` siempre se verifica en el servidor — el frontend nunca decide si un token de Google es válido |
 | Prefijo `ROOM-` eliminado al copiar | Los códigos se almacenan con prefijo en la BD pero el inquilino solo pega la parte alfanumérica |
+| Deep link `roomies://` para verificación | El backend redirige al scheme propio tras verificar el email — el frontend captura el evento con `Linking.useURL()` sin necesidad de una ruta de Expo Router adicional |
+| Google OAuth marca `correo_verificado: true` | Google ya verificó el email — marcar el campo automáticamente evita bloquear a usuarios OAuth en el login |
