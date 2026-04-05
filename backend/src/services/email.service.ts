@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import dns from 'node:dns';
+
+dns.setDefaultResultOrder('ipv4first');
 
 // ── Diagnóstico de variables de entorno ──────────────────────────────────────
 console.log('[email.service] EMAIL_USER:', process.env['EMAIL_USER'] ?? '⚠️  NO DEFINIDA');
