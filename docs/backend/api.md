@@ -18,11 +18,21 @@ Registra un nuevo usuario en el sistema.
 |---|---|---|---|
 | `nombre` | string | Sí | Nombre del usuario |
 | `apellidos` | string | Sí | Apellidos del usuario |
-| `dni` | string | Sí | DNI (único en el sistema) |
-| `email` | string | Sí | Email (único en el sistema) |
-| `password` | string | Sí | Contraseña en texto plano (se hashea con bcrypt) |
+| `documento_identidad` | string | Sí | DNI, NIE o pasaporte (único en el sistema). Ver reglas de validación abajo. |
+| `email` | string | Sí | Email con formato válido (único en el sistema) |
+| `password` | string | Sí | Contraseña en texto plano (se hashea con bcrypt). Mínimo 8 caracteres, al menos una mayúscula y un número. |
 | `telefono` | string | Sí | Teléfono de contacto |
 | `rol` | `CASERO` \| `INQUILINO` | Sí | Rol del usuario |
+
+**Validación del campo `documento_identidad`:**
+
+El campo se valida en el middleware `validate(registroSchema)` (Zod) antes de llegar al controlador:
+
+- Formato general: alfanumérico, entre 6 y 15 caracteres (`/^[A-Z0-9]{6,15}$/i`).
+- Si el valor empieza por dígito o por `X`, `Y` o `Z` (formato DNI/NIE español), se aplica adicionalmente el algoritmo del módulo 23:
+  - **DNI**: 8 dígitos + letra de control (`TRWAGMYFPDXBNJZSQVHLCKE[n % 23]`).
+  - **NIE**: prefijo `X/Y/Z` (→ `0/1/2`) + 7 dígitos + letra de control.
+- Cualquier otro string alfanumérico de 6-15 caracteres se acepta como pasaporte internacional.
 
 **Comportamiento:**
 1. Crea el usuario con `correo_verificado: false` y un `token_verificacion` aleatorio (hex-32).
@@ -35,12 +45,37 @@ Registra un nuevo usuario en el sistema.
 | Código | Descripción |
 |---|---|
 | `201` | Usuario creado. Devuelve `{ mensaje }` indicando que debe revisar el correo. |
-| `400` | El email o DNI ya está registrado. |
+| `400` | Datos inválidos (validación Zod) — devuelve `{ error, errores: [{ campo, mensaje }] }`. |
+| `400` | El email o documento de identidad ya está registrado. |
+
+**Ejemplo body:**
+```json
+{
+  "nombre": "Ana",
+  "apellidos": "García López",
+  "documento_identidad": "12345678Z",
+  "email": "ana@example.com",
+  "password": "Segura123",
+  "telefono": "600123456",
+  "rol": "CASERO"
+}
+```
 
 **Ejemplo respuesta 201:**
 ```json
 {
   "mensaje": "Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión."
+}
+```
+
+**Ejemplo respuesta 400 (validación Zod):**
+```json
+{
+  "error": "Datos de registro inválidos.",
+  "errores": [
+    { "campo": "documento_identidad", "mensaje": "El DNI o NIE introducido no es válido" },
+    { "campo": "password", "mensaje": "La contraseña debe contener al menos una letra mayúscula" }
+  ]
 }
 ```
 
@@ -101,7 +136,7 @@ Autentica un usuario y devuelve un JWT.
     "id": 1,
     "nombre": "Ana",
     "apellidos": "García López",
-    "dni": "12345678A",
+    "documento_identidad": "12345678Z",
     "email": "ana@example.com",
     "telefono": "600123456",
     "rol": "CASERO"

@@ -16,7 +16,7 @@ async function main() {
     create: {
       nombre: 'Carlos',
       apellidos: 'García López',
-      dni: '11111111A',
+      documento_identidad: '11111111A',
       email: 'casero@test.com',
       password_hash: await hash('casero123'),
       telefono: '600111111',
@@ -26,11 +26,11 @@ async function main() {
 
   // ── Inquilinos ───────────────────────────────────────────────────────────────
   const inquilinosData = [
-    { nombre: 'Ana',    apellidos: 'Martínez Ruiz',    dni: '22222222B', email: 'ana@test.com',    tel: '600222222' },
-    { nombre: 'Bruno',  apellidos: 'Sánchez Vega',     dni: '33333333C', email: 'bruno@test.com',  tel: '600333333' },
-    { nombre: 'Carmen', apellidos: 'López Fuentes',    dni: '44444444D', email: 'carmen@test.com', tel: '600444444' },
-    { nombre: 'Diego',  apellidos: 'Romero Iglesias',  dni: '55555555E', email: 'diego@test.com',  tel: '600555555' },
-    { nombre: 'Elena',  apellidos: 'Fernández Castro', dni: '66666666F', email: 'elena@test.com',  tel: '600666666' },
+    { nombre: 'Ana',    apellidos: 'Martínez Ruiz',    documento_identidad: '22222222B', email: 'ana@test.com',    tel: '600222222' },
+    { nombre: 'Bruno',  apellidos: 'Sánchez Vega',     documento_identidad: '33333333C', email: 'bruno@test.com',  tel: '600333333' },
+    { nombre: 'Carmen', apellidos: 'López Fuentes',    documento_identidad: '44444444D', email: 'carmen@test.com', tel: '600444444' },
+    { nombre: 'Diego',  apellidos: 'Romero Iglesias',  documento_identidad: '55555555E', email: 'diego@test.com',  tel: '600555555' },
+    { nombre: 'Elena',  apellidos: 'Fernández Castro', documento_identidad: '66666666F', email: 'elena@test.com',  tel: '600666666' },
   ];
 
   const pw = await hash('inquilino123');
@@ -42,7 +42,7 @@ async function main() {
         create: {
           nombre: i.nombre,
           apellidos: i.apellidos,
-          dni: i.dni,
+          documento_identidad: i.documento_identidad,
           email: i.email,
           password_hash: pw,
           telefono: i.tel,
