@@ -160,7 +160,7 @@ Roomies/
 | `id`            | Int PK         | autoincrement                                 |
 | `nombre`        | String         | obligatorio                                   |
 | `apellidos`     | String?        | opcional (OAuth no siempre lo provee)         |
-| `dni`           | String? unique | obligatorio en registro manual                |
+| `documento_identidad` | String? unique | obligatorio en registro manual (DNI, NIE o pasaporte) |
 | `email`         | String unique  |                                               |
 | `password_hash` | String?        | null si el usuario se registró con Google     |
 | `google_id`     | String? unique | null si el usuario se registró con email/pass |
@@ -225,7 +225,7 @@ Roomies/
 
 | Método | Ruta             | Auth | Descripción                                                                                           |
 | ------ | ---------------- | ---- | ----------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/register` | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `dni`, `email`, `telefono`, `password`, `rol` |
+| POST   | `/auth/register` | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol` |
 | POST   | `/auth/login`    | No   | Login con email/pass                                                                                  |
 | POST   | `/auth/google`   | No   | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean`                           |
 | GET    | `/auth/me`       | Sí   | Perfil del usuario autenticado                                                                        |

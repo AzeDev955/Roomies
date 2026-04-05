@@ -92,6 +92,9 @@ frontend/
   services/
     api.ts                                    # Instancia Axios centralizada con interceptor JWT
     auth.service.ts                           # guardarToken / obtenerToken / eliminarToken (SecureStore)
+  utils/
+    validaciones.ts                           # Funciones puras standalone: validarDniNie, validarPasaporte, validarPassword
+    schemas.ts                                # Esquemas Zod: dniNieSchema, pasaporteSchema, passwordSchema
   styles/
     index.styles.ts
     registro.styles.ts
@@ -121,7 +124,7 @@ frontend/
 | Ruta | Archivo | Descripción |
 |---|---|---|
 | `/` | `app/index.tsx` | Login — POST `/auth/login` + Google OAuth |
-| `/registro` | `app/registro.tsx` | Registro — POST `/auth/register` + Google OAuth |
+| `/registro` | `app/registro.tsx` | Registro — POST `/auth/register` + Google OAuth. Selector chips DNI/NIE \| Pasaporte, validación Zod inline. |
 | `/rol` | `app/rol.tsx` | Selector de rol post-OAuth (usuarios nuevos) |
 | `/perfil` | `app/perfil.tsx` | GET `/auth/me` + logout |
 | `/casero/viviendas` | `casero/(tabs)/viviendas.tsx` | Lista viviendas del casero |
@@ -235,6 +238,15 @@ Categorías: `colors` (16 tokens) · `spacing` (xs→xl) · `radius` (sm→full)
 | `CustomButton` | `label`, `variant`, `disabled`, `loading` | Reemplaza todos los `Pressable`-botón con estilos inline |
 | `Card` | `children`, `onPress?` | Contenedor con sombra; `Pressable` si recibe `onPress`, `View` si no |
 | `CustomInput` | `label`, `error?`, `secureToggle?` | Input con label en uppercase, borde focus/error, toggle de contraseña integrado |
+
+### Validaciones (`utils/`)
+
+| Archivo | Exports | Descripción |
+|---|---|---|
+| `validaciones.ts` | `validarDniNie`, `validarPasaporte`, `validarPassword` | Funciones puras sin dependencias externas. Útiles para lógica fuera de formularios. |
+| `schemas.ts` | `dniNieSchema`, `pasaporteSchema`, `passwordSchema` | Esquemas Zod reutilizables. Usar `.safeParse()` para obtener errores tipados con mensaje. |
+
+`dniNieSchema` aplica el algoritmo módulo 23 oficial (DNI de 8 dígitos + NIE X/Y/Z). `passwordSchema` encadena `.min(8)` + dos `.regex()` con mensajes independientes — `safeParse` devuelve el primer fallo encontrado.
 
 Variantes de `CustomButton`: `primary` · `secondary` · `outline` · `danger` · `success`
 
@@ -350,3 +362,5 @@ adb logcat -s ReactNativeJS AndroidRuntime
 | Auth biométrica por habitación | Estado `Record<number, boolean>` independiente — revelar un código no afecta al resto |
 | Google OAuth via backend verification | El `idToken` siempre se verifica en el servidor — el frontend nunca decide si un token de Google es válido |
 | Prefijo `ROOM-` eliminado al copiar | Los códigos se almacenan con prefijo en la BD pero el inquilino solo pega la parte alfanumérica |
+| Zod en formularios (schemas.ts) | `.safeParse()` devuelve `error.issues[0].message` directamente usable en `setErrorDoc` / `setErrorPassword` sin lógica adicional |
+| Selector chips DNI/NIE \| Pasaporte | Al cambiar de tipo se limpia el campo y el error — evita validar un DNI con el algoritmo de pasaporte |

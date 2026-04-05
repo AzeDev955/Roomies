@@ -6,10 +6,10 @@ import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
 
 export const register: express.RequestHandler = async (req, res) => {
-  const { nombre, apellidos, dni, email, password, telefono, rol } = req.body as {
+  const { nombre, apellidos, documento_identidad, email, password, telefono, rol } = req.body as {
     nombre: string;
     apellidos: string;
-    dni: string;
+    documento_identidad: string;
     email: string;
     password: string;
     telefono: string;
@@ -17,18 +17,18 @@ export const register: express.RequestHandler = async (req, res) => {
   };
 
   const existing = await prisma.usuario.findFirst({
-    where: { OR: [{ email }, { dni }] },
+    where: { OR: [{ email }, { documento_identidad }] },
   });
 
   if (existing) {
-    res.status(400).json({ error: 'El email o DNI ya está registrado.' });
+    res.status(400).json({ error: 'El email o documento de identidad ya está registrado.' });
     return;
   }
 
   const password_hash = await bcrypt.hash(password, 10);
 
   const usuario = await prisma.usuario.create({
-    data: { nombre, apellidos, dni, email, password_hash, telefono, rol },
+    data: { nombre, apellidos, documento_identidad, email, password_hash, telefono, rol },
   });
 
   const { password_hash: _omit, ...usuarioSinPassword } = usuario;
