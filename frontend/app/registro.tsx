@@ -11,6 +11,7 @@ import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { dniNieSchema, pasaporteSchema, passwordSchema } from '@/utils/schemas';
+import { syncPushToken } from '@/utils/notifications';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -108,6 +109,7 @@ export default function RegistroScreen() {
         { nombre, apellidos, documento_identidad, email, telefono, password, rol }
       );
       await guardarToken(data.token);
+      syncPushToken();
       const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
       router.replace(destino);
     } catch (err: any) {
