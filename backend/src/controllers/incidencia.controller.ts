@@ -19,15 +19,21 @@ const LABEL_ESTADO: Record<EstadoIncidencia, string> = {
 };
 
 export const crearIncidencia: express.RequestHandler = async (req, res) => {
-  const { titulo, descripcion, vivienda_id, prioridad, habitacion_id } = req.body as {
+  const {
+    titulo,
+    descripcion,
+    prioridad,
+    vivienda_id: viviendaIdBody,
+    habitacion_id,
+  } = req.body as {
     titulo: string;
     descripcion: string;
-    vivienda_id: number;
     prioridad?: PrioridadIncidencia;
+    vivienda_id?: number;
     habitacion_id?: number;
   };
 
-  if (!titulo || !descripcion || !vivienda_id) {
+  if (!titulo || !descripcion) {
     res.status(400).json({ error: 'Faltan campos obligatorios.' });
     return;
   }
@@ -40,14 +46,18 @@ export const crearIncidencia: express.RequestHandler = async (req, res) => {
   const usuarioId = req.usuario!.id;
   const rol = req.usuario!.rol;
 
+  let vivienda_id: number;
+
   if (rol === RolUsuario.INQUILINO) {
+    // Deriva la vivienda de la habitación asignada al inquilino
     const habitacionPropia = await prisma.habitacion.findFirst({
-      where: { vivienda_id, inquilino_id: usuarioId },
+      where: { inquilino_id: usuarioId },
     });
     if (!habitacionPropia) {
-      res.status(403).json({ error: 'No tienes ninguna habitación asignada en esta vivienda.' });
+      res.status(403).json({ error: 'No tienes ninguna habitación asignada.' });
       return;
     }
+    vivienda_id = habitacionPropia.vivienda_id;
 
     if (habitacion_id) {
       const hab = await prisma.habitacion.findFirst({
@@ -63,10 +73,27 @@ export const crearIncidencia: express.RequestHandler = async (req, res) => {
       }
     }
   } else {
+    // CASERO: vivienda_id obligatorio en el body
+    if (!viviendaIdBody) {
+      res.status(400).json({ error: 'vivienda_id es obligatorio.' });
+      return;
+    }
+    vivienda_id = viviendaIdBody;
+
     const vivienda = await prisma.vivienda.findUnique({ where: { id: vivienda_id } });
     if (!vivienda || vivienda.casero_id !== usuarioId) {
       res.status(403).json({ error: 'Esta vivienda no te pertenece.' });
       return;
+    }
+
+    if (habitacion_id) {
+      const hab = await prisma.habitacion.findFirst({
+        where: { id: habitacion_id, vivienda_id },
+      });
+      if (!hab) {
+        res.status(400).json({ error: 'Habitación no encontrada en esta vivienda.' });
+        return;
+      }
     }
   }
 
