@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
+import { generarCodigoInvitacion } from '../utils/generarCodigo';
 
 export const obtenerPerfilInquilino: express.RequestHandler = async (req, res) => {
   const id = Number(req.params['id']);
@@ -98,9 +99,14 @@ export const unirseHabitacion: express.RequestHandler = async (req, res) => {
     return;
   }
 
+  const nuevoCodigo = await generarCodigoInvitacion();
+
   const habitacionActualizada = await prisma.habitacion.update({
     where: { codigo_invitacion },
-    data: { inquilino_id: req.usuario!.id },
+    data: {
+      inquilino_id: req.usuario!.id,
+      codigo_invitacion: nuevoCodigo, // burn after reading: el código antiguo queda invalidado al instante
+    },
     include: { vivienda: true },
   });
 
