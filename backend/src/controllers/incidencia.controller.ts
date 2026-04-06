@@ -1,19 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 import { RolUsuario, EstadoIncidencia, PrioridadIncidencia } from '../generated/prisma/client';
-import { enviarNotificacionPush } from '../services/notification.service';
-
-const LABEL_PRIORIDAD: Record<PrioridadIncidencia, string> = {
-  VERDE:    'Verde',
-  AMARILLO: 'Amarillo',
-  ROJO:     'Rojo',
-};
-
-const LABEL_ESTADO: Record<EstadoIncidencia, string> = {
-  PENDIENTE:  'Pendiente',
-  EN_PROCESO: 'En proceso',
-  RESUELTA:   'Resuelta',
-};
 
 const PRIORIDADES_VALIDAS = Object.values(PrioridadIncidencia);
 const ESTADOS_VALIDOS = Object.values(EstadoIncidencia);
@@ -79,23 +66,7 @@ export const crearIncidencia: express.RequestHandler = async (req, res) => {
       prioridad: prioridad ?? PrioridadIncidencia.VERDE,
       ...(habitacion_id ? { habitacion_id } : {}),
     },
-    include: {
-      creador: { select: { nombre: true } },
-      vivienda: { select: { casero_id: true } },
-    },
   });
-
-  // Notificar al casero solo si la prioridad es AMARILLO o ROJO
-  if (incidencia.prioridad !== PrioridadIncidencia.VERDE) {
-    const caseroId = incidencia.vivienda.casero_id;
-    if (caseroId !== usuarioId) {
-      enviarNotificacionPush(
-        [caseroId],
-        `🔧 ${LABEL_PRIORIDAD[incidencia.prioridad]} - Nueva incidencia`,
-        `${incidencia.creador.nombre} ha reportado: ${incidencia.titulo}`,
-      ).catch((err) => console.error('[push] Error notificando incidencia:', err));
-    }
-  }
 
   res.status(201).json(incidencia);
 };
@@ -306,15 +277,6 @@ export const actualizarEstadoIncidencia: express.RequestHandler = async (req, re
     where: { id },
     data: { estado },
   });
-
-  // Notificar al creador de la incidencia si no es quien está cambiando el estado
-  if (incidencia.creador_id !== usuarioId) {
-    enviarNotificacionPush(
-      [incidencia.creador_id],
-      '🛠️ Incidencia actualizada',
-      `El estado de "${incidencia.titulo}" ha cambiado a: ${LABEL_ESTADO[estado]}`,
-    ).catch((err) => console.error('[push] Error notificando cambio de estado:', err));
-  }
 
   res.status(200).json(incidenciaActualizada);
 };
