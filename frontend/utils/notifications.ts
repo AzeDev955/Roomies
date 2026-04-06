@@ -33,10 +33,21 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     return null;
   }
 
+  if (Constants.appOwnership === 'expo') {
+    console.warn('[push] Expo Go no soporta push tokens nativos. Saltando registro.');
+    return null;
+  }
+
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ?? 'e4004191-4922-49cd-9f17-6cacd52578d1';
 
-  const token = await Notifications.getExpoPushTokenAsync({ projectId });
+  let token: Awaited<ReturnType<typeof Notifications.getExpoPushTokenAsync>>;
+  try {
+    token = await Notifications.getExpoPushTokenAsync({ projectId });
+  } catch {
+    console.warn('[push] No se pudo obtener el token push en este entorno.');
+    return null;
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
