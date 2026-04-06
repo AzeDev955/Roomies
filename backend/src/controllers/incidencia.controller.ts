@@ -85,6 +85,7 @@ export const crearIncidencia: express.RequestHandler = async (req, res) => {
     },
   });
 
+  // Notificar al casero solo si la prioridad es AMARILLO o ROJO
   if (incidencia.prioridad !== PrioridadIncidencia.VERDE) {
     const caseroId = incidencia.vivienda.casero_id;
     if (caseroId !== usuarioId) {
@@ -306,6 +307,7 @@ export const actualizarEstadoIncidencia: express.RequestHandler = async (req, re
     data: { estado },
   });
 
+  // Notificar al creador si no es quien está cambiando el estado
   if (incidencia.creador_id !== usuarioId) {
     enviarNotificacionPush(
       [incidencia.creador_id],
