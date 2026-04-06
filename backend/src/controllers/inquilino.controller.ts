@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
+import { enviarNotificacionPush } from '../services/notification.service';
 
 export const obtenerPerfilInquilino: express.RequestHandler = async (req, res) => {
   const id = Number(req.params['id']);
@@ -107,13 +108,27 @@ export const unirseHabitacion: express.RequestHandler = async (req, res) => {
       inquilino_id: req.usuario!.id,
       codigo_invitacion: nuevoCodigo, // burn after reading: el código antiguo queda invalidado al instante
     },
-    include: { vivienda: true },
+    include: {
+      vivienda: true,
+      inquilino: { select: { nombre: true, apellidos: true } },
+    },
   });
 
   res.status(200).json({
     mensaje: 'Te has unido a la habitación correctamente.',
     habitacion: habitacionActualizada,
   });
+
+  // Notify casero async (fire-and-forget)
+  const caseroId = habitacionActualizada.vivienda.casero_id;
+  const nombre = habitacionActualizada.inquilino?.nombre ?? 'Un inquilino';
+  const apellidos = habitacionActualizada.inquilino?.apellidos ?? '';
+  const nombreCompleto = apellidos ? `${nombre} ${apellidos}` : nombre;
+  enviarNotificacionPush(
+    [caseroId],
+    '👋 Nuevo inquilino',
+    `${nombreCompleto} se ha unido a una de tus habitaciones.`,
+  ).catch(console.error);
 };
 
 export const abandonarHabitacion: express.RequestHandler = async (req, res) => {

@@ -11,6 +11,7 @@ import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { syncPushToken } from '@/utils/notifications';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -57,6 +58,7 @@ export default function LoginScreen() {
         { idToken }
       );
       await guardarToken(data.token);
+      syncPushToken();
       if (data.esNuevo) {
         router.replace('/rol');
       } else {
@@ -77,6 +79,7 @@ export default function LoginScreen() {
         { email, password }
       );
       await guardarToken(data.token);
+      syncPushToken();
       irAlDashboard(data.usuario.rol);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'Credenciales inválidas o sin conexión al servidor.';
