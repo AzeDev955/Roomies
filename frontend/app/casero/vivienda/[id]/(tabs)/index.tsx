@@ -252,10 +252,9 @@ export default function ResumenViviendaTab() {
             style={({ pressed }) => [styles.accionBtn, pressed && styles.accionBtnPressed]}
             onPress={() =>
               router.push({
-                pathname: '/inquilino/nueva-incidencia',
+                pathname: '/casero/vivienda/[id]/nueva-incidencia',
                 params: {
-                  viviendaId: vivienda.id,
-                  miHabitacionId: 0,
+                  id: vivienda.id,
                   habitacionesJson: JSON.stringify(vivienda.habitaciones),
                 },
               })
