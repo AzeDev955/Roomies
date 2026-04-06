@@ -8,6 +8,7 @@ import incidenciaRoutes from './routes/incidencia.routes';
 import anuncioRoutes from './routes/anuncio.routes';
 import limpiezaRoutes from './routes/limpieza.routes';
 import userRoutes from './routes/user.routes';
+import './services/cron.service';
 
 const app = express();
 const PORT = 3000;
