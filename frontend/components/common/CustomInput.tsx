@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, TextInput, TextInputProps, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Theme } from '@/constants/theme';
 import { styles } from './CustomInput.styles';
 
 interface CustomInputProps extends TextInputProps {
@@ -27,12 +29,21 @@ export function CustomInput({ label, error, secureToggle = false, ...rest }: Cus
           secureTextEntry={hidden}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholderTextColor="#c7c7cc"
+          placeholderTextColor={Theme.colors.textMuted}
           {...rest}
         />
         {secureToggle && (
-          <Pressable style={styles.toggleBtn} onPress={() => setHidden(h => !h)}>
-            <Text style={styles.toggleText}>{hidden ? '👁' : '🙈'}</Text>
+          <Pressable
+            style={styles.toggleBtn}
+            onPress={() => setHidden(h => !h)}
+            accessibilityLabel={hidden ? 'Mostrar contraseña' : 'Ocultar contraseña'}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name={hidden ? 'eye-outline' : 'eye-off-outline'}
+              size={20}
+              color={Theme.colors.textTertiary}
+            />
           </Pressable>
         )}
       </View>
