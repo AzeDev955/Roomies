@@ -64,11 +64,15 @@ export default function ViviendasScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="home-outline" size={64} color={Theme.colors.textTertiary} />
-            <Text style={styles.emptyTitulo}>Aún no tienes propiedades</Text>
-            <Text style={styles.emptySubtitulo}>Comienza a gestionar tu patrimonio añadiendo tu primera vivienda.</Text>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="home-outline" size={48} color={Theme.colors.primary} />
+            </View>
+            <Text style={styles.emptyTitulo}>¡Añade tu primera vivienda!</Text>
+            <Text style={styles.emptySubtitulo}>
+              Aquí verás todas tus propiedades. Crea la primera para empezar a gestionar habitaciones e inquilinos.
+            </Text>
             <CustomButton
-              label="Comenzar"
+              label="Crear vivienda"
               variant="primary"
               onPress={() => router.push('/casero/nueva-vivienda')}
               style={styles.emptyBoton}
@@ -103,13 +107,13 @@ export default function ViviendasScreen() {
                       </View>
                       <View style={styles.chips}>
                         <View style={styles.chipHabitaciones}>
-                          <Ionicons name="bed-outline" size={12} color="#1D4ED8" />
+                          <Ionicons name="bed-outline" size={12} color={Theme.colors.primary} />
                           <Text style={styles.chipHabitacionesTexto}>
                             {habitacionesHabitables.length} Habitaciones
                           </Text>
                         </View>
                         <View style={styles.chipInquilinos}>
-                          <Ionicons name="people-outline" size={12} color="#065F46" />
+                          <Ionicons name="people-outline" size={12} color={Theme.colors.success} />
                           <Text style={styles.chipInquilinosTexto}>
                             {inquilinosActuales} Inquilinos
                           </Text>
