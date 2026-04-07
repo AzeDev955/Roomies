@@ -3,14 +3,12 @@ import { Theme } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 20,
+    marginBottom: Theme.spacing.lg,
   },
   label: {
     fontSize: Theme.typography.label,
     fontWeight: '600',
-    color: Theme.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: Theme.colors.textMedium,
     marginBottom: Theme.spacing.sm,
   },
   inputWrapper: {
@@ -18,34 +16,38 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.radius.md,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderWidth: 2,
+    borderColor: Theme.colors.border,
     shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 1,
+    minHeight: 52,
   },
-  inputWrapperFocused: { borderColor: Theme.colors.primary },
-  inputWrapperError:   { borderColor: Theme.colors.danger },
+  inputWrapperFocused: {
+    borderColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.primaryLight,
+  },
+  inputWrapperError: { borderColor: Theme.colors.danger },
   input: {
     flex: 1,
     paddingHorizontal: Theme.spacing.base,
-    paddingVertical: 14,
+    paddingVertical: Theme.spacing.base,
     fontSize: Theme.typography.input,
     color: Theme.colors.text,
   },
   toggleBtn: {
     paddingHorizontal: Theme.spacing.md,
-    paddingVertical: 14,
-  },
-  toggleText: {
-    fontSize: 18,
-    color: Theme.colors.textTertiary,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   error: {
     fontSize: Theme.typography.caption,
     color: Theme.colors.danger,
     marginTop: Theme.spacing.xs,
+    fontWeight: '500',
   },
 });
