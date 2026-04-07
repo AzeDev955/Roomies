@@ -11,8 +11,12 @@ export default function InquilinoTabsLayout() {
         tabBarInactiveTintColor: Theme.colors.textTertiary,
         tabBarStyle: {
           backgroundColor: Theme.colors.surface,
-          borderTopColor: Theme.colors.border,
-          borderTopWidth: 1,
+          borderTopWidth: 0,
+          elevation: 12,
+          shadowColor: Theme.colors.shadow,
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.07,
+          shadowRadius: 12,
         },
         tabBarLabelStyle: {
           fontSize: Theme.typography.caption,
