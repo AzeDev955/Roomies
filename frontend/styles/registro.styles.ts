@@ -8,11 +8,11 @@ export const styles = StyleSheet.create({
   },
   container: {
     paddingHorizontal: Theme.spacing.xl,
-    paddingTop: 48,
-    paddingBottom: 40,
+    paddingTop: Theme.spacing.xxl,
+    paddingBottom: Theme.spacing.xxl,
   },
   titulo: {
-    fontSize: 28,
+    fontSize: Theme.typography.heading,
     fontWeight: '800',
     color: Theme.colors.primary,
     textAlign: 'center',
@@ -22,30 +22,31 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.body,
     color: Theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 36,
+    marginBottom: Theme.spacing.xl,
   },
+
   // — Selector de tipo de documento —
   labelDoc: {
     fontSize: Theme.typography.label,
     fontWeight: '600',
-    color: Theme.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: Theme.colors.textMedium,
     marginBottom: Theme.spacing.sm,
   },
   docFila: {
     flexDirection: 'row',
     gap: Theme.spacing.md,
-    marginBottom: Theme.spacing.sm,
+    marginBottom: Theme.spacing.base,
   },
   docChip: {
     flex: 1,
-    borderRadius: Theme.radius.md,
-    paddingVertical: 10,
+    borderRadius: Theme.radius.full,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Theme.colors.border,
-    backgroundColor: Theme.colors.surface2,
+    backgroundColor: Theme.colors.surface,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   docChipActivo: {
     backgroundColor: Theme.colors.primary,
@@ -54,7 +55,7 @@ export const styles = StyleSheet.create({
   docChipTexto: {
     fontSize: Theme.typography.label,
     fontWeight: '600',
-    color: Theme.colors.text,
+    color: Theme.colors.textMedium,
   },
   docChipTextoActivo: {
     color: Theme.colors.surface,
@@ -62,32 +63,34 @@ export const styles = StyleSheet.create({
   errorTexto: {
     fontSize: Theme.typography.caption,
     color: Theme.colors.danger,
+    fontWeight: '500',
     marginTop: -Theme.spacing.sm,
     marginBottom: Theme.spacing.sm,
     paddingHorizontal: Theme.spacing.xs,
   },
+
   // — Selector de rol —
   labelRol: {
     fontSize: Theme.typography.label,
     fontWeight: '600',
-    color: Theme.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: Theme.colors.textMedium,
     marginBottom: Theme.spacing.sm,
   },
   rolFila: {
     flexDirection: 'row',
     gap: Theme.spacing.md,
-    marginBottom: 20,
+    marginBottom: Theme.spacing.lg,
   },
   rolPill: {
     flex: 1,
-    borderRadius: Theme.radius.md,
+    borderRadius: Theme.radius.full,
     paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Theme.colors.border,
     backgroundColor: Theme.colors.surface,
+    minHeight: 52,
+    justifyContent: 'center',
   },
   rolPillActivo: {
     backgroundColor: Theme.colors.primary,
@@ -101,19 +104,22 @@ export const styles = StyleSheet.create({
   rolPillTextoActivo: {
     color: Theme.colors.surface,
   },
+
+  // — Enlace / separador / Google —
   enlaceLogin: {
     marginTop: Theme.spacing.lg,
     alignItems: 'center',
   },
   enlaceLoginTexto: {
-    fontSize: 14,
+    fontSize: Theme.typography.label,
     color: Theme.colors.primary,
+    fontWeight: '500',
   },
   separador: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Theme.spacing.md,
-    marginTop: 20,
+    marginTop: Theme.spacing.lg,
     marginBottom: Theme.spacing.xs,
   },
   separadorLinea: {
@@ -130,17 +136,18 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
+    borderRadius: Theme.radius.lg,
     paddingVertical: 14,
     gap: 10,
     marginTop: Theme.spacing.md,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Theme.colors.border,
+    minHeight: 52,
     shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   botonGoogleTexto: {
     fontSize: Theme.typography.input,
@@ -148,6 +155,7 @@ export const styles = StyleSheet.create({
     color: Theme.colors.text,
   },
   pressed: {
-    opacity: 0.7,
+    opacity: 0.75,
+    transform: [{ scale: 0.97 }],
   },
 });

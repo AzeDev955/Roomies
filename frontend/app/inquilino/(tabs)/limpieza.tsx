@@ -41,7 +41,8 @@ const AvatarInitials = ({
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: '#EAF0FF', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      backgroundColor: Theme.colors.primary + '22',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>
       <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
         {initials}

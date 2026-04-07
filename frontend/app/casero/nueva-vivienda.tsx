@@ -3,6 +3,7 @@ import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
+import { Theme } from '@/constants/theme';
 import { styles } from '@/styles/casero/nueva-vivienda.styles';
 
 type MapboxFeature = {
@@ -160,7 +161,7 @@ export default function NuevaViviendaScreen() {
           <TextInput
             style={styles.buscadorInput}
             placeholder="Ej: Calle Mayor 10, Madrid"
-            placeholderTextColor="#9e9e9e"
+            placeholderTextColor={Theme.colors.textMuted}
             value={queryBusqueda}
             onChangeText={setQueryBusqueda}
             autoCapitalize="none"
@@ -204,7 +205,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Piso Centro"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={aliasNombre}
           onChangeText={setAliasNombre}
           autoCapitalize="words"
@@ -214,7 +215,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Calle Mayor 10, 3ºB"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={direccion}
           onChangeText={setDireccion}
           autoCapitalize="words"
@@ -224,7 +225,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: 28001"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={codigoPostal}
           onChangeText={setCodigoPostal}
           keyboardType="numeric"
@@ -235,7 +236,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Madrid"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={ciudad}
           onChangeText={setCiudad}
           autoCapitalize="words"
@@ -245,7 +246,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Madrid"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={provincia}
           onChangeText={setProvincia}
           autoCapitalize="words"
@@ -258,7 +259,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Habitación 1"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={habNombre}
           onChangeText={setHabNombre}
           autoCapitalize="words"
@@ -289,7 +290,7 @@ export default function NuevaViviendaScreen() {
               <Switch
                 value={habEsHabitable}
                 onValueChange={setHabEsHabitable}
-                trackColor={{ false: '#dee2e6', true: '#34C759' }}
+                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
                 thumbColor="#fff"
               />
             </View>
@@ -300,7 +301,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: 12.5"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={habMetros}
           onChangeText={setHabMetros}
           keyboardType="decimal-pad"
