@@ -1,10 +1,21 @@
 import { View, Text, FlatList, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
+import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
 import { useGlobalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
-import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO } from '@/styles/casero/vivienda/incidencias.styles';
+import {
+  styles,
+  PRIORIDAD_BG,
+  PRIORIDAD_TEXT,
+  COLORES_PRIORIDAD,
+  ETIQUETAS_PRIORIDAD,
+  ETIQUETAS_ESTADO,
+  ESTADO_PILL_BG,
+  ESTADO_PILL_TEXT,
+} from '@/styles/casero/vivienda/incidencias.styles';
 
 type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -67,10 +78,17 @@ export default function IncidenciasCaseroTab() {
 
   const renderCard = (item: Incidencia) => (
     <View key={item.id} style={styles.card}>
-      <View style={[styles.indicador, { backgroundColor: COLORES_PRIORIDAD[item.prioridad] }]} />
+      <View style={[styles.cardStripe, { backgroundColor: COLORES_PRIORIDAD[item.prioridad] }]} />
       <View style={styles.cardBody}>
         <Pressable onPress={() => router.push(`/incidencia/${item.id}?puedeGestionar=true`)}>
-          <Text style={styles.cardTitulo}>{item.titulo}</Text>
+          <View style={styles.cardTopRow}>
+            <Text style={styles.cardTitulo}>{item.titulo}</Text>
+            <View style={[styles.prioridadBadge, { backgroundColor: PRIORIDAD_BG[item.prioridad] }]}>
+              <Text style={[styles.prioridadBadgeTexto, { color: PRIORIDAD_TEXT[item.prioridad] }]}>
+                {ETIQUETAS_PRIORIDAD[item.prioridad]}
+              </Text>
+            </View>
+          </View>
           <Text style={styles.cardDescripcion} numberOfLines={2}>{item.descripcion}</Text>
         </Pressable>
         <View style={styles.cardMeta}>
@@ -87,17 +105,28 @@ export default function IncidenciasCaseroTab() {
           <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
         </View>
         <View style={styles.estadoSelector}>
-          {ESTADOS.map((e) => (
-            <Pressable
-              key={e}
-              style={[styles.estadoPill, item.estado === e && styles.estadoPillActivo]}
-              onPress={() => actualizarEstado(item.id, e)}
-            >
-              <Text style={[styles.estadoPillTexto, item.estado === e && styles.estadoPillTextoActivo]}>
-                {ETIQUETAS_ESTADO[e]}
-              </Text>
-            </Pressable>
-          ))}
+          {ESTADOS.map((e) => {
+            const activo = item.estado === e;
+            return (
+              <Pressable
+                key={e}
+                style={[
+                  styles.estadoPill,
+                  activo && { backgroundColor: ESTADO_PILL_BG[e] },
+                ]}
+                onPress={() => actualizarEstado(item.id, e)}
+              >
+                <Text
+                  style={[
+                    styles.estadoPillTexto,
+                    activo && { color: ESTADO_PILL_TEXT[e] },
+                  ]}
+                >
+                  {ETIQUETAS_ESTADO[e]}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
     </View>
@@ -111,8 +140,17 @@ export default function IncidenciasCaseroTab() {
         contentContainerStyle={styles.content}
         data={activas}
         keyExtractor={(item) => item.id.toString()}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No hay incidencias activas en esta vivienda.</Text>
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="checkmark-circle-outline" size={40} color={Theme.colors.success} />
+            </View>
+            <Text style={styles.emptyTitulo}>Todo en orden</Text>
+            <Text style={styles.emptySubtitulo}>
+              No hay incidencias activas en esta vivienda. ¡Qué bien!
+            </Text>
+          </View>
         }
         renderItem={({ item }) => renderCard(item)}
         ListFooterComponent={

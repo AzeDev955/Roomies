@@ -7,8 +7,12 @@ import api from '@/services/api';
 import {
   styles,
   COLORES_PRIORIDAD,
+  PRIORIDAD_BG,
+  PRIORIDAD_TEXT,
   ETIQUETAS_ESTADO,
   ETIQUETAS_PRIORIDAD,
+  ESTADO_PILL_BG,
+  ESTADO_PILL_TEXT,
 } from '@/styles/incidencia/detalle.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -56,13 +60,12 @@ export default function DetalleIncidenciaScreen() {
   useFocusEffect(useCallback(() => { cargar(); }, [id]));
 
   const formatearFecha = (iso: string) =>
-    new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const handleGuardar = async () => {
     setGuardando(true);
     try {
       await api.put(`/incidencias/${id}`, { titulo, descripcion });
-      // Actualizar solo los campos editados sin reemplazar el objeto completo
       setIncidencia((prev) => prev ? { ...prev, titulo, descripcion } : prev);
       setEditando(false);
     } catch (err: any) {
@@ -114,43 +117,67 @@ export default function DetalleIncidenciaScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.cabecera}>
-        <View style={[styles.dot, { backgroundColor: COLORES_PRIORIDAD[incidencia.prioridad] }]} />
-        <View style={styles.cabeceraTextos}>
-          {editando ? (
-            <TextInput
-              style={styles.inputTexto}
-              value={titulo}
-              onChangeText={setTitulo}
-              placeholder="Título"
-            />
-          ) : (
-            <Text style={styles.titulo}>{incidencia.titulo}</Text>
-          )}
-          <Text style={styles.subtitulo}>
-            {ETIQUETAS_PRIORIDAD[incidencia.prioridad]}
-          </Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ── Cabecera (hero card del ticket) ── */}
+      <View style={styles.cabeceraCard}>
+        <View style={[styles.cabeceraStripe, { backgroundColor: COLORES_PRIORIDAD[incidencia.prioridad] }]} />
+        <View style={styles.cabeceraBadgeRow}>
+          <View style={[styles.prioridadBadge, { backgroundColor: PRIORIDAD_BG[incidencia.prioridad] }]}>
+            <Text style={[styles.prioridadBadgeTexto, { color: PRIORIDAD_TEXT[incidencia.prioridad] }]}>
+              Prioridad {ETIQUETAS_PRIORIDAD[incidencia.prioridad]}
+            </Text>
+          </View>
         </View>
+        {editando ? (
+          <TextInput
+            style={styles.inputTexto}
+            value={titulo}
+            onChangeText={setTitulo}
+            placeholder="Título"
+          />
+        ) : (
+          <Text style={styles.titulo}>{incidencia.titulo}</Text>
+        )}
+        <Text style={styles.subtitulo}>Reportada el {formatearFecha(incidencia.fecha_creacion)}</Text>
       </View>
 
+      {/* ── Estado ── */}
       <View style={styles.seccion}>
         <Text style={styles.etiqueta}>Estado</Text>
         <View style={styles.estadoSelector}>
-          {ESTADOS.map((e) => (
-            <Pressable
-              key={e}
-              style={[styles.estadoPill, incidencia.estado === e && styles.estadoPillActivo]}
-              onPress={() => actualizarEstado(e)}
-            >
-              <Text style={[styles.estadoPillTexto, incidencia.estado === e && styles.estadoPillTextoActivo]}>
-                {ETIQUETAS_ESTADO[e]}
-              </Text>
-            </Pressable>
-          ))}
+          {ESTADOS.map((e) => {
+            const activo = incidencia.estado === e;
+            return (
+              <Pressable
+                key={e}
+                style={[
+                  styles.estadoPill,
+                  activo && {
+                    backgroundColor: ESTADO_PILL_BG[e],
+                    borderColor: ESTADO_PILL_TEXT[e] + '40',
+                  },
+                ]}
+                onPress={() => actualizarEstado(e)}
+              >
+                <Text
+                  style={[
+                    styles.estadoPillTexto,
+                    activo && { color: ESTADO_PILL_TEXT[e] },
+                  ]}
+                >
+                  {ETIQUETAS_ESTADO[e]}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 
+      {/* ── Descripción ── */}
       <View style={styles.seccion}>
         <Text style={styles.etiqueta}>Descripción</Text>
         {editando ? (
@@ -166,6 +193,7 @@ export default function DetalleIncidenciaScreen() {
         )}
       </View>
 
+      {/* ── Reportado por ── */}
       {incidencia.creador && (
         <View style={styles.seccion}>
           <Text style={styles.etiqueta}>Reportado por</Text>
@@ -175,6 +203,7 @@ export default function DetalleIncidenciaScreen() {
         </View>
       )}
 
+      {/* ── Habitación ── */}
       {incidencia.habitacion && (
         <View style={styles.seccion}>
           <Text style={styles.etiqueta}>Habitación</Text>
@@ -182,18 +211,20 @@ export default function DetalleIncidenciaScreen() {
         </View>
       )}
 
-      <View style={styles.seccion}>
-        <Text style={styles.etiqueta}>Fecha</Text>
-        <Text style={styles.valor}>{formatearFecha(incidencia.fecha_creacion)}</Text>
-      </View>
-
+      {/* ── Acciones ── */}
       {puedeEditar && !editando && (
         <View style={styles.accionFila}>
-          <Pressable style={styles.botonEditar} onPress={() => setEditando(true)}>
+          <Pressable
+            style={({ pressed }) => [styles.botonEditar, pressed && { opacity: 0.82 }]}
+            onPress={() => setEditando(true)}
+          >
             <Text style={styles.botonTextoClaro}>Editar</Text>
           </Pressable>
-          <Pressable style={styles.botonEliminar} onPress={handleEliminar}>
-            <Text style={styles.botonTextoClaro}>Eliminar</Text>
+          <Pressable
+            style={({ pressed }) => [styles.botonEliminar, pressed && { opacity: 0.82 }]}
+            onPress={handleEliminar}
+          >
+            <Text style={styles.botonTextoEliminar}>Eliminar</Text>
           </Pressable>
         </View>
       )}
@@ -201,7 +232,7 @@ export default function DetalleIncidenciaScreen() {
       {editando && (
         <View style={styles.accionFila}>
           <Pressable
-            style={styles.botonCancelar}
+            style={({ pressed }) => [styles.botonCancelar, pressed && { opacity: 0.75 }]}
             onPress={() => {
               setTitulo(incidencia.titulo);
               setDescripcion(incidencia.descripcion);
@@ -210,7 +241,11 @@ export default function DetalleIncidenciaScreen() {
           >
             <Text style={styles.botonTextoOscuro}>Cancelar</Text>
           </Pressable>
-          <Pressable style={styles.botonGuardar} onPress={handleGuardar} disabled={guardando}>
+          <Pressable
+            style={({ pressed }) => [styles.botonGuardar, pressed && { opacity: 0.82 }]}
+            onPress={handleGuardar}
+            disabled={guardando}
+          >
             {guardando ? (
               <ActivityIndicator color="#fff" />
             ) : (
