@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
@@ -39,6 +40,8 @@ export default function TablonScreen() {
   const [titulo, setTitulo] = useState('');
   const [contenido, setContenido] = useState('');
   const [publicando, setPublicando] = useState(false);
+  const [tituloFocused, setTituloFocused] = useState(false);
+  const [contenidoFocused, setContenidoFocused] = useState(false);
 
   const cargarAnuncios = async () => {
     setLoading(true);
@@ -123,14 +126,23 @@ export default function TablonScreen() {
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitulo}>{item.titulo}</Text>
         {puedeEliminar(item) && (
-          <Pressable onPress={() => handleEliminar(item)} hitSlop={8}>
-            <Text style={styles.eliminarBtn}>✕</Text>
+          <Pressable
+            onPress={() => handleEliminar(item)}
+            style={styles.eliminarBtn}
+            hitSlop={8}
+            accessibilityLabel="Eliminar anuncio"
+            accessibilityRole="button"
+          >
+            <Text style={styles.eliminarBtnTexto}>✕</Text>
           </Pressable>
         )}
       </View>
       <Text style={styles.cardContenido}>{item.contenido}</Text>
       <View style={styles.cardFooter}>
-        <Text style={styles.cardAutor}>{item.autor.nombre}</Text>
+        <View style={styles.cardAutorRow}>
+          <View style={styles.cardAutorDot} />
+          <Text style={styles.cardAutor}>{item.autor.nombre}</Text>
+        </View>
         <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
       </View>
     </View>
@@ -148,8 +160,17 @@ export default function TablonScreen() {
           data={anuncios}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderAnuncio}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No hay anuncios todavía. ¡Sé el primero en publicar!</Text>
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="megaphone-outline" size={44} color={Theme.colors.primary} />
+              </View>
+              <Text style={styles.emptyTitulo}>¡Rompe el hielo!</Text>
+              <Text style={styles.emptySubtitulo}>
+                Todavía no hay anuncios. Sé el primero en publicar algo para tu vivienda.
+              </Text>
+            </View>
           }
         />
       )}
@@ -157,8 +178,10 @@ export default function TablonScreen() {
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => setModalVisible(true)}
+        accessibilityLabel="Nuevo anuncio"
+        accessibilityRole="button"
       >
-        <Text style={styles.fabTexto}>+</Text>
+        <Ionicons name="add" size={28} color={Theme.colors.surface} />
       </Pressable>
 
       <Modal
@@ -171,26 +194,40 @@ export default function TablonScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
+          <Pressable style={{ flex: 1 }} onPress={cerrarModal} />
           <View style={styles.modalContainer}>
+            <View style={styles.modalHandle} />
             <Text style={styles.modalTitulo}>Nuevo anuncio</Text>
+
             <TextInput
-              style={styles.inputTitulo}
+              style={[
+                styles.inputTitulo,
+                tituloFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+              ]}
               placeholder="Título"
-              placeholderTextColor="#9e9e9e"
+              placeholderTextColor={Theme.colors.textMuted}
               value={titulo}
               onChangeText={setTitulo}
+              onFocus={() => setTituloFocused(true)}
+              onBlur={() => setTituloFocused(false)}
               maxLength={100}
             />
             <TextInput
-              style={styles.inputContenido}
+              style={[
+                styles.inputContenido,
+                contenidoFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+              ]}
               placeholder="¿Qué quieres comunicar?"
-              placeholderTextColor="#9e9e9e"
+              placeholderTextColor={Theme.colors.textMuted}
               value={contenido}
               onChangeText={setContenido}
+              onFocus={() => setContenidoFocused(true)}
+              onBlur={() => setContenidoFocused(false)}
               multiline
               textAlignVertical="top"
               maxLength={500}
             />
+
             <View style={styles.modalAcciones}>
               <Pressable
                 style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
@@ -199,12 +236,16 @@ export default function TablonScreen() {
                 <Text style={styles.botonCancelarTexto}>Cancelar</Text>
               </Pressable>
               <Pressable
-                style={({ pressed }) => [styles.botonPublicar, !puedePublicar && styles.botonPublicarDisabled, pressed && !publicando && styles.botonPressed]}
+                style={({ pressed }) => [
+                  styles.botonPublicar,
+                  !puedePublicar && styles.botonPublicarDisabled,
+                  pressed && !publicando && styles.botonPressed,
+                ]}
                 onPress={handlePublicar}
                 disabled={!puedePublicar || publicando}
               >
                 {publicando ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={Theme.colors.surface} />
                 ) : (
                   <Text style={styles.botonPublicarTexto}>Publicar</Text>
                 )}
