@@ -1,12 +1,22 @@
 import { StyleSheet } from 'react-native';
 import { Theme } from '@/constants/theme';
 
-export const COLORES_PRIORIDAD: Record<string, string> = {
-  VERDE:    Theme.colors.success,
-  AMARILLO: Theme.colors.warning,
-  ROJO:     Theme.colors.danger,
+// Soft tint system para prioridad (coherente con módulo de incidencias #171)
+export const PRIORIDAD_BG: Record<string, string> = {
+  VERDE:    '#E5FAF3',
+  AMARILLO: '#FFF5E0',
+  ROJO:     '#FFE8E8',
 };
-
+export const PRIORIDAD_TEXT: Record<string, string> = {
+  VERDE:    '#0D7A5E',
+  AMARILLO: '#A05C00',
+  ROJO:     '#C0392B',
+};
+export const PRIORIDAD_BORDER: Record<string, string> = {
+  VERDE:    '#0D7A5E',
+  AMARILLO: '#A05C00',
+  ROJO:     '#C0392B',
+};
 export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
   VERDE:    'Sugerencia',
   AMARILLO: 'Aviso',
@@ -16,6 +26,7 @@ export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
   content: { padding: Theme.spacing.base, paddingBottom: 96 },
+
   titulo: {
     fontSize: Theme.typography.heading,
     fontWeight: '700',
@@ -23,80 +34,95 @@ export const styles = StyleSheet.create({
     marginBottom: Theme.spacing.lg,
   },
 
+  // — Campos —
   label: {
     fontSize: Theme.typography.label,
     fontWeight: '600',
     color: Theme.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     marginBottom: Theme.spacing.sm,
+    marginTop: Theme.spacing.base,
   },
   inputTexto: {
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.radius.md,
+    borderWidth: 2,
+    borderColor: Theme.colors.border,
     paddingHorizontal: Theme.spacing.base,
     paddingVertical: 14,
+    minHeight: 52,
     fontSize: Theme.typography.input,
     color: Theme.colors.text,
-    marginBottom: 20,
-    shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
+    marginBottom: 4,
+  },
+  inputFocused: {
+    borderColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.primaryLight,
   },
   inputDescripcion: {
     height: 120,
     textAlignVertical: 'top',
+    paddingTop: 14,
   },
 
+  // — Selector de ubicación —
   habitacionFila: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Theme.spacing.sm,
-    marginBottom: 20,
+    marginTop: Theme.spacing.sm,
+    marginBottom: Theme.spacing.base,
   },
   habitacionPill: {
-    backgroundColor: Theme.colors.surface2,
-    borderRadius: Theme.radius.lg,
-    paddingHorizontal: 14,
+    borderRadius: Theme.radius.full,
+    paddingHorizontal: Theme.spacing.base,
     paddingVertical: Theme.spacing.sm,
+    borderWidth: 2,
+    borderColor: Theme.colors.border,
+    backgroundColor: 'transparent',
   },
   habitacionPillActivo: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.primary + '18',
+    borderColor: Theme.colors.primary,
   },
   habitacionPillTexto: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Theme.colors.textMedium,
+    fontSize: Theme.typography.label,
+    fontWeight: '600',
+    color: Theme.colors.textSecondary,
   },
   habitacionPillTextoActivo: {
-    color: Theme.colors.surface,
+    color: Theme.colors.primary,
   },
 
+  // — Selector de prioridad —
   selectorFila: {
     flexDirection: 'row',
-    gap: 10,
+    gap: Theme.spacing.sm,
+    marginTop: Theme.spacing.sm,
     marginBottom: Theme.spacing.xl,
   },
   selectorBtn: {
     flex: 1,
-    borderRadius: Theme.radius.md,
+    borderRadius: Theme.radius.full,
     paddingVertical: 14,
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
   },
   selectorBtnTexto: {
-    color: Theme.colors.surface,
     fontSize: Theme.typography.label,
     fontWeight: '700',
   },
 
+  // — Botón enviar —
   botonEnviar: {
     backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.md,
+    borderRadius: Theme.radius.lg,
     paddingVertical: Theme.spacing.base,
+    minHeight: 52,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   botonEnviarTexto: {
     color: Theme.colors.surface,
