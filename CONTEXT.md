@@ -43,7 +43,7 @@ Roomies/
 │   │   │   ├── auth.controller.ts       ← login, registro, Google OAuth, selector de rol
 │   │   │   ├── anuncio.controller.ts    ← CRUD tablón de anuncios
 │   │   │   ├── incidencia.controller.ts ← crear, listar, cambiar estado (permisos granulares)
-│   │   │   ├── inquilino.controller.ts  ← unirse a habitación, ver vivienda, abandonar habitación
+│   │   │   ├── inquilino.controller.ts  ← unirse, ver vivienda, abandonar, perfil de inquilino
 │   │   │   └── vivienda.controller.ts   ← CRUD viviendas y habitaciones, expulsar inquilino
 │   │   ├── generated/prisma/   ← cliente Prisma generado (no editar)
 │   │   ├── lib/prisma.ts       ← instancia singleton de PrismaClient
@@ -72,6 +72,8 @@ Roomies/
 │   │   ├── casero/
 │   │   │   ├── _layout.tsx             ← Stack del casero (apila pantallas sobre el tab bar)
 │   │   │   ├── nueva-vivienda.tsx      ← crear vivienda (con habitaciones inline)
+│   │   │   ├── inquilino/
+│   │   │   │   └── [id].tsx            ← perfil de contacto del inquilino (solo para el casero)
 │   │   │   ├── (tabs)/
 │   │   │   │   ├── _layout.tsx         ← Tab bar casero: Mis viviendas | Tablón | Perfil
 │   │   │   │   ├── viviendas.tsx       ← lista de viviendas del casero
@@ -80,16 +82,15 @@ Roomies/
 │   │   │   ├── inquilino/
 │   │   │   │   └── [id].tsx            ← perfil del inquilino (accesible desde tarjeta de habitación)
 │   │   │   └── vivienda/
-│   │   │       └── [id]/
-│   │   │           ├── _layout.tsx
+│   │   │       └── [id]/               ← Stack externo que aloja tabs + modales de habitación
+│   │   │           ├── _layout.tsx     ← Stack sin header (permite apilar modales sobre las tabs)
 │   │   │           ├── nueva-habitacion.tsx
-│   │   │           ├── editar-habitacion.tsx   ← incluye Expulsar inquilino + Eliminar habitación
-│   │   │           └── (tabs)/
-│   │   │               ├── _layout.tsx         ← Tab bar vivienda: Resumen | Incidencias | Tablón | Limpieza
-│   │   │               ├── index.tsx           ← Centro de Mando: header card + quick actions + habitaciones
-│   │   │               ├── incidencias.tsx     ← lista de incidencias de la vivienda
-│   │   │               ├── tablon.tsx          ← tablón de la vivienda
-│   │   │               └── limpieza.tsx        ← calendario y gestión de limpieza
+│   │   │           ├── editar-habitacion.tsx
+│   │   │           └── (tabs)/         ← Tabs anidadas: centro de mandos de la vivienda
+│   │   │               ├── _layout.tsx ← Tab bar vivienda + botón ← en headerLeft
+│   │   │               ├── index.tsx   ← Resumen: habitaciones, inquilinos, códigos
+│   │   │               ├── incidencias.tsx ← incidencias de la vivienda
+│   │   │               └── tablon.tsx  ← tablón de anuncios de esta vivienda
 │   │   ├── inquilino/
 │   │   │   ├── _layout.tsx             ← Stack del inquilino
 │   │   │   ├── nueva-incidencia.tsx
@@ -109,9 +110,11 @@ Roomies/
 │   │       ├── Card.tsx                ← contenedor con sombra; Pressable si recibe onPress
 │   │       ├── Card.styles.ts
 │   │       ├── CustomInput.tsx         ← input con label, foco, error y secureToggle
-│   │       └── CustomInput.styles.ts
+│   │       ├── CustomInput.styles.ts
+│   │       └── LoadingScreen.tsx       ← ActivityIndicator centrado a pantalla completa
 │   ├── constants/
-│   │   └── theme.ts                    ← design tokens: colors, spacing, radius, typography
+│   │   ├── theme.ts                    ← design tokens: colors, spacing, radius, typography
+│   │   └── toastConfig.tsx             ← config visual de react-native-toast-message (usa Theme)
 │   ├── services/
 │   │   ├── api.ts              ← instancia Axios con baseURL + interceptor
 │   │   └── auth.service.ts     ← guardarToken / obtenerToken / eliminarToken
@@ -125,11 +128,10 @@ Roomies/
 │   │   │   ├── viviendas.styles.ts
 │   │   │   ├── nueva-vivienda.styles.ts
 │   │   │   ├── inquilino/
-│   │   │   │   └── perfil.styles.ts        ← estilos de casero/inquilino/[id].tsx
+│   │   │   │   └── perfil.styles.ts        ← estilos de la pantalla de perfil del inquilino
 │   │   │   └── vivienda/
-│   │   │       ├── detalle.styles.ts       ← estilos de (tabs)/index.tsx (Centro de Mando)
-│   │   │       ├── incidencias.styles.ts
-│   │   │       ├── limpieza.styles.ts
+│   │   │       ├── detalle.styles.ts       ← estilos del tab Resumen (index.tsx)
+│   │   │       ├── incidencias.styles.ts   ← estilos del tab Incidencias
 │   │   │       └── nueva-habitacion.styles.ts  ← reutilizado también por editar-habitacion.tsx
 │   │   ├── inquilino/
 │   │   │   ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD, estilos del modal compañero
@@ -137,7 +139,7 @@ Roomies/
 │   │   ├── incidencia/
 │   │   │   └── detalle.styles.ts
 │   │   └── tablon/
-│   │       └── tablon.styles.ts
+│   │       └── tablon.styles.ts            ← compartido por casero, inquilino y vivienda tabs
 │   ├── frontend/.env           ← variables EXPO_PUBLIC_* (baked en Metro)
 │   └── package.json
 ├── docs/
@@ -248,13 +250,12 @@ Roomies/
 
 ### Inquilino — `/inquilino`
 
-| Método | Ruta                         | Auth | Descripción                                                                                          |
-| ------ | ---------------------------- | ---- | ---------------------------------------------------------------------------------------------------- |
-| POST   | `/inquilino/unirse`          | Sí   | Canjear código de invitación                                                                         |
-| GET    | `/inquilino/vivienda`        | Sí   | Vivienda completa del inquilino (habitaciones + inquilinos)                                          |
-| DELETE | `/inquilino/habitacion`      | Sí   | El inquilino abandona su habitación (pone `inquilino_id` a null)                                     |
-| GET    | `/inquilino/companeros/:id`  | Sí   | Perfil del compañero (nombre, apellidos, email, telefono). Verifica que ambos comparten vivienda     |
-| GET    | `/inquilino/:id/perfil`      | Sí   | Perfil del inquilino accesible por el casero. Verifica que el inquilino vive en una propiedad suya   |
+| Método | Ruta                       | Auth | Descripción                                                                                                 |
+| ------ | -------------------------- | ---- | ----------------------------------------------------------------------------------------------------------- |
+| POST   | `/inquilino/unirse`        | Sí   | Canjear código de invitación                                                                                |
+| GET    | `/inquilino/vivienda`      | Sí   | Vivienda completa del inquilino (habitaciones + inquilinos)                                                 |
+| DELETE | `/inquilino/habitacion`    | Sí   | El inquilino abandona su habitación (pone `inquilino_id` a null)                                            |
+| GET    | `/inquilino/:id/perfil`    | Sí   | Perfil de contacto de un inquilino. Solo accesible si ese inquilino vive en una vivienda del casero que pide |
 
 ### Incidencias — `/incidencias`
 
@@ -437,10 +438,14 @@ El backend en Docker ejecuta al arrancar:
 - Cada rol tiene su propio grupo `(tabs)` con tres pestañas:
   - **Casero**: Mis viviendas (`viviendas`) · Tablón (`tablon`) · Perfil (`perfil`)
   - **Inquilino**: Mi vivienda (`inicio`) · Tablón (`tablon`) · Perfil (`perfil`)
-- La pantalla de detalle de vivienda (`casero/vivienda/[id]`) también usa un grupo `(tabs)` propio con cuatro pestañas: **Resumen** (`index`) · **Incidencias** · **Tablón** · **Limpieza**. El layout tiene botón ← nativo y su propio tab bar.
-- Las pantallas de formulario (nueva vivienda, nueva habitación, editar habitación, nueva incidencia, detalle incidencia, perfil de inquilino) se apilan sobre el tab bar gracias al `Stack` en `casero/_layout.tsx` e `inquilino/_layout.tsx`.
-- El tablón es un tab autónomo: obtiene `viviendaId` vía API en lugar de recibirlo por URL.
+- Las pantallas de formulario/detalle (nueva vivienda, nueva incidencia, detalle incidencia) se apilan sobre el tab bar gracias al `Stack` en `casero/_layout.tsx` e `inquilino/_layout.tsx`.
+- El tablón principal de cada rol es un tab autónomo: obtiene `viviendaId` vía API en lugar de recibirlo por URL.
 - La pestaña "Perfil" de cada rol es un re-export de `app/perfil.tsx` para evitar duplicación.
+- **Nested Tabs en detalle de vivienda**: `casero/vivienda/[id]/` tiene una doble capa Stack + Tabs anidados:
+  - `[id]/_layout.tsx` — Stack externo sin header. Permite que `editar-habitacion` y `nueva-habitacion` se comporten como stack pushes (ocultan el tab bar de la vivienda).
+  - `[id]/(tabs)/_layout.tsx` — Tab bar de la vivienda con botón `←` en `headerLeft` (`router.back()` vuelve a la lista de viviendas). Tres tabs: Resumen · Incidencias · Tablón.
+  - Las rutas `[id]/editar-habitacion` y `[id]/nueva-habitacion` se apilan sobre las tabs — el tab bar desaparece mientras se edita.
+- **`<Stack.Screen>` dentro del componente**: algunas pantallas Stack configuran su propio header desde el componente (e.g., `casero/inquilino/[id].tsx`) sin tocar el `_layout.tsx` del segmento. Esto es compatible con Expo Router y permite personalizar el header caso a caso.
 
 ---
 

@@ -6,33 +6,43 @@ Aplicación móvil integral para la gestión de alquiler de habitaciones y co-li
 
 La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 
-### Para el Casero / Gestor
+### 👑 Para el Casero / Gestor
+* **Gestión Multipropiedad:** Creación y administración de diferentes viviendas y sus respectivas habitaciones, con autocompletado de dirección vía Mapbox.
+* **Centro de mandos por vivienda:** Al entrar en una propiedad, un menú inferior propio con tres pestañas — Resumen, Incidencias y Tablón — sin perder la navegación principal.
+* **Códigos de Invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
+* **Gestión de Inquilinos:** Expulsión de inquilinos por habitación, y acceso al perfil de contacto completo (nombre, email, teléfono) de cada inquilino con un toque.
+* **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado de los problemas reportados en las viviendas.
+* **Tablón de anuncios:** Publicación y eliminación de anuncios en cada vivienda; el casero puede moderar cualquier anuncio.
 
-- **Gestión multipropiedad:** Creación y administración de viviendas y sus habitaciones (con autocompletado de dirección vía Mapbox).
-- **Códigos de invitación:** Generación de códigos únicos de un solo uso para vincular inquilinos a habitaciones (biometría para revelar el código).
-- **Centro de mando por vivienda:** Panel con habitaciones, estados de ocupación y accesos rápidos.
-- **Gestión de incidencias:** Panel completo para recibir, seguir y cambiar el estado (Pendiente → En Proceso → Resuelto) de los problemas reportados.
-- **Tablón de anuncios:** Publicación y lectura de anuncios compartidos por vivienda.
-- **Módulo de limpieza:** Gestión de zonas, turnos rotativos semanales y seguimiento de tareas por inquilino.
+### 🛋️ Para el Inquilino
+* **Mi Espacio:** Vista rápida de la vivienda, compañeros de piso, zonas comunes e incidencias.
+* **Reporte Rápido:** Formulario ágil para reportar incidencias con selector de habitación y prioridad.
+* **Seguimiento con permisos:** Selector de estado en las incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
+* **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
 
-### Para el Inquilino
+### 🔐 Autenticación
+* Registro e inicio de sesión con **email y contraseña**.
+* Inicio de sesión con **Google OAuth** (expo-auth-session + google-auth-library).
+* Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
 
-- **Mi vivienda:** Vista de habitación propia, compañeros de piso y zonas comunes.
-- **Reporte de incidencias:** Formulario con selector de ubicación y prioridad (Sugerencia / Aviso / Urgente).
-- **Seguimiento de incidencias:** Visualización y cambio de estado de sus propios reportes.
-- **Tablón:** Lectura y publicación de anuncios del piso.
-- **Módulo de limpieza:** Vista del turno asignado con acción de marcar como completado.
-
-## Stack Tecnológico
+## 🛠️ Stack Tecnológico
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | React Native + Expo (SDK 54) |
-| Routing | `expo-router` — file-based |
+| Frontend | React Native + Expo SDK 54 + expo-router ~6.0.23 |
 | Backend | Node.js + Express 5 + TypeScript |
 | ORM | Prisma 7 (PostgreSQL) |
-| Auth | JWT + bcrypt + Google OAuth |
-| Infraestructura | Docker Compose / Railway |
+| Auth | JWT + bcrypt + Google OAuth (`google-auth-library`) |
+| Token storage | `expo-secure-store` |
+| HTTP client | Axios con interceptor Bearer token |
+| Geocoding | Mapbox Geocoding API |
+| Infraestructura | Docker Compose (PostgreSQL + backend + frontend) |
+
+## 🗺️ Roadmap (Próximas versiones)
+- [x] Módulo de limpieza: Asignación de tareas semanales rotativas.
+- [x] Recordatorios de pago automáticos.
+- [ ] Chat integrado Inquilino <-> Casero.
+- [x] Tablón de anuncios para la vivienda.
 
 ## Levantar el entorno con Docker (recomendado)
 
@@ -71,7 +81,12 @@ docker-compose up --build
 
 ## Instalación manual (sin Docker)
 
-### Backend
+Esto arrancará tres servicios:
+| Servicio | Puerto | Descripción |
+|---|---|---|
+| `db` | 5432 | PostgreSQL 15 con volumen persistente |
+| `backend` | 3001 | API Express — aplica el schema automáticamente al arrancar |
+| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
 
 ```bash
 cd backend
@@ -90,7 +105,11 @@ npm install
 npx expo start
 ```
 
-Escanea el QR con **Expo Go** o pulsa `a` / `i` para abrir el emulador.
+Credenciales creadas:
+| Rol | Email | Contraseña |
+|---|---|---|
+| CASERO | `casero@test.com` | `password123` |
+| INQUILINO | `inquilino@test.com` | `password123` |
 
 ---
 
