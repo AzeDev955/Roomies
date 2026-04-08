@@ -3,6 +3,7 @@ import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
+import { Theme } from '@/constants/theme';
 import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
@@ -30,6 +31,7 @@ export default function NuevaHabitacionScreen() {
   const [esHabitable, setEsHabitable] = useState(true);
   const [metrosCuadrados, setMetrosCuadrados] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleTipoChange = (t: TipoHabitacion) => {
     setTipo(t);
@@ -61,12 +63,14 @@ export default function NuevaHabitacionScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Nombre</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedInput === 'nombre' && styles.inputFocused]}
           placeholder="Ej: Habitación 1"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={nombre}
           onChangeText={setNombre}
           autoCapitalize="words"
+          onFocus={() => setFocusedInput('nombre')}
+          onBlur={() => setFocusedInput(null)}
         />
 
         <Text style={styles.label}>Tipo</Text>
@@ -94,8 +98,8 @@ export default function NuevaHabitacionScreen() {
               <Switch
                 value={esHabitable}
                 onValueChange={setEsHabitable}
-                trackColor={{ false: '#dee2e6', true: '#34C759' }}
-                thumbColor="#fff"
+                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
+                thumbColor={Theme.colors.surface}
               />
             </View>
           </>
@@ -103,12 +107,14 @@ export default function NuevaHabitacionScreen() {
 
         <Text style={styles.label}>Metros cuadrados (opcional)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedInput === 'metros' && styles.inputFocused]}
           placeholder="Ej: 12.5"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={metrosCuadrados}
           onChangeText={setMetrosCuadrados}
           keyboardType="decimal-pad"
+          onFocus={() => setFocusedInput('metros')}
+          onBlur={() => setFocusedInput(null)}
         />
 
         <Pressable
