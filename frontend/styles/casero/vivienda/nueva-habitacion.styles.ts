@@ -96,4 +96,36 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.input,
     fontWeight: '700',
   },
+
+  // — Zona de peligro —
+  zonaPeligroSeparador: {
+    height: 1,
+    backgroundColor: Theme.colors.border,
+    marginTop: Theme.spacing.xl,
+    marginBottom: Theme.spacing.lg,
+  },
+  zonaPeligroTitulo: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '600',
+    color: Theme.colors.textMuted,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: Theme.spacing.sm,
+  },
+  botonDestructivoSoft: {
+    borderRadius: Theme.radius.lg,
+    paddingVertical: Theme.spacing.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
+    backgroundColor: Theme.colors.danger + '15',
+    borderWidth: 1.5,
+    borderColor: Theme.colors.danger + '40',
+    marginTop: Theme.spacing.sm,
+  },
+  botonDestructivoSoftTexto: {
+    fontSize: Theme.typography.input,
+    fontWeight: '600',
+    color: Theme.colors.danger,
+  },
 });

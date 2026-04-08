@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Theme } from '@/constants/theme';
-import { CustomButton } from '@/components/common/CustomButton';
 import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
@@ -184,22 +183,28 @@ export default function EditarHabitacionScreen() {
           )}
         </Pressable>
 
+        {/* Zona de peligro */}
+        <View style={styles.zonaPeligroSeparador} />
+        <Text style={styles.zonaPeligroTitulo}>Zona de peligro</Text>
+
         {!!inquilinoId && (
-          <CustomButton
-            label={expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
-            variant="danger"
+          <Pressable
+            style={[styles.botonDestructivoSoft, expulsando && { opacity: 0.5 }]}
             onPress={expulsarInquilino}
             disabled={expulsando}
-            style={{ marginTop: 12 }}
-          />
+          >
+            <Text style={styles.botonDestructivoSoftTexto}>
+              {expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
+            </Text>
+          </Pressable>
         )}
 
-        <CustomButton
-          label="Eliminar habitación"
-          variant="danger"
+        <Pressable
+          style={styles.botonDestructivoSoft}
           onPress={eliminarHabitacion}
-          style={{ marginTop: 8 }}
-        />
+        >
+          <Text style={styles.botonDestructivoSoftTexto}>Eliminar habitación</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
