@@ -3,19 +3,97 @@ import { Theme } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
-  content: { padding: Theme.spacing.base, paddingBottom: 96 },
-  emptyText: {
-    textAlign: 'center',
-    color: Theme.colors.textTertiary,
-    fontSize: 14,
-    marginTop: 40,
-    lineHeight: 22,
-  },
+  content: { paddingHorizontal: Theme.spacing.lg, paddingTop: Theme.spacing.base, paddingBottom: 96 },
 
   // — Botón generar turnos —
   botonGenerar: {
     margin: Theme.spacing.base,
     marginBottom: 0,
+  },
+
+  // — Empty state —
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: Theme.spacing.xxl,
+    paddingHorizontal: Theme.spacing.xl,
+    gap: Theme.spacing.md,
+  },
+  emptyIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: Theme.radius.xl,
+    backgroundColor: Theme.colors.success + '18',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.sm,
+  },
+  emptyTitulo: {
+    fontSize: Theme.typography.title,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  emptySubtitulo: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+
+  // — Quick Chips —
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Theme.spacing.sm,
+    marginBottom: Theme.spacing.xs,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.background,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  chipTexto: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+
+  // — T-Shirt Sizing —
+  tshirtLabel: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Theme.spacing.sm,
+  },
+  tshirtRow: {
+    flexDirection: 'row',
+    gap: Theme.spacing.sm,
+  },
+  tshirtBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.border,
+    alignItems: 'center',
+  },
+  tshirtBtnActivo: {
+    borderColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.primary + '12',
+  },
+  tshirtBtnTexto: {
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.textMedium,
+  },
+  tshirtBtnTextoActivo: {
+    color: Theme.colors.primary,
   },
 
   // — Card de zona —
@@ -44,6 +122,11 @@ export const styles = StyleSheet.create({
   },
   badgeTextoActiva: { color: '#2e7d32' },
   badgeTextoInactiva: { color: Theme.colors.textTertiary },
+  eliminarBtn: {
+    fontSize: 14,
+    color: Theme.colors.textTertiary,
+    fontWeight: '600',
+  },
   zonaPeso: {
     fontSize: Theme.typography.caption,
     color: Theme.colors.textSecondary,
@@ -184,4 +267,173 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.body,
     fontWeight: '600',
   },
+
+  // — Segmented Control —
+  segmentedControl: {
+    flexDirection: 'row',
+    margin: Theme.spacing.base,
+    marginBottom: 0,
+    backgroundColor: Theme.colors.background,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    overflow: 'hidden',
+  },
+  segTab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  segTabActivo: {
+    backgroundColor: Theme.colors.primary,
+  },
+  segTabTexto: {
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.textMedium,
+  },
+  segTabTextoActivo: {
+    color: Theme.colors.surface,
+  },
+
+  // — Vista Calendario: cabecera ────────────────────────────────────────────
+  calendarioHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 28,
+  },
+  calendarioGestion: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Theme.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+  calendarioTitulo: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: Theme.colors.text,
+    letterSpacing: -0.5,
+    lineHeight: 40,
+  },
+  calendarioBtnConfig: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: Theme.colors.primary + '1A',
+    borderRadius: Theme.radius.md,
+  },
+  calendarioBtnConfigTexto: {
+    fontSize: Theme.typography.label,
+    fontWeight: '600',
+    color: Theme.colors.primary,
+  },
+
+  // — Navegación de semana ──────────────────────────────────────────────────
+  semanaNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.lg,
+    paddingVertical: 12,
+    paddingHorizontal: Theme.spacing.base,
+    marginBottom: 20,
+    shadowColor: Theme.colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  semanaNavBtn: {
+    paddingHorizontal: Theme.spacing.sm,
+  },
+  semanaNavTexto: {
+    fontSize: 24,
+    color: Theme.colors.textMedium,
+    lineHeight: 28,
+  },
+  semanaLabel: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+    flex: 1,
+  },
+
+  // — Card de usuario (calendario) ──────────────────────────────────────────
+  userCard: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: Theme.spacing.md,
+    shadowColor: Theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  userCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 16,
+  },
+  userNombre: {
+    fontSize: Theme.typography.body + 2,
+    fontWeight: '700',
+    color: Theme.colors.text,
+  },
+  userSubtitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
+
+  // — Fila de turno (nueva) ─────────────────────────────────────────────────
+  turnoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    backgroundColor: Theme.colors.background,
+    borderRadius: 16,
+    marginTop: Theme.spacing.sm,
+  },
+  turnoIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Theme.colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  turnoZona: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.text,
+  },
+  turnoEstadoBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Theme.radius.full,
+  },
+  turnoEstadoBadgeHecho: { backgroundColor: '#E1F5E8' },
+  turnoEstadoBadgePendiente: { backgroundColor: Theme.colors.surface2 },
+  turnoEstadoTexto: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  turnoEstadoTextoHecho: { color: '#248A3D' },
+  turnoEstadoTextoPendiente: { color: Theme.colors.textTertiary },
 });

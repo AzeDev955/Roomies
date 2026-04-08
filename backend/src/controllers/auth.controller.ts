@@ -1,15 +1,17 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
+import { enviarMagicLink } from '../services/email.service';
 
 export const register: express.RequestHandler = async (req, res) => {
-  const { nombre, apellidos, dni, email, password, telefono, rol } = req.body as {
+  const { nombre, apellidos, documento_identidad, email, password, telefono, rol } = req.body as {
     nombre: string;
     apellidos: string;
-    dni: string;
+    documento_identidad: string;
     email: string;
     password: string;
     telefono: string;
@@ -17,22 +19,71 @@ export const register: express.RequestHandler = async (req, res) => {
   };
 
   const existing = await prisma.usuario.findFirst({
-    where: { OR: [{ email }, { dni }] },
+    where: { OR: [{ email }, { documento_identidad }] },
   });
 
   if (existing) {
-    res.status(400).json({ error: 'El email o DNI ya está registrado.' });
+    res.status(400).json({ error: 'El email o documento de identidad ya está registrado.' });
     return;
   }
 
   const password_hash = await bcrypt.hash(password, 10);
 
   const usuario = await prisma.usuario.create({
-    data: { nombre, apellidos, dni, email, password_hash, telefono, rol },
+    data: {
+      nombre,
+      apellidos,
+      documento_identidad,
+      email,
+      password_hash,
+      telefono,
+      rol,
+      correo_verificado: true, // Verificación deshabilitada temporalmente por bloqueo SMTP en producción
+    },
   });
 
+  // enviarMagicLink deshabilitado temporalmente — puertos SMTP bloqueados en Railway
+  // enviarMagicLink(email, nombre, token_verificacion).catch((err) =>
+  //   console.error('Error enviando magic link:', err)
+  // );
+
+  const token = jwt.sign(
+    { id: usuario.id, rol: usuario.rol },
+    process.env['JWT_SECRET']!,
+    { expiresIn: '7d' }
+  );
+
   const { password_hash: _omit, ...usuarioSinPassword } = usuario;
-  res.status(201).json(usuarioSinPassword);
+  res.status(201).json({ token, usuario: usuarioSinPassword });
+};
+
+export const verificarEmail: express.RequestHandler = async (req, res) => {
+  const { token } = req.params as { token: string };
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { token_verificacion: token },
+  });
+
+  if (!usuario) {
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html lang="es">
+      <head><meta charset="UTF-8"><title>Enlace inválido</title></head>
+      <body style="font-family:Arial,sans-serif;text-align:center;padding:60px;color:#212529;">
+        <h2 style="color:#FF3B30;">Enlace inválido o expirado</h2>
+        <p>Este enlace de verificación no existe o ya fue utilizado.</p>
+      </body>
+      </html>
+    `);
+    return;
+  }
+
+  await prisma.usuario.update({
+    where: { id: usuario.id },
+    data: { correo_verificado: true, token_verificacion: null },
+  });
+
+  res.redirect('roomies://verificacion?status=success');
 };
 
 export const login: express.RequestHandler = async (req, res) => {
@@ -51,6 +102,12 @@ export const login: express.RequestHandler = async (req, res) => {
     res.status(401).json({ error: 'Esta cuenta usa Google para iniciar sesión.' });
     return;
   }
+
+  // Guard de correo_verificado deshabilitado temporalmente — puertos SMTP bloqueados en Railway
+  // if (!usuario.correo_verificado) {
+  //   res.status(403).json({ error: 'Debes verificar tu correo antes de iniciar sesión.' });
+  //   return;
+  // }
 
   const passwordOk = await bcrypt.compare(password, usuario.password_hash);
 
@@ -106,12 +163,13 @@ export const loginConGoogle: express.RequestHandler = async (req, res) => {
         email,
         google_id: googleId,
         rol: RolUsuario.INQUILINO,
+        correo_verificado: true, // Google ya verificó el email
       },
     });
   } else if (!usuario.google_id) {
     usuario = await prisma.usuario.update({
       where: { id: usuario.id },
-      data: { google_id: googleId },
+      data: { google_id: googleId, correo_verificado: true },
     });
   }
 

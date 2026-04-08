@@ -18,31 +18,92 @@ Registra un nuevo usuario en el sistema.
 |---|---|---|---|
 | `nombre` | string | Sí | Nombre del usuario |
 | `apellidos` | string | Sí | Apellidos del usuario |
-| `dni` | string | Sí | DNI (único en el sistema) |
-| `email` | string | Sí | Email (único en el sistema) |
-| `password` | string | Sí | Contraseña en texto plano (se hashea con bcrypt) |
+| `documento_identidad` | string | Sí | DNI, NIE o pasaporte (único en el sistema). Ver reglas de validación abajo. |
+| `email` | string | Sí | Email con formato válido (único en el sistema) |
+| `password` | string | Sí | Contraseña en texto plano (se hashea con bcrypt). Mínimo 8 caracteres, al menos una mayúscula y un número. |
 | `telefono` | string | Sí | Teléfono de contacto |
 | `rol` | `CASERO` \| `INQUILINO` | Sí | Rol del usuario |
+
+**Validación del campo `documento_identidad`:**
+
+El campo se valida en el middleware `validate(registroSchema)` (Zod) antes de llegar al controlador:
+
+- Formato general: alfanumérico, entre 6 y 15 caracteres (`/^[A-Z0-9]{6,15}$/i`).
+- Si el valor empieza por dígito o por `X`, `Y` o `Z` (formato DNI/NIE español), se aplica adicionalmente el algoritmo del módulo 23:
+  - **DNI**: 8 dígitos + letra de control (`TRWAGMYFPDXBNJZSQVHLCKE[n % 23]`).
+  - **NIE**: prefijo `X/Y/Z` (→ `0/1/2`) + 7 dígitos + letra de control.
+- Cualquier otro string alfanumérico de 6-15 caracteres se acepta como pasaporte internacional.
+
+**Comportamiento:**
+1. Crea el usuario con `correo_verificado: false` y un `token_verificacion` aleatorio (hex-32).
+2. Envía un correo HTML con un botón "Verificar mi cuenta" apuntando a `GET /auth/verificar/:token`.
+3. El envío de correo es asíncrono — no bloquea la respuesta al cliente.
+4. **No devuelve JWT**. El usuario debe verificar su correo antes de poder hacer login.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `201` | Usuario creado correctamente. Devuelve el objeto usuario sin `password_hash`. |
-| `400` | El email o DNI ya está registrado. |
+| `201` | Usuario creado. Devuelve `{ mensaje }` indicando que debe revisar el correo. |
+| `400` | Datos inválidos (validación Zod) — devuelve `{ error, errores: [{ campo, mensaje }] }`. |
+| `400` | El email o documento de identidad ya está registrado. |
 
-**Ejemplo respuesta 201:**
+**Ejemplo body:**
 ```json
 {
-  "id": 1,
   "nombre": "Ana",
   "apellidos": "García López",
-  "dni": "12345678A",
+  "documento_identidad": "12345678Z",
   "email": "ana@example.com",
+  "password": "Segura123",
   "telefono": "600123456",
   "rol": "CASERO"
 }
 ```
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "mensaje": "Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión."
+}
+```
+
+**Ejemplo respuesta 400 (validación Zod):**
+```json
+{
+  "error": "Datos de registro inválidos.",
+  "errores": [
+    { "campo": "documento_identidad", "mensaje": "El DNI o NIE introducido no es válido" },
+    { "campo": "password", "mensaje": "La contraseña debe contener al menos una letra mayúscula" }
+  ]
+}
+```
+
+---
+
+### GET `/auth/verificar/:token`
+
+Verifica el correo de un usuario mediante el magic link recibido por email.
+
+**Auth requerida:** No
+
+**Parámetros de ruta:**
+
+| Parámetro | Descripción |
+|---|---|
+| `token` | Token hex-32 generado en el registro |
+
+**Comportamiento:**
+- Busca al usuario por `token_verificacion`.
+- Si no existe o ya fue usado → responde `200` con una página HTML de error.
+- Si existe → actualiza `correo_verificado: true` y `token_verificacion: null`, luego redirige al deep link de la app.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `302` | Token válido. Redirige a `roomies://verificacion?status=success`. |
+| `200` | Token inválido o ya utilizado. Devuelve HTML con mensaje de error. |
 
 ---
 
@@ -65,6 +126,7 @@ Autentica un usuario y devuelve un JWT.
 |---|---|
 | `200` | Login correcto. Devuelve token JWT + datos del usuario sin `password_hash`. |
 | `401` | Credenciales inválidas (email no existe o contraseña incorrecta). |
+| `403` | El correo del usuario aún no ha sido verificado. |
 
 **Ejemplo respuesta 200:**
 ```json
@@ -74,7 +136,7 @@ Autentica un usuario y devuelve un JWT.
     "id": 1,
     "nombre": "Ana",
     "apellidos": "García López",
-    "dni": "12345678A",
+    "documento_identidad": "12345678Z",
     "email": "ana@example.com",
     "telefono": "600123456",
     "rol": "CASERO"
@@ -1066,7 +1128,7 @@ Actualiza el nombre, peso o estado activo de una zona.
 
 ### POST `/viviendas/:id/limpieza/zonas/:zonaId/asignacion`
 
-Asigna una zona de forma fija a un inquilino (bypass de rotación). Idempotente: si ya existe la asignación, la devuelve sin error.
+Sincroniza la lista de inquilinos fijos de una zona (operación destructiva: reemplaza el conjunto completo). Enviar `usuario_ids: []` equivale a quitar todas las asignaciones.
 
 **Auth requerida:** Sí — `Authorization: Bearer <token>`
 
@@ -1081,27 +1143,153 @@ Asigna una zona de forma fija a un inquilino (bypass de rotación). Idempotente:
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `usuario_id` | number | Sí | ID del inquilino a asignar |
+| `usuario_ids` | number[] | Sí | IDs de los inquilinos a asignar (puede ser `[]`) |
 
 **Validaciones:**
-- El usuario debe tener una habitación activa en la vivienda (`inquilino_id` en alguna `Habitacion` de esa vivienda).
+- Cada ID debe corresponder a un inquilino con habitación en la vivienda.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `200` | Asignación creada o ya existente. Devuelve el objeto con `zona` y `usuario` embebidos. |
-| `400` | `usuario_id` ausente. |
-| `403` | La vivienda no pertenece al casero, o el usuario no es inquilino de la vivienda. |
+| `200` | Asignaciones sincronizadas. Devuelve el array `AsignacionLimpiezaFija[]` actualizado, cada una con `usuario { id, nombre, apellidos }` embebido. |
+| `400` | `usuario_ids` no es un array. |
+| `403` | La vivienda no pertenece al casero, o algún ID no es inquilino de la vivienda. |
 | `404` | Zona no encontrada en esa vivienda. |
 
 **Ejemplo respuesta 200:**
 ```json
-{
-  "id": 1,
-  "zona_id": 2,
-  "usuario_id": 5,
-  "zona": { "id": 2, "vivienda_id": 3, "nombre": "Baño 1", "peso": 7, "activa": true },
-  "usuario": { "id": 5, "nombre": "Ana", "apellidos": "García" }
-}
+[
+  { "id": 3, "zona_id": 2, "usuario_id": 5, "usuario": { "id": 5, "nombre": "Ana", "apellidos": "García" } },
+  { "id": 4, "zona_id": 2, "usuario_id": 7, "usuario": { "id": 7, "nombre": "Luis", "apellidos": "Pérez" } }
+]
 ```
+
+---
+
+### DELETE `/viviendas/:id/limpieza/zonas/:zonaId/asignacion`
+
+Elimina **todas** las asignaciones fijas de una zona de una vez.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `204` | Asignaciones eliminadas. Sin body. |
+| `403` | La vivienda no pertenece al casero autenticado. |
+| `404` | Zona no encontrada, o la zona no tenía asignaciones. |
+
+---
+
+### DELETE `/viviendas/:id/limpieza/zonas/:zonaId`
+
+Elimina una zona y todas sus dependencias (asignaciones fijas y turnos de limpieza).
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `204` | Zona eliminada. Sin body. |
+| `403` | La vivienda no pertenece al casero autenticado. |
+| `404` | Zona no encontrada. |
+
+> La operación es atómica (`$transaction`): si falla cualquier paso, no se borra nada.
+
+---
+
+### POST `/viviendas/:id/limpieza/generar`
+
+Ejecuta el algoritmo de reparto y genera los turnos de limpieza para la siguiente semana disponible.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Lógica de fechas (incremental):**
+- Si no hay turnos previos o el último es de una semana pasada → genera la semana actual (lunes–domingo).
+- Si ya existe algún turno de esta semana o futuro → genera la semana inmediatamente siguiente al último turno encontrado.
+- El casero puede pulsar N veces para generar N semanas consecutivas.
+
+**Algoritmo:**
+1. **Fase A** — Zonas con asignación fija: de los co-responsables activos, se elige al de menor carga efectiva (`carga_semanal + balance_limpieza`).
+2. **Fase B** — Zonas rotativas (sin asignados activos): greedy decreciente por peso, asignado al usuario con menor carga efectiva.
+3. **Fase C** — Actualización de karma: `nuevo_balance = balance + (carga_asignada − cuota_ideal)`.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Turnos generados correctamente. |
+| `400` | No hay inquilinos activos, no hay zonas activas, u otro error de dominio. |
+| `403` | La vivienda no pertenece al casero autenticado. |
+
+**Ejemplo respuesta 201:**
+```json
+{ "mensaje": "Turnos de limpieza generados correctamente." }
+```
+
+---
+
+### GET `/viviendas/:id/limpieza/turnos`
+
+Devuelve los turnos de la semana indicada (o de la semana actual si no se especifica fecha).
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Acceso:** Casero de la vivienda **o** inquilino con habitación en ella.
+
+**Query params:**
+
+| Param | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `fecha` | string (`YYYY-MM-DD`) | No | Cualquier día de la semana objetivo. Si se omite, se usa la semana actual. |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Array de `TurnoLimpieza[]` con `zona` y `usuario` embebidos, ordenados por usuario y peso desc. Puede ser `[]`. |
+| `403` | El usuario no pertenece a la vivienda. |
+
+**Ejemplo respuesta 200:**
+```json
+[
+  {
+    "id": 12,
+    "usuario_id": 5,
+    "zona_id": 1,
+    "fecha_inicio": "2026-04-07T00:00:00.000Z",
+    "fecha_fin": "2026-04-13T23:59:59.999Z",
+    "estado": "PENDIENTE",
+    "zona": { "id": 1, "nombre": "Cocina", "peso": 10 },
+    "usuario": { "id": 5, "nombre": "Ana", "apellidos": "García" }
+  }
+]
+```
+
+---
+
+### PATCH `/viviendas/:id/limpieza/turnos/:turnoId/hecho`
+
+Marca un turno como `HECHO`. No tiene body.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `id` | ID de la vivienda |
+| `turnoId` | ID del turno |
+
+**Reglas de acceso:** Solo puede marcar el turno el **usuario asignado** (`turno.usuario_id`) o el **casero** de la vivienda.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Turno actualizado. Devuelve el `TurnoLimpieza` con `zona` y `usuario` embebidos. |
+| `403` | El usuario no es el asignado ni el casero. |
+| `404` | Turno no encontrado en esa vivienda. |

@@ -4,14 +4,17 @@ import { Theme } from '@/constants/theme';
 export const styles = StyleSheet.create({
   card: {
     backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.base,
-    marginBottom: Theme.spacing.md,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.lg,
+    marginBottom: Theme.spacing.base,
     shadowColor: Theme.colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  pressed: { opacity: 0.9 },
+  pressed: {
+    opacity: 0.96,
+    transform: [{ scale: 0.985 }],
+  },
 });

@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
+import { enviarNotificacionPush } from '../services/notification.service';
 
 async function verificarAccesoVivienda(
   usuarioId: number,
@@ -77,6 +78,28 @@ export const crearAnuncio: express.RequestHandler = async (req, res) => {
     },
     include: { autor: { select: { id: true, nombre: true } } },
   });
+
+  // Notificar al resto de miembros de la vivienda de forma asíncrona
+  const miembros = await prisma.habitacion.findMany({
+    where: { vivienda_id: Number(vivienda_id), inquilino_id: { not: null } },
+    select: { inquilino_id: true },
+  });
+
+  const vivienda = await prisma.vivienda.findUnique({
+    where: { id: Number(vivienda_id) },
+    select: { casero_id: true },
+  });
+
+  const destinatarioIds = [
+    ...miembros.map((h) => h.inquilino_id as number),
+    vivienda!.casero_id,
+  ].filter((id) => id !== usuarioId);
+
+  enviarNotificacionPush(
+    destinatarioIds,
+    `🗣️ Nuevo aviso de ${anuncio.autor.nombre}`,
+    anuncio.titulo,
+  ).catch((err) => console.error('[push] Error notificando anuncio:', err));
 
   res.status(201).json(anuncio);
 };

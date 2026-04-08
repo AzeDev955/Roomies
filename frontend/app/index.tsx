@@ -5,11 +5,13 @@ import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+// import * as Linking from 'expo-linking'; // Deep link deshabilitado temporalmente — verificación SMTP pendiente
 import { styles } from '@/styles/index.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { syncPushToken } from '@/utils/notifications';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -18,6 +20,15 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // const url = Linking.useURL();
+  // useEffect(() => {
+  //   if (!url) return;
+  //   const { path, queryParams } = Linking.parse(url);
+  //   if (path === 'verificacion' && queryParams?.['status'] === 'success') {
+  //     Alert.alert('¡Éxito!', 'Tu correo ha sido verificado. Ya puedes iniciar sesión.');
+  //   }
+  // }, [url]);
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
@@ -47,6 +58,7 @@ export default function LoginScreen() {
         { idToken }
       );
       await guardarToken(data.token);
+      syncPushToken();
       if (data.esNuevo) {
         router.replace('/rol');
       } else {
@@ -67,6 +79,7 @@ export default function LoginScreen() {
         { email, password }
       );
       await guardarToken(data.token);
+      syncPushToken();
       irAlDashboard(data.usuario.rol);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'Credenciales inválidas o sin conexión al servidor.';

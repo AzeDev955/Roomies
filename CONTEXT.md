@@ -79,6 +79,8 @@ Roomies/
 │   │   │   │   ├── viviendas.tsx       ← lista de viviendas del casero
 │   │   │   │   ├── tablon.tsx          ← tablón del casero (auto-fetch viviendaId)
 │   │   │   │   └── perfil.tsx          ← re-export de app/perfil.tsx
+│   │   │   ├── inquilino/
+│   │   │   │   └── [id].tsx            ← perfil del inquilino (accesible desde tarjeta de habitación)
 │   │   │   └── vivienda/
 │   │   │       └── [id]/               ← Stack externo que aloja tabs + modales de habitación
 │   │   │           ├── _layout.tsx     ← Stack sin header (permite apilar modales sobre las tabs)
@@ -132,7 +134,7 @@ Roomies/
 │   │   │       ├── incidencias.styles.ts   ← estilos del tab Incidencias
 │   │   │       └── nueva-habitacion.styles.ts  ← reutilizado también por editar-habitacion.tsx
 │   │   ├── inquilino/
-│   │   │   ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD
+│   │   │   ├── inicio.styles.ts            ← incluye COLORES_PRIORIDAD, estilos del modal compañero
 │   │   │   └── nueva-incidencia.styles.ts  ← incluye COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD
 │   │   ├── incidencia/
 │   │   │   └── detalle.styles.ts
@@ -160,12 +162,14 @@ Roomies/
 | `id`            | Int PK         | autoincrement                                 |
 | `nombre`        | String         | obligatorio                                   |
 | `apellidos`     | String?        | opcional (OAuth no siempre lo provee)         |
-| `dni`           | String? unique | obligatorio en registro manual                |
+| `documento_identidad` | String? unique | obligatorio en registro manual (DNI, NIE o pasaporte) |
 | `email`         | String unique  |                                               |
 | `password_hash` | String?        | null si el usuario se registró con Google     |
 | `google_id`     | String? unique | null si el usuario se registró con email/pass |
-| `telefono`      | String?        | obligatorio en registro manual                |
-| `rol`           | RolUsuario     | `CASERO` \| `INQUILINO`                       |
+| `telefono`           | String?        | obligatorio en registro manual                |
+| `rol`                | RolUsuario     | `CASERO` \| `INQUILINO`                       |
+| `correo_verificado`  | Boolean        | `@default(false)`; el login lo exige en `true` |
+| `token_verificacion` | String?        | token hex-32 generado al registrarse; null tras verificar |
 
 ### `Vivienda`
 
@@ -225,8 +229,9 @@ Roomies/
 
 | Método | Ruta             | Auth | Descripción                                                                                           |
 | ------ | ---------------- | ---- | ----------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/register` | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `dni`, `email`, `telefono`, `password`, `rol` |
-| POST   | `/auth/login`    | No   | Login con email/pass                                                                                  |
+| POST   | `/auth/register`         | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol`. Devuelve `{ mensaje }`. Envía magic link al email. |
+| GET    | `/auth/verificar/:token` | No   | Verifica el correo. Si OK → redirect `roomies://verificacion?status=success`. |
+| POST   | `/auth/login`            | No   | Login con email/pass. Devuelve `403` si `correo_verificado` es `false`.      |
 | POST   | `/auth/google`   | No   | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean`                           |
 | GET    | `/auth/me`       | Sí   | Perfil del usuario autenticado                                                                        |
 | PATCH  | `/auth/rol`      | Sí   | Actualiza el rol del usuario y re-emite el JWT. Body: `{ rol: "CASERO" \| "INQUILINO" }`              |
@@ -296,8 +301,18 @@ GOOGLE_CLIENT_ID=<mismo que arriba>
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)
 
+El proyecto tiene tres entornos de API — descomenta el que quieras usar:
+
 ```
-EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
+# Desarrollo en Railway (por defecto)
+EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+
+# Producción en Railway
+#EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api
+
+# Local con Docker Compose
+#EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
+
 EXPO_PUBLIC_MAPBOX_TOKEN=<token Mapbox>
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=<Web Client ID>
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<Android Client ID o vacío>
@@ -305,6 +320,13 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<iOS Client ID o vacío>
 ```
 
 > Las variables `EXPO_PUBLIC_*` se hornean en el bundle de Metro. Cambiarlas requiere reiniciar Metro con `--clear`.
+
+### `.env.example` disponibles
+
+Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados:
+- `.env.example` — raíz (Docker Compose)
+- `backend/.env.example` — backend local / Railway
+- `frontend/.env.example` — frontend con los tres entornos de API comentados
 
 ---
 
@@ -334,6 +356,55 @@ El backend en Docker ejecuta al arrancar:
 
 ---
 
+## Sistema de Diseño (Épica 9 — "Amigable y Colorido")
+
+### Tokens (`frontend/constants/theme.ts`)
+
+| Token | Valor | Uso |
+|---|---|---|
+| `colors.primary` | `#FF6B6B` | Coral cálido — acento principal |
+| `colors.primaryLight` | `#FFF0F0` | Fondo de focus state en inputs |
+| `colors.background` | `#F8F7F4` | Off-white cálido (fondo de pantallas) |
+| `colors.surface` | `#FFFFFF` | Cards, inputs |
+| `colors.surface2` | `#F2F0EB` | Chips y elementos secundarios |
+| `colors.border` | `#E8E6E0` | Bordes cálidos (2px en inputs y pills) |
+| `radius.md` | `16` | Inputs, chips menores |
+| `radius.lg` | `24` | Cards, botones, modales |
+| `radius.xl` | `32` | Bottom sheets, hero cards |
+| `radius.full` | `100` | Pills, avatares |
+| `spacing.xxl` | `48` | Separación entre secciones grandes |
+| `typography.subtitle` | `18` | Títulos de sección intermedios |
+
+### Patrones recurrentes
+
+- **Focus state en inputs**: `borderWidth: 2`, `borderColor: border` en reposo; al recibir foco aplica clase `inputFocused` con `borderColor: primary` + `backgroundColor: primaryLight`. Controlado con `useState<string | null>(null)` + `onFocus`/`onBlur`.
+- **Soft tint para pills activos**: fondo `primary + '18'` (hex con opacidad ~10%), texto `primary`, borde `primary`. Inactivo: `backgroundColor: 'transparent'`, `borderColor: border`.
+- **Soft tint de prioridad/estado** (módulo incidencias): mapas de color semánticos en el archivo `.styles.ts` correspondiente:
+  - `VERDE` → bg `#E5FAF3`, text `#0D7A5E`
+  - `AMARILLO` → bg `#FFF5E0`, text `#A05C00`
+  - `ROJO` → bg `#FFE8E8`, text `#C0392B`
+  - Usado en `incidencias.styles.ts` y `detalle.styles.ts` vía `PRIORIDAD_BG`, `PRIORIDAD_TEXT`, `PRIORIDAD_BORDER` / `ESTADO_PILL_BG`, `ESTADO_PILL_TEXT`.
+- **Botón destructivo suave**: fondo `danger + '18'`, borde `danger + '40'` (en lugar de rojo sólido).
+- **Empty states**: caja de icono 80–88px con `borderRadius: xl` + fondo tinted, título bold, subtítulo secundario. CTA solo para el rol creador.
+- **Tab bar**: sin `borderTopWidth`; elevación suave (`elevation: 12`, `shadowOpacity: 0.07`).
+- **Bottom sheet modal**: `borderTopLeftRadius: xl`, `borderTopRightRadius: xl`; handle bar `40×4px`; backdrop `Pressable rgba(0,0,0,0.4)` para cerrar.
+- **Press feedback**: `opacity` + `transform: [{ scale }]` en Pressables de tarjetas.
+- **placeholderTextColor**: siempre `Theme.colors.textMuted` (nunca hex literal).
+- **Switch trackColor**: siempre `{ false: Theme.colors.border, true: Theme.colors.success }`.
+
+### Archivos de estilos con exports nombrados clave
+
+| Archivo | Exports adicionales |
+|---|---|
+| `styles/casero/vivienda/incidencias.styles.ts` | `PRIORIDAD_BG`, `PRIORIDAD_TEXT`, `ESTADO_PILL_BG`, `ESTADO_PILL_TEXT` |
+| `styles/incidencia/detalle.styles.ts` | ídem + `PRIORIDAD_BORDER` |
+| `styles/tablon/tablon.styles.ts` | compartido por los 3 tablones de tab (casero, casero-vivienda, inquilino) |
+| `styles/inquilino/nueva-incidencia.styles.ts` | `COLORES_PRIORIDAD`, `ETIQUETAS_PRIORIDAD` |
+| `styles/casero/vivienda/nueva-incidencia.styles.ts` | `COLORES_PRIORIDAD`, `ETIQUETAS_PRIORIDAD` |
+| `styles/casero/vivienda/nueva-habitacion.styles.ts` | reutilizado también por `editar-habitacion.tsx` |
+
+---
+
 ## Convenciones de código
 
 ### Backend
@@ -348,13 +419,15 @@ El backend en Docker ejecuta al arrancar:
 
 - **Estilos**: cada pantalla tiene su archivo `.styles.ts` en `styles/` con la misma ruta relativa que la pantalla. Nunca `StyleSheet.create` inline en el componente.
 - **Componentes base**: usar `CustomButton`, `Card` y `CustomInput` de `components/common/` en lugar de primitivos directos (`Pressable`+estilos inline, `View`+sombra manual, `TextInput`+label manual).
-- **Design tokens**: usar `Theme` de `constants/theme.ts` para todos los valores de color, spacing, radius y tipografía. Nunca hex literals ni magic numbers en estilos.
+- **Design tokens**: usar `Theme` de `constants/theme.ts` para todos los valores de color, spacing, radius y tipografía. Nunca hex literals ni magic numbers en estilos. Ver sección "Sistema de Diseño" para los patrones de Épica 9 (soft tints, focus states, empty states, etc.).
 - **Navegación**: usar `router.replace()` (de `expo-router`) para navegar entre sesiones (login → dashboard, logout → index, selector de rol → dashboard). Nunca `CommonActions.reset` de React Navigation — no resuelve los grupos `(tabs)` de Expo Router.
 - **Token**: guardar/recuperar/eliminar con las funciones de `services/auth.service.ts`.
 - **API**: importar la instancia Axios de `@/services/api`. El interceptor inyecta el Bearer token automáticamente.
 - **Variables de entorno**: solo `EXPO_PUBLIC_*` son accesibles en el frontend. Se leen con `process.env.EXPO_PUBLIC_*`.
 - **Autocompletado de habitaciones**: al seleccionar tipo BANO, COCINA o SALON en los formularios de habitación, el campo nombre se rellena automáticamente con el nombre canónico. Sigue siendo editable.
+- **Íconos**: usar exclusivamente `Ionicons` de `@expo/vector-icons`. Nunca emojis como íconos estructurales. Tamaño estándar 24px (detalle/hero: 32–40px). El color se tokeniza con `Theme.colors.*`.
 - **Portapapeles y códigos**: los códigos se almacenan con prefijo `ROOM-` en la BD, pero al copiar al portapapeles se limpia el prefijo con `/^room[-\s]*/i` para que el inquilino solo pegue la parte alfanumérica.
+- **Contadores en lista de viviendas**: `habitacionesHabitables` filtra `hab.tipo === 'DORMITORIO'`; `inquilinosActuales` cuenta las habitables con `inquilino_id !== null`. No usar `habitaciones.length` directamente (incluye zonas comunes).
 
 ### Routing (expo-router)
 
@@ -406,7 +479,7 @@ El backend en Docker ejecuta al arrancar:
 2. `POST /inquilino/unirse` con `{ codigo_invitacion: "ROOM-XXXXXX" }` → queda asignado a la habitación.
 3. Accede al dashboard `inquilino/(tabs)/inicio`:
    - `GET /inquilino/vivienda` carga la vivienda completa con todas las habitaciones e inquilinos.
-   - Sección "Compañeros de piso": dormitorios con inquilino asignado (excepto el propio).
+   - Sección "Compañeros de piso": dormitorios con inquilino asignado (excepto el propio). Cada compañero es tappable: abre un `Modal` con fondo semitransparente que muestra nombre, apellidos y — tras fetch async a `GET /inquilino/companeros/:id` — email (icono `mail-outline`) y teléfono (icono `call-outline`) si están disponibles.
    - Sección "Zonas comunes": habitaciones que no son DORMITORIO.
    - Sección "Incidencias": `GET /incidencias` filtra por la vivienda del inquilino.
 4. Puede crear incidencias desde `inquilino/nueva-incidencia`:
@@ -415,8 +488,8 @@ El backend en Docker ejecuta al arrancar:
    - En el dashboard, cada tarjeta de incidencia muestra un selector de estado (3 pills: Pendiente / En proceso / Resuelta) si el inquilino tiene permiso, o el estado como texto de solo lectura si no. Permisos: es creador **o** la incidencia está en su dormitorio **o** está en una zona común.
 5. **Ciclo de vida**:
    - El inquilino puede abandonar su habitación: botón "Abandonar Vivienda" (outline rojo) al final del dashboard → `DELETE /inquilino/habitacion` → la pantalla regresa al onboarding de forma inmediata (reset de estado local, sin navegación).
-   - El casero puede expulsar a un inquilino: botón "Expulsar" dentro de la tarjeta de habitación ocupada → `DELETE /viviendas/:id/habitaciones/:habId/inquilino` → la tarjeta se actualiza de forma reactiva sin recargar la pantalla.
-   - Eliminar la habitación en sí sigue fallando (400) si aún tiene inquilino asignado.
+   - El casero puede expulsar a un inquilino: pulsando la tarjeta de habitación → `editar-habitacion` → botón "Expulsar al inquilino" (visible solo si hay inquilino) → `DELETE /viviendas/:id/habitaciones/:habId/inquilino` → `router.back()`.
+   - Eliminar la habitación también se hace desde `editar-habitacion` (botón "Eliminar habitación", siempre visible); falla en backend (400) si aún tiene inquilino asignado.
 
 ---
 

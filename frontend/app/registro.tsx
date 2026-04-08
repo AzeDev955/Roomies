@@ -10,21 +10,27 @@ import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { dniNieSchema, pasaporteSchema, passwordSchema } from '@/utils/schemas';
+import { syncPushToken } from '@/utils/notifications';
 
 WebBrowser.maybeCompleteAuthSession();
 
 type Rol = 'CASERO' | 'INQUILINO';
+type TipoDocumento = 'DNI/NIE' | 'PASAPORTE';
 
 export default function RegistroScreen() {
   const router = useRouter();
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
-  const [dni, setDni] = useState('');
+  const [documento_identidad, setDocumentoIdentidad] = useState('');
+  const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>('DNI/NIE');
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
   const [rol, setRol] = useState<Rol | ''>('');
   const [loading, setLoading] = useState(false);
+  const [errorDoc, setErrorDoc] = useState('');
+  const [errorPassword, setErrorPassword] = useState('');
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
@@ -64,7 +70,7 @@ export default function RegistroScreen() {
 
   const handleRegistrar = async () => {
     if (
-      !nombre.trim() || !apellidos.trim() || !dni.trim() ||
+      !nombre.trim() || !apellidos.trim() || !documento_identidad.trim() ||
       !email.trim() || !telefono.trim() || !password
     ) {
       Toast.show({ type: 'error', text1: 'Campos incompletos', text2: 'Rellena todos los campos antes de continuar.' });
@@ -74,20 +80,38 @@ export default function RegistroScreen() {
       Toast.show({ type: 'error', text1: 'Email inválido', text2: 'Introduce un email con formato válido.' });
       return;
     }
-    if (password.length < 6) {
-      Toast.show({ type: 'error', text1: 'Contraseña demasiado corta', text2: 'La contraseña debe tener al menos 6 caracteres.' });
-      return;
-    }
     if (!rol) {
       Toast.show({ type: 'error', text1: 'Selecciona un rol', text2: 'Elige si eres Casero o Inquilino.' });
       return;
     }
 
+    let hayError = false;
+
+    const docSchema = tipoDocumento === 'DNI/NIE' ? dniNieSchema : pasaporteSchema;
+    const docResult = docSchema.safeParse(documento_identidad);
+    if (!docResult.success) {
+      setErrorDoc(docResult.error.issues[0].message);
+      hayError = true;
+    }
+
+    const passResult = passwordSchema.safeParse(password);
+    if (!passResult.success) {
+      setErrorPassword(passResult.error.issues[0].message);
+      hayError = true;
+    }
+
+    if (hayError) return;
+
     setLoading(true);
     try {
-      await api.post('/auth/register', { nombre, apellidos, dni, email, telefono, password, rol });
-      Toast.show({ type: 'success', text1: '¡Cuenta creada!', text2: 'Ya puedes iniciar sesión con tus credenciales.' });
-      router.replace('/');
+      const { data } = await api.post<{ token: string; usuario: { rol: string } }>(
+        '/auth/register',
+        { nombre, apellidos, documento_identidad, email, telefono, password, rol }
+      );
+      await guardarToken(data.token);
+      syncPushToken();
+      const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
+      router.replace(destino);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo crear la cuenta. Inténtalo de nuevo.';
       Toast.show({ type: 'error', text1: mensaje });
@@ -117,14 +141,35 @@ export default function RegistroScreen() {
         autoCorrect={false}
       />
 
+      <Text style={styles.labelDoc}>Tipo de documento</Text>
+      <View style={styles.docFila}>
+        <Pressable
+          style={({ pressed }) => [styles.docChip, tipoDocumento === 'DNI/NIE' && styles.docChipActivo, pressed && styles.pressed]}
+          onPress={() => { setTipoDocumento('DNI/NIE'); setDocumentoIdentidad(''); setErrorDoc(''); }}
+        >
+          <Text style={[styles.docChipTexto, tipoDocumento === 'DNI/NIE' && styles.docChipTextoActivo]}>
+            DNI / NIE
+          </Text>
+        </Pressable>
+        <Pressable
+          style={({ pressed }) => [styles.docChip, tipoDocumento === 'PASAPORTE' && styles.docChipActivo, pressed && styles.pressed]}
+          onPress={() => { setTipoDocumento('PASAPORTE'); setDocumentoIdentidad(''); setErrorDoc(''); }}
+        >
+          <Text style={[styles.docChipTexto, tipoDocumento === 'PASAPORTE' && styles.docChipTextoActivo]}>
+            Pasaporte
+          </Text>
+        </Pressable>
+      </View>
+
       <CustomInput
-        label="DNI"
-        value={dni}
-        onChangeText={(t) => setDni(t.toUpperCase())}
-        placeholder="12345678A"
+        label="Documento de identidad"
+        value={documento_identidad}
+        onChangeText={(t) => { setDocumentoIdentidad(t.toUpperCase()); setErrorDoc(''); }}
+        placeholder={tipoDocumento === 'DNI/NIE' ? '12345678A / X1234567A' : 'AB123456'}
         autoCapitalize="characters"
         autoCorrect={false}
       />
+      {!!errorDoc && <Text style={styles.errorTexto}>{errorDoc}</Text>}
 
       <CustomInput
         label="Email"
@@ -147,12 +192,13 @@ export default function RegistroScreen() {
       <CustomInput
         label="Contraseña"
         value={password}
-        onChangeText={setPassword}
-        placeholder="Mínimo 6 caracteres"
+        onChangeText={(t) => { setPassword(t); setErrorPassword(''); }}
+        placeholder="Mínimo 8 caracteres, una mayúscula y un número"
         autoCapitalize="none"
         autoCorrect={false}
         secureToggle
       />
+      {!!errorPassword && <Text style={styles.errorTexto}>{errorPassword}</Text>}
 
       <Text style={styles.labelRol}>Rol</Text>
       <View style={styles.rolFila}>

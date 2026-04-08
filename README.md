@@ -1,8 +1,8 @@
-# 🏠 Roomies
+# Roomies
 
-Aplicación integral para la gestión de alquiler de habitaciones y co-living. Conecta a caseros e inquilinos para facilitar la convivencia, centralizar el reporte de incidencias y automatizar la gestión del día a día.
+Aplicación móvil integral para la gestión de alquiler de habitaciones y co-living. Conecta a caseros e inquilinos para facilitar la convivencia, centralizar el reporte de incidencias y automatizar la gestión del día a día.
 
-## 🚀 Características (MVP)
+## Características (MVP)
 
 La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 
@@ -44,41 +44,42 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 - [ ] Chat integrado Inquilino <-> Casero.
 - [x] Tablón de anuncios para la vivienda.
 
-## ☁️ Despliegue en Producción (Railway)
-
-El backend y la base de datos pueden desplegarse en [Railway](https://railway.app) sin servidor propio. Ver los pasos completos en [`docs/backend/setup.md → Despliegue en Railway`](docs/backend/setup.md#despliegue-en-railway).
-
-Una vez obtenido el dominio público del backend, actualiza `frontend/.env`:
-
-```env
-EXPO_PUBLIC_API_URL=https://<tu-dominio>.up.railway.app/api
-```
-
-Y reinicia Metro desde `frontend/` para hornear la nueva URL en el bundle:
-
-```bash
-npx expo start --clear
-```
-
----
-
-## ⚙️ Levantar el entorno con Docker (recomendado)
-
-La forma más rápida de tener todo funcionando es con Docker Compose.
+## Levantar el entorno con Docker (recomendado)
 
 ### Prerrequisitos
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### Pasos
 
-1. Edita `docker-compose.yml` y reemplaza `<TU_IP_LOCAL>` en la variable `EXPO_PUBLIC_API_URL` del servicio `frontend` por la IP de tu máquina en la red local (ej: `192.168.1.50`).
-   * Windows: `ipconfig` → IPv4 de tu adaptador de red
-   * Mac/Linux: `ifconfig` o `ip addr`
+1. Copia `.env.example` a `.env` en la raíz y completa `HOST_IP` con la IP de tu máquina en la red local:
+   - Windows: `ipconfig` → IPv4 del adaptador Wi-Fi
+   - Mac/Linux: `ifconfig` o `ip addr`
 
 2. Levanta todos los servicios:
-   ```bash
-   docker-compose up --build
-   ```
+
+```bash
+docker-compose up --build
+```
+
+| Servicio | Puerto | Descripción |
+|---|---|---|
+| `db` | 5433 | PostgreSQL 15 con volumen persistente |
+| `backend` | 3001 | API Express — aplica schema + seed al arrancar |
+| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
+
+> El puerto 8080 se usa en lugar de 8081 para evitar conflictos con reglas de firewall en Windows.
+
+### Usuarios de prueba (seed)
+
+| Rol | Email | Contraseña |
+|---|---|---|
+| CASERO | `casero@test.com` | `casero123` |
+| INQUILINO | `inquilino@test.com` | `inquilino123` |
+
+---
+
+## Instalación manual (sin Docker)
 
 Esto arrancará tres servicios:
 | Servicio | Puerto | Descripción |
@@ -87,13 +88,21 @@ Esto arrancará tres servicios:
 | `backend` | 3001 | API Express — aplica el schema automáticamente al arrancar |
 | `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
 
-> **Dispositivo físico:** el QR de Expo usará la IP de la red del contenedor. Si no conecta, establece la variable `REACT_NATIVE_PACKAGER_HOSTNAME=<TU_IP_LOCAL>` en el servicio `frontend` del compose.
-
-### Seeder (usuarios de prueba)
-
-Con el backend corriendo, ejecuta en otra terminal:
 ```bash
-docker-compose exec backend npx prisma db seed
+cd backend
+npm install
+cp .env.example .env   # configurar DATABASE_URL y JWT_SECRET
+npx prisma db push
+npx prisma db seed
+npm run dev
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npx expo start
 ```
 
 Credenciales creadas:
@@ -104,27 +113,39 @@ Credenciales creadas:
 
 ---
 
-## ⚙️ Instalación Manual (sin Docker)
+## Despliegue en producción (Railway)
 
-### Prerrequisitos
-* [Node.js](https://nodejs.org/) (v20 o superior)
-* [Expo Go](https://expo.dev/go) en el móvil, o un emulador Android/iOS
-* PostgreSQL accesible (local o Prisma Postgres via `npx prisma dev`)
+El backend y la base de datos se despliegan en [Railway](https://railway.app). Ver pasos completos en [`docs/backend/setup.md`](docs/backend/setup.md).
 
-### Backend (API)
-1. `cd backend && npm install`
-2. Copia `.env.example` a `.env` y configura `DATABASE_URL` con una URL estándar `postgresql://...`
-3. `npx prisma db push`
-4. `npm run dev`
+El proyecto tiene dos entornos en Railway:
 
-### Frontend (App)
-1. `cd frontend && npm install`
-2. `npx expo start`
-3. Escanea el código QR con **Expo Go** o pulsa `a` / `i` para el emulador.
+| Entorno | Variable |
+|---|---|
+| Desarrollo | `EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api` |
+| Producción | `EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api` |
+
+Cambia el valor en `frontend/.env` y reinicia Metro con `--clear` para hornear la nueva URL en el bundle.
 
 ---
-*Desarrollado con ☕ y código.*
 
-## 📋 Registro de Desarrollo
+## Roadmap
 
-El historial de cambios por issue/épica está en [`docs/changelog/`](docs/changelog/).
+- [ ] Recordatorios de pago automáticos.
+- [ ] Chat integrado Inquilino ↔ Casero.
+- [ ] Notificaciones push avanzadas (nuevas incidencias, cambios de estado).
+
+---
+
+## Documentación
+
+| Recurso | Ruta |
+|---|---|
+| Arquitectura y convenciones | [`context.md`](context.md) |
+| Setup frontend | [`docs/frontend/setup.md`](docs/frontend/setup.md) |
+| API REST (referencia) | [`docs/backend/api.md`](docs/backend/api.md) |
+| Setup backend / Railway | [`docs/backend/setup.md`](docs/backend/setup.md) |
+| Historial de cambios | [`docs/changelog/`](docs/changelog/) |
+
+---
+
+*Desarrollado con café y código.*

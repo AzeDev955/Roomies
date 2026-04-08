@@ -1,8 +1,10 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
+import { Theme } from '@/constants/theme';
+import { CustomButton } from '@/components/common/CustomButton';
 import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
@@ -18,7 +20,7 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
 
 export default function EditarHabitacionScreen() {
   const router = useRouter();
-  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam } =
+  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam, inquilinoId } =
     useLocalSearchParams<{
       id: string;
       habId: string;
@@ -26,6 +28,7 @@ export default function EditarHabitacionScreen() {
       tipo: string;
       esHabitable: string;
       metrosCuadrados: string;
+      inquilinoId: string;
     }>();
 
   const tipoInicial = (TIPOS.includes(tipoParam as TipoHabitacion) ? tipoParam : 'DORMITORIO') as TipoHabitacion;
@@ -35,6 +38,55 @@ export default function EditarHabitacionScreen() {
   const [esHabitable, setEsHabitable] = useState(esHabitableParam === 'true');
   const [metrosCuadrados, setMetrosCuadrados] = useState(metrosParam ?? '');
   const [loading, setLoading] = useState(false);
+  const [expulsando, setExpulsando] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+
+  const expulsarInquilino = () => {
+    Alert.alert(
+      '¿Expulsar inquilino?',
+      'Esta acción desvinculará al usuario de la habitación.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Expulsar',
+          style: 'destructive',
+          onPress: async () => {
+            setExpulsando(true);
+            try {
+              await api.delete(`/viviendas/${id}/habitaciones/${habId}/inquilino`);
+              router.back();
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo expulsar al inquilino.' });
+            } finally {
+              setExpulsando(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const eliminarHabitacion = () => {
+    Alert.alert(
+      'Eliminar habitación',
+      `¿Eliminar "${nombre.trim()}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/viviendas/${id}/habitaciones/${habId}`);
+              router.back();
+            } catch (err: any) {
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar la habitación.' });
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleTipoChange = (t: TipoHabitacion) => {
     setTipo(t);
@@ -66,12 +118,14 @@ export default function EditarHabitacionScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>Nombre</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedInput === 'nombre' && styles.inputFocused]}
           placeholder="Ej: Habitación 1"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={nombre}
           onChangeText={setNombre}
           autoCapitalize="words"
+          onFocus={() => setFocusedInput('nombre')}
+          onBlur={() => setFocusedInput(null)}
         />
 
         <Text style={styles.label}>Tipo</Text>
@@ -99,8 +153,8 @@ export default function EditarHabitacionScreen() {
               <Switch
                 value={esHabitable}
                 onValueChange={setEsHabitable}
-                trackColor={{ false: '#dee2e6', true: '#34C759' }}
-                thumbColor="#fff"
+                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
+                thumbColor={Theme.colors.surface}
               />
             </View>
           </>
@@ -108,12 +162,14 @@ export default function EditarHabitacionScreen() {
 
         <Text style={styles.label}>Metros cuadrados (opcional)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, focusedInput === 'metros' && styles.inputFocused]}
           placeholder="Ej: 12.5"
-          placeholderTextColor="#9e9e9e"
+          placeholderTextColor={Theme.colors.textMuted}
           value={metrosCuadrados}
           onChangeText={setMetrosCuadrados}
           keyboardType="decimal-pad"
+          onFocus={() => setFocusedInput('metros')}
+          onBlur={() => setFocusedInput(null)}
         />
 
         <Pressable
@@ -127,6 +183,23 @@ export default function EditarHabitacionScreen() {
             <Text style={styles.botonTexto}>Guardar cambios</Text>
           )}
         </Pressable>
+
+        {!!inquilinoId && (
+          <CustomButton
+            label={expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
+            variant="danger"
+            onPress={expulsarInquilino}
+            disabled={expulsando}
+            style={{ marginTop: 12 }}
+          />
+        )}
+
+        <CustomButton
+          label="Eliminar habitación"
+          variant="danger"
+          onPress={eliminarHabitacion}
+          style={{ marginTop: 8 }}
+        />
       </ScrollView>
     </View>
   );

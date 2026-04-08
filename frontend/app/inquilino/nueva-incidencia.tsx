@@ -3,7 +3,14 @@ import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
-import { styles, COLORES_PRIORIDAD, ETIQUETAS_PRIORIDAD } from '@/styles/inquilino/nueva-incidencia.styles';
+import { Theme } from '@/constants/theme';
+import {
+  styles,
+  ETIQUETAS_PRIORIDAD,
+  PRIORIDAD_BG,
+  PRIORIDAD_TEXT,
+  PRIORIDAD_BORDER,
+} from '@/styles/inquilino/nueva-incidencia.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 
@@ -33,6 +40,7 @@ export default function NuevaIncidenciaScreen() {
   const [prioridad, setPrioridad] = useState<Prioridad>('VERDE');
   const [habitacionId, setHabitacionId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleEnviar = async () => {
     setLoading(true);
@@ -57,26 +65,30 @@ export default function NuevaIncidenciaScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.titulo}>Nueva incidencia</Text>
 
         <Text style={styles.label}>Título</Text>
         <TextInput
-          style={styles.inputTexto}
+          style={[styles.inputTexto, focusedInput === 'titulo' && styles.inputFocused]}
           value={titulo}
           onChangeText={setTitulo}
           placeholder="¿Qué ha ocurrido?"
-          placeholderTextColor="#c7c7cc"
+          placeholderTextColor={Theme.colors.textMuted}
+          onFocus={() => setFocusedInput('titulo')}
+          onBlur={() => setFocusedInput(null)}
         />
 
         <Text style={styles.label}>Descripción</Text>
         <TextInput
-          style={[styles.inputTexto, styles.inputDescripcion]}
+          style={[styles.inputTexto, styles.inputDescripcion, focusedInput === 'descripcion' && styles.inputFocused]}
           value={descripcion}
           onChangeText={setDescripcion}
           placeholder="Describe el problema con detalle..."
-          placeholderTextColor="#c7c7cc"
+          placeholderTextColor={Theme.colors.textMuted}
           multiline
+          onFocus={() => setFocusedInput('descripcion')}
+          onBlur={() => setFocusedInput(null)}
         />
 
         {opcionesHabitacion.length > 0 && (
@@ -107,11 +119,17 @@ export default function NuevaIncidenciaScreen() {
               key={p}
               style={[
                 styles.selectorBtn,
-                { backgroundColor: COLORES_PRIORIDAD[p], opacity: prioridad === p ? 1 : 0.35 },
+                {
+                  backgroundColor: PRIORIDAD_BG[p],
+                  borderColor: prioridad === p ? PRIORIDAD_BORDER[p] : 'transparent',
+                  opacity: prioridad === p ? 1 : 0.55,
+                },
               ]}
               onPress={() => setPrioridad(p)}
             >
-              <Text style={styles.selectorBtnTexto}>{ETIQUETAS_PRIORIDAD[p]}</Text>
+              <Text style={[styles.selectorBtnTexto, { color: PRIORIDAD_TEXT[p] }]}>
+                {ETIQUETAS_PRIORIDAD[p]}
+              </Text>
             </Pressable>
           ))}
         </View>
