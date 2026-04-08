@@ -14,18 +14,44 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 * **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado de los problemas reportados en las viviendas.
 * **Tablón de anuncios:** Publicación y eliminación de anuncios en cada vivienda; el casero puede moderar cualquier anuncio.
 
+<<<<<<< Updated upstream
 ### 🛋️ Para el Inquilino
 * **Mi Espacio:** Vista rápida de la vivienda, compañeros de piso, zonas comunes e incidencias.
 * **Reporte Rápido:** Formulario ágil para reportar incidencias con selector de habitación y prioridad.
 * **Seguimiento con permisos:** Selector de estado en las incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
 * **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
+=======
+- **Gestión multipropiedad:** Creación y administración de viviendas y habitaciones, con autocompletado de dirección vía Mapbox.
+- **Centro de mandos por vivienda:** Menú inferior propio con cuatro pestañas — Resumen, Incidencias, Tablón y Limpieza — sin perder la navegación principal.
+- **Códigos de invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
+- **Gestión de inquilinos:** Expulsión de inquilinos por habitación y acceso al perfil de contacto completo (nombre, email, teléfono).
+- **Centro de incidencias:** Panel para recibir, gestionar y cambiar el estado (Pendiente → En Proceso → Resuelto) de los problemas reportados.
+- **Tablón de anuncios:** Publicación y moderación de anuncios en cada vivienda.
+- **Módulo de limpieza:** Gestión de zonas, turnos rotativos semanales y seguimiento de tareas por inquilino.
+>>>>>>> Stashed changes
 
 ### 🔐 Autenticación
 * Registro e inicio de sesión con **email y contraseña**.
 * Inicio de sesión con **Google OAuth** (expo-auth-session + google-auth-library).
 * Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
 
+<<<<<<< Updated upstream
 ## 🛠️ Stack Tecnológico
+=======
+- **Mi vivienda:** Vista de habitación propia, compañeros de piso, zonas comunes e incidencias.
+- **Reporte rápido:** Formulario con selector de habitación y prioridad (Sugerencia / Aviso / Urgente).
+- **Seguimiento con permisos:** Selector de estado en incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
+- **Módulo de limpieza:** Vista del turno asignado con acción de marcar como completado.
+- **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
+
+### Autenticación
+
+- Registro e inicio de sesión con **email y contraseña** (con verificación de correo por magic link).
+- Inicio de sesión con **Google OAuth** (`expo-auth-session` + `google-auth-library`).
+- Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
+
+## Stack Tecnológico
+>>>>>>> Stashed changes
 
 | Capa | Tecnología |
 |---|---|
@@ -36,6 +62,7 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 | Token storage | `expo-secure-store` |
 | HTTP client | Axios con interceptor Bearer token |
 | Geocoding | Mapbox Geocoding API |
+<<<<<<< Updated upstream
 | Infraestructura | Docker Compose (PostgreSQL + backend + frontend) |
 
 ## 🗺️ Roadmap (Próximas versiones)
@@ -43,6 +70,28 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 - [x] Recordatorios de pago automáticos.
 - [ ] Chat integrado Inquilino <-> Casero.
 - [x] Tablón de anuncios para la vivienda.
+=======
+| Infraestructura | Docker Compose / Railway |
+>>>>>>> Stashed changes
+
+## Roadmap
+
+- [ ] Chat integrado Inquilino ↔ Casero.
+- [ ] Recordatorios de pago automáticos.
+- [ ] Notificaciones push avanzadas (nuevas incidencias, cambios de estado).
+
+## Despliegue en Railway
+
+El proyecto tiene dos entornos desplegados en Railway:
+
+| Entorno | URL de API |
+|---|---|
+| Desarrollo | `https://roomies-dev.up.railway.app/api` |
+| Producción | `https://roomies-production-c884.up.railway.app/api` |
+
+Cambia el valor en `frontend/.env` y reinicia Metro con `--clear` para hornear la nueva URL en el bundle. Ver pasos completos en [`docs/backend/setup.md`](docs/backend/setup.md).
+
+---
 
 ## Levantar el entorno con Docker (recomendado)
 
@@ -52,7 +101,7 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 
 ### Pasos
 
-1. Copia `.env.example` a `.env` en la raíz y completa `HOST_IP` con la IP de tu máquina en la red local:
+1. Copia `.env.example` a `.env` y rellena `HOST_IP` con la IP de tu máquina en la red local:
    - Windows: `ipconfig` → IPv4 del adaptador Wi-Fi
    - Mac/Linux: `ifconfig` o `ip addr`
 
@@ -102,6 +151,7 @@ npm run dev
 ```bash
 cd frontend
 npm install
+cp .env.example .env   # elegir entorno de API
 npx expo start
 ```
 
@@ -110,29 +160,6 @@ Credenciales creadas:
 |---|---|---|
 | CASERO | `casero@test.com` | `password123` |
 | INQUILINO | `inquilino@test.com` | `password123` |
-
----
-
-## Despliegue en producción (Railway)
-
-El backend y la base de datos se despliegan en [Railway](https://railway.app). Ver pasos completos en [`docs/backend/setup.md`](docs/backend/setup.md).
-
-El proyecto tiene dos entornos en Railway:
-
-| Entorno | Variable |
-|---|---|
-| Desarrollo | `EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api` |
-| Producción | `EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api` |
-
-Cambia el valor en `frontend/.env` y reinicia Metro con `--clear` para hornear la nueva URL en el bundle.
-
----
-
-## Roadmap
-
-- [ ] Recordatorios de pago automáticos.
-- [ ] Chat integrado Inquilino ↔ Casero.
-- [ ] Notificaciones push avanzadas (nuevas incidencias, cambios de estado).
 
 ---
 
