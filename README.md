@@ -7,51 +7,30 @@ Aplicación móvil integral para la gestión de alquiler de habitaciones y co-li
 La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 
 ### 👑 Para el Casero / Gestor
-* **Gestión Multipropiedad:** Creación y administración de diferentes viviendas y sus respectivas habitaciones, con autocompletado de dirección vía Mapbox.
-* **Centro de mandos por vivienda:** Al entrar en una propiedad, un menú inferior propio con tres pestañas — Resumen, Incidencias y Tablón — sin perder la navegación principal.
-* **Códigos de Invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
-* **Gestión de Inquilinos:** Expulsión de inquilinos por habitación, y acceso al perfil de contacto completo (nombre, email, teléfono) de cada inquilino con un toque.
-* **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado de los problemas reportados en las viviendas.
-* **Tablón de anuncios:** Publicación y eliminación de anuncios en cada vivienda; el casero puede moderar cualquier anuncio.
 
-<<<<<<< Updated upstream
+* **Gestión multipropiedad:** Creación y administración de viviendas y habitaciones, con autocompletado de dirección vía Mapbox.
+* **Centro de mandos por vivienda:** Menú inferior propio con cuatro pestañas — Resumen, Incidencias, Tablón y Limpieza — sin perder la navegación principal.
+* **Códigos de invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
+* **Gestión de inquilinos:** Expulsión de inquilinos por habitación y acceso al perfil de contacto completo (nombre, email, teléfono).
+* **Centro de incidencias:** Panel para recibir, gestionar y cambiar el estado (Pendiente → En Proceso → Resuelto) de los problemas reportados.
+* **Tablón de anuncios:** Publicación y moderación de anuncios en cada vivienda.
+* **Módulo de limpieza:** Gestión de zonas, turnos rotativos semanales y seguimiento de tareas por inquilino.
+
 ### 🛋️ Para el Inquilino
-* **Mi Espacio:** Vista rápida de la vivienda, compañeros de piso, zonas comunes e incidencias.
-* **Reporte Rápido:** Formulario ágil para reportar incidencias con selector de habitación y prioridad.
-* **Seguimiento con permisos:** Selector de estado en las incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
+
+* **Mi vivienda:** Vista de habitación propia, compañeros de piso, zonas comunes e incidencias.
+* **Reporte rápido:** Formulario con selector de habitación y prioridad (Sugerencia / Aviso / Urgente).
+* **Seguimiento con permisos:** Selector de estado en incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
+* **Módulo de limpieza:** Vista del turno asignado con acción de marcar como completado.
 * **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
-=======
-- **Gestión multipropiedad:** Creación y administración de viviendas y habitaciones, con autocompletado de dirección vía Mapbox.
-- **Centro de mandos por vivienda:** Menú inferior propio con cuatro pestañas — Resumen, Incidencias, Tablón y Limpieza — sin perder la navegación principal.
-- **Códigos de invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
-- **Gestión de inquilinos:** Expulsión de inquilinos por habitación y acceso al perfil de contacto completo (nombre, email, teléfono).
-- **Centro de incidencias:** Panel para recibir, gestionar y cambiar el estado (Pendiente → En Proceso → Resuelto) de los problemas reportados.
-- **Tablón de anuncios:** Publicación y moderación de anuncios en cada vivienda.
-- **Módulo de limpieza:** Gestión de zonas, turnos rotativos semanales y seguimiento de tareas por inquilino.
->>>>>>> Stashed changes
 
 ### 🔐 Autenticación
-* Registro e inicio de sesión con **email y contraseña**.
-* Inicio de sesión con **Google OAuth** (expo-auth-session + google-auth-library).
+
+* Registro e inicio de sesión con **email y contraseña** (con verificación de correo por magic link).
+* Inicio de sesión con **Google OAuth** (`expo-auth-session` + `google-auth-library`).
 * Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
 
-<<<<<<< Updated upstream
 ## 🛠️ Stack Tecnológico
-=======
-- **Mi vivienda:** Vista de habitación propia, compañeros de piso, zonas comunes e incidencias.
-- **Reporte rápido:** Formulario con selector de habitación y prioridad (Sugerencia / Aviso / Urgente).
-- **Seguimiento con permisos:** Selector de estado en incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
-- **Módulo de limpieza:** Vista del turno asignado con acción de marcar como completado.
-- **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
-
-### Autenticación
-
-- Registro e inicio de sesión con **email y contraseña** (con verificación de correo por magic link).
-- Inicio de sesión con **Google OAuth** (`expo-auth-session` + `google-auth-library`).
-- Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
-
-## Stack Tecnológico
->>>>>>> Stashed changes
 
 | Capa | Tecnología |
 |---|---|
@@ -62,25 +41,15 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 | Token storage | `expo-secure-store` |
 | HTTP client | Axios con interceptor Bearer token |
 | Geocoding | Mapbox Geocoding API |
-<<<<<<< Updated upstream
-| Infraestructura | Docker Compose (PostgreSQL + backend + frontend) |
-
-## 🗺️ Roadmap (Próximas versiones)
-- [x] Módulo de limpieza: Asignación de tareas semanales rotativas.
-- [x] Recordatorios de pago automáticos.
-- [ ] Chat integrado Inquilino <-> Casero.
-- [x] Tablón de anuncios para la vivienda.
-=======
 | Infraestructura | Docker Compose / Railway |
->>>>>>> Stashed changes
 
-## Roadmap
+## 🗺️ Roadmap
 
 - [ ] Chat integrado Inquilino ↔ Casero.
 - [ ] Recordatorios de pago automáticos.
 - [ ] Notificaciones push avanzadas (nuevas incidencias, cambios de estado).
 
-## Despliegue en Railway
+## ☁️ Despliegue en Railway
 
 El proyecto tiene dos entornos desplegados en Railway:
 
@@ -93,17 +62,17 @@ Cambia el valor en `frontend/.env` y reinicia Metro con `--clear` para hornear l
 
 ---
 
-## Levantar el entorno con Docker (recomendado)
+## ⚙️ Levantar el entorno con Docker (recomendado)
 
 ### Prerrequisitos
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### Pasos
 
 1. Copia `.env.example` a `.env` y rellena `HOST_IP` con la IP de tu máquina en la red local:
-   - Windows: `ipconfig` → IPv4 del adaptador Wi-Fi
-   - Mac/Linux: `ifconfig` o `ip addr`
+   * Windows: `ipconfig` → IPv4 del adaptador Wi-Fi
+   * Mac/Linux: `ifconfig` o `ip addr`
 
 2. Levanta todos los servicios:
 
@@ -128,14 +97,9 @@ docker-compose up --build
 
 ---
 
-## Instalación manual (sin Docker)
+## ⚙️ Instalación manual (sin Docker)
 
-Esto arrancará tres servicios:
-| Servicio | Puerto | Descripción |
-|---|---|---|
-| `db` | 5432 | PostgreSQL 15 con volumen persistente |
-| `backend` | 3001 | API Express — aplica el schema automáticamente al arrancar |
-| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
+### Backend
 
 ```bash
 cd backend
@@ -155,15 +119,11 @@ cp .env.example .env   # elegir entorno de API
 npx expo start
 ```
 
-Credenciales creadas:
-| Rol | Email | Contraseña |
-|---|---|---|
-| CASERO | `casero@test.com` | `password123` |
-| INQUILINO | `inquilino@test.com` | `password123` |
+Escanea el QR con **Expo Go** o pulsa `a` / `i` para abrir el emulador.
 
 ---
 
-## Documentación
+## 📋 Documentación
 
 | Recurso | Ruta |
 |---|---|
