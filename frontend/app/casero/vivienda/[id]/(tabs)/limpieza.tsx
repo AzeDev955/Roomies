@@ -45,9 +45,9 @@ const AvatarInitials = ({
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: '#E8E8E8', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: Theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center',
     }}>
-      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.textMedium }}>
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
         {initials}
       </Text>
     </View>
@@ -373,7 +373,11 @@ export default function LimpiezaCaseroTab() {
 
   const emptyComponent = (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No hay zonas definidas todavía.</Text>
+      <View style={styles.emptyIconBox}>
+        <Ionicons name="sparkles-outline" size={40} color={Theme.colors.success} />
+      </View>
+      <Text style={styles.emptyTitulo}>Sin zonas todavía</Text>
+      <Text style={styles.emptySubtitulo}>Genera las zonas básicas para empezar a repartir las tareas de limpieza.</Text>
       <CustomButton
         label={creandoBase ? 'Creando...' : 'Generar zonas básicas'}
         variant="outline"
@@ -428,7 +432,11 @@ export default function LimpiezaCaseroTab() {
 
         {turnos.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No hay turnos para esta semana.</Text>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="calendar-outline" size={40} color={Theme.colors.success} />
+            </View>
+            <Text style={styles.emptyTitulo}>Sin turnos esta semana</Text>
+            <Text style={styles.emptySubtitulo}>Genera los turnos para asignar las tareas de limpieza de esta semana.</Text>
             <CustomButton
               label={generando ? 'Generando...' : 'Generar turnos'}
               variant="primary"
@@ -627,7 +635,9 @@ export default function LimpiezaCaseroTab() {
               <Text style={styles.modalSubtitulo}>{zonaSeleccionada.nombre}</Text>
             )}
             {inquilinos.length === 0 ? (
-              <Text style={styles.emptyText}>No hay inquilinos en esta vivienda.</Text>
+              <Text style={{ textAlign: 'center', color: Theme.colors.textTertiary, fontSize: Theme.typography.body, paddingVertical: Theme.spacing.md }}>
+                No hay inquilinos en esta vivienda.
+              </Text>
             ) : (
               inquilinos.map((inq) => {
                 const seleccionado = seleccionados.includes(inq.id);

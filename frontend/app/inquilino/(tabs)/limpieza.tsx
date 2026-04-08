@@ -41,7 +41,8 @@ const AvatarInitials = ({
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: '#EAF0FF', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      backgroundColor: Theme.colors.primary + '22',
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>
       <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
         {initials}
@@ -252,8 +253,14 @@ export default function LimpiezaInquilinoTab() {
         {/* Sin ningún turno */}
         {turnos.length === 0 && (
           <View style={styles.emptyContainer}>
+            <View style={{ width: 80, height: 80, borderRadius: Theme.radius.xl, backgroundColor: Theme.colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginBottom: Theme.spacing.sm }}>
+              <Ionicons name="sparkles-outline" size={40} color={Theme.colors.primary} />
+            </View>
+            <Text style={{ fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.text, textAlign: 'center', letterSpacing: -0.3 }}>
+              Sin tareas esta semana
+            </Text>
             <Text style={styles.emptyText}>
-              No hay turnos generados para esta semana.{'\n'}Tu casero todavía no los ha creado.
+              Tu casero todavía no ha generado los turnos de limpieza. Vuelve más tarde.
             </Text>
           </View>
         )}

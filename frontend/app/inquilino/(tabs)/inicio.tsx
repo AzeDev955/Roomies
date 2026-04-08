@@ -43,12 +43,13 @@ const AvatarInitials = ({
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: '#E5E5EA', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: Theme.colors.primary + '22',
+      alignItems: 'center', justifyContent: 'center',
       borderWidth: 2, borderColor: Theme.colors.surface,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
+      shadowColor: Theme.colors.shadow, shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08, shadowRadius: 6, elevation: 2,
     }}>
-      <Text style={{ fontSize: size * 0.3, fontWeight: '600', color: Theme.colors.text }}>
+      <Text style={{ fontSize: size * 0.32, fontWeight: '700', color: Theme.colors.primary }}>
         {initials}
       </Text>
     </View>
@@ -349,8 +350,14 @@ export default function InquilinoInicioScreen() {
             <Text style={styles.greetingHola}>¡Hola, {miNombre}!</Text>
           ) : null}
           <Text style={styles.greetingSubtitulo}>
-            {datosCasa?.nombreVivienda ?? ''} · {datosCasa?.nombreHabitacion ?? ''}
+            {datosCasa?.nombreHabitacion ?? 'Tu habitación'}
           </Text>
+          {!!datosCasa?.nombreVivienda && (
+            <View style={styles.greetingViviendaPill}>
+              <Ionicons name="home-outline" size={12} color={Theme.colors.primary} />
+              <Text style={styles.greetingViviendaPillTexto}>{datosCasa.nombreVivienda}</Text>
+            </View>
+          )}
         </View>
 
         {/* ── Compañeros ── */}
@@ -407,7 +414,13 @@ export default function InquilinoInicioScreen() {
           ) : (
             <>
               {activas.length === 0 && (
-                <Text style={styles.emptyText}>No hay incidencias activas.</Text>
+                <View style={{ alignItems: 'center', paddingVertical: Theme.spacing.xl, gap: Theme.spacing.md }}>
+                  <View style={{ width: 64, height: 64, borderRadius: Theme.radius.xl, backgroundColor: Theme.colors.success + '18', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="checkmark-circle-outline" size={32} color={Theme.colors.success} />
+                  </View>
+                  <Text style={{ fontSize: Theme.typography.subtitle, fontWeight: '700', color: Theme.colors.text, textAlign: 'center' }}>¡Todo tranquilo!</Text>
+                  <Text style={{ fontSize: Theme.typography.body, color: Theme.colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>No hay incidencias activas en tu vivienda.</Text>
+                </View>
               )}
               {activas.map((item) => renderIncidencia(item))}
 

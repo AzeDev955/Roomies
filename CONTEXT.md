@@ -300,8 +300,18 @@ GOOGLE_CLIENT_ID=<mismo que arriba>
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)
 
+El proyecto tiene tres entornos de API — descomenta el que quieras usar:
+
 ```
-EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
+# Desarrollo en Railway (por defecto)
+EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+
+# Producción en Railway
+#EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api
+
+# Local con Docker Compose
+#EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
+
 EXPO_PUBLIC_MAPBOX_TOKEN=<token Mapbox>
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=<Web Client ID>
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<Android Client ID o vacío>
@@ -309,6 +319,13 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<iOS Client ID o vacío>
 ```
 
 > Las variables `EXPO_PUBLIC_*` se hornean en el bundle de Metro. Cambiarlas requiere reiniciar Metro con `--clear`.
+
+### `.env.example` disponibles
+
+Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados:
+- `.env.example` — raíz (Docker Compose)
+- `backend/.env.example` — backend local / Railway
+- `frontend/.env.example` — frontend con los tres entornos de API comentados
 
 ---
 
@@ -338,6 +355,55 @@ El backend en Docker ejecuta al arrancar:
 
 ---
 
+## Sistema de Diseño (Épica 9 — "Amigable y Colorido")
+
+### Tokens (`frontend/constants/theme.ts`)
+
+| Token | Valor | Uso |
+|---|---|---|
+| `colors.primary` | `#FF6B6B` | Coral cálido — acento principal |
+| `colors.primaryLight` | `#FFF0F0` | Fondo de focus state en inputs |
+| `colors.background` | `#F8F7F4` | Off-white cálido (fondo de pantallas) |
+| `colors.surface` | `#FFFFFF` | Cards, inputs |
+| `colors.surface2` | `#F2F0EB` | Chips y elementos secundarios |
+| `colors.border` | `#E8E6E0` | Bordes cálidos (2px en inputs y pills) |
+| `radius.md` | `16` | Inputs, chips menores |
+| `radius.lg` | `24` | Cards, botones, modales |
+| `radius.xl` | `32` | Bottom sheets, hero cards |
+| `radius.full` | `100` | Pills, avatares |
+| `spacing.xxl` | `48` | Separación entre secciones grandes |
+| `typography.subtitle` | `18` | Títulos de sección intermedios |
+
+### Patrones recurrentes
+
+- **Focus state en inputs**: `borderWidth: 2`, `borderColor: border` en reposo; al recibir foco aplica clase `inputFocused` con `borderColor: primary` + `backgroundColor: primaryLight`. Controlado con `useState<string | null>(null)` + `onFocus`/`onBlur`.
+- **Soft tint para pills activos**: fondo `primary + '18'` (hex con opacidad ~10%), texto `primary`, borde `primary`. Inactivo: `backgroundColor: 'transparent'`, `borderColor: border`.
+- **Soft tint de prioridad/estado** (módulo incidencias): mapas de color semánticos en el archivo `.styles.ts` correspondiente:
+  - `VERDE` → bg `#E5FAF3`, text `#0D7A5E`
+  - `AMARILLO` → bg `#FFF5E0`, text `#A05C00`
+  - `ROJO` → bg `#FFE8E8`, text `#C0392B`
+  - Usado en `incidencias.styles.ts` y `detalle.styles.ts` vía `PRIORIDAD_BG`, `PRIORIDAD_TEXT`, `PRIORIDAD_BORDER` / `ESTADO_PILL_BG`, `ESTADO_PILL_TEXT`.
+- **Botón destructivo suave**: fondo `danger + '18'`, borde `danger + '40'` (en lugar de rojo sólido).
+- **Empty states**: caja de icono 80–88px con `borderRadius: xl` + fondo tinted, título bold, subtítulo secundario. CTA solo para el rol creador.
+- **Tab bar**: sin `borderTopWidth`; elevación suave (`elevation: 12`, `shadowOpacity: 0.07`).
+- **Bottom sheet modal**: `borderTopLeftRadius: xl`, `borderTopRightRadius: xl`; handle bar `40×4px`; backdrop `Pressable rgba(0,0,0,0.4)` para cerrar.
+- **Press feedback**: `opacity` + `transform: [{ scale }]` en Pressables de tarjetas.
+- **placeholderTextColor**: siempre `Theme.colors.textMuted` (nunca hex literal).
+- **Switch trackColor**: siempre `{ false: Theme.colors.border, true: Theme.colors.success }`.
+
+### Archivos de estilos con exports nombrados clave
+
+| Archivo | Exports adicionales |
+|---|---|
+| `styles/casero/vivienda/incidencias.styles.ts` | `PRIORIDAD_BG`, `PRIORIDAD_TEXT`, `ESTADO_PILL_BG`, `ESTADO_PILL_TEXT` |
+| `styles/incidencia/detalle.styles.ts` | ídem + `PRIORIDAD_BORDER` |
+| `styles/tablon/tablon.styles.ts` | compartido por los 3 tablones de tab (casero, casero-vivienda, inquilino) |
+| `styles/inquilino/nueva-incidencia.styles.ts` | `COLORES_PRIORIDAD`, `ETIQUETAS_PRIORIDAD` |
+| `styles/casero/vivienda/nueva-incidencia.styles.ts` | `COLORES_PRIORIDAD`, `ETIQUETAS_PRIORIDAD` |
+| `styles/casero/vivienda/nueva-habitacion.styles.ts` | reutilizado también por `editar-habitacion.tsx` |
+
+---
+
 ## Convenciones de código
 
 ### Backend
@@ -352,12 +418,13 @@ El backend en Docker ejecuta al arrancar:
 
 - **Estilos**: cada pantalla tiene su archivo `.styles.ts` en `styles/` con la misma ruta relativa que la pantalla. Nunca `StyleSheet.create` inline en el componente.
 - **Componentes base**: usar `CustomButton`, `Card` y `CustomInput` de `components/common/` en lugar de primitivos directos (`Pressable`+estilos inline, `View`+sombra manual, `TextInput`+label manual).
-- **Design tokens**: usar `Theme` de `constants/theme.ts` para todos los valores de color, spacing, radius y tipografía. Nunca hex literals ni magic numbers en estilos.
+- **Design tokens**: usar `Theme` de `constants/theme.ts` para todos los valores de color, spacing, radius y tipografía. Nunca hex literals ni magic numbers en estilos. Ver sección "Sistema de Diseño" para los patrones de Épica 9 (soft tints, focus states, empty states, etc.).
 - **Navegación**: usar `router.replace()` (de `expo-router`) para navegar entre sesiones (login → dashboard, logout → index, selector de rol → dashboard). Nunca `CommonActions.reset` de React Navigation — no resuelve los grupos `(tabs)` de Expo Router.
 - **Token**: guardar/recuperar/eliminar con las funciones de `services/auth.service.ts`.
 - **API**: importar la instancia Axios de `@/services/api`. El interceptor inyecta el Bearer token automáticamente.
 - **Variables de entorno**: solo `EXPO_PUBLIC_*` son accesibles en el frontend. Se leen con `process.env.EXPO_PUBLIC_*`.
 - **Autocompletado de habitaciones**: al seleccionar tipo BANO, COCINA o SALON en los formularios de habitación, el campo nombre se rellena automáticamente con el nombre canónico. Sigue siendo editable.
+- **Íconos**: usar exclusivamente `Ionicons` de `@expo/vector-icons`. Nunca emojis como íconos estructurales. Tamaño estándar 24px (detalle/hero: 32–40px). El color se tokeniza con `Theme.colors.*`.
 - **Portapapeles y códigos**: los códigos se almacenan con prefijo `ROOM-` en la BD, pero al copiar al portapapeles se limpia el prefijo con `/^room[-\s]*/i` para que el inquilino solo pegue la parte alfanumérica.
 - **Contadores en lista de viviendas**: `habitacionesHabitables` filtra `hab.tipo === 'DORMITORIO'`; `inquilinosActuales` cuenta las habitables con `inquilino_id !== null`. No usar `habitaciones.length` directamente (incluye zonas comunes).
 

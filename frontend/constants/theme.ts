@@ -1,26 +1,27 @@
 export const Theme = {
   colors: {
     // Primarios
-    primary:         '#007AFF',
-    primaryDisabled: '#b0c8f0',
+    primary:          '#FF6B6B',  // Coral cálido vibrante (Airbnb-inspired)
+    primaryLight:     '#FFF0F0',  // Tint suave para focus states y fondos activos
+    primaryDisabled:  '#FFBCBC',
     // Semánticos
-    success:         '#34C759',
-    successDisabled: '#a8ddb5',
-    danger:          '#FF3B30',
-    warning:         '#FF9500',
+    success:          '#06D6A0',  // Teal-verde vibrante
+    successDisabled:  '#A3E8DA',
+    danger:           '#FF4757',
+    warning:          '#FFA726',
     // Fondos
-    background:      '#f5f5f5',
-    surface:         '#ffffff',
-    surface2:        '#e9ecef',
+    background:       '#F8F7F4',  // Off-white cálido (no frío puro)
+    surface:          '#FFFFFF',
+    surface2:         '#F2F0EB',  // Warm light grey para chips y secundarios
     // Texto
-    text:            '#212529',
-    textSecondary:   '#6c757d',
-    textTertiary:    '#9e9e9e',
-    textMuted:       '#c7c7cc',
-    textMedium:      '#495057',
+    text:             '#1A1A2E',  // Deep navy — más rico que negro puro
+    textSecondary:    '#6B6B80',
+    textTertiary:     '#9E9EAF',
+    textMuted:        '#C4C4D0',
+    textMedium:       '#3D3D56',
     // UI
-    border:          '#dee2e6',
-    shadow:          '#000000',
+    border:           '#E8E6E0',  // Borde cálido
+    shadow:           '#000000',
   },
   spacing: {
     xs:   4,
@@ -29,26 +30,29 @@ export const Theme = {
     base: 16,
     lg:   24,
     xl:   32,
+    xxl:  48,
   },
   radius: {
     sm:   8,
-    md:   12,
-    lg:   20,
-    full: 28,
+    md:   16,   // Inputs, chips
+    lg:   24,   // Cards, botones, modales
+    xl:   32,   // Bottom sheets, hero cards
+    full: 100,  // Pills, avatares
   },
   typography: {
-    caption: 12,
-    label:   13,
-    body:    15,
-    input:   16,
-    title:   20,
-    heading: 24,
-    hero:    32,
+    caption:  12,
+    label:    14,
+    body:     15,
+    input:    16,
+    subtitle: 18,
+    title:    20,
+    heading:  24,
+    hero:     32,
   },
 } as const;
 
 // Expo template compatibility — used by unused boilerplate components
 export const Colors = {
-  light: { icon: Theme.colors.textSecondary, text: Theme.colors.text,     background: Theme.colors.background },
-  dark:  { icon: Theme.colors.textTertiary,  text: Theme.colors.surface,  background: '#151718' },
+  light: { icon: Theme.colors.textSecondary, text: Theme.colors.text,    background: Theme.colors.background },
+  dark:  { icon: Theme.colors.textTertiary,  text: Theme.colors.surface, background: '#151718' },
 } as const;
