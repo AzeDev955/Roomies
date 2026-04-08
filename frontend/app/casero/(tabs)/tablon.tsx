@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
@@ -40,6 +41,8 @@ export default function CaseroTablonScreen() {
   const [titulo, setTitulo] = useState('');
   const [contenido, setContenido] = useState('');
   const [publicando, setPublicando] = useState(false);
+  const [tituloFocused, setTituloFocused] = useState(false);
+  const [contenidoFocused, setContenidoFocused] = useState(false);
 
   const cargarContexto = async () => {
     setLoadingCtx(true);
@@ -70,17 +73,8 @@ export default function CaseroTablonScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      cargarContexto();
-    }, [])
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (contexto) cargarAnuncios(contexto.viviendaId);
-    }, [contexto])
-  );
+  useFocusEffect(useCallback(() => { cargarContexto(); }, []));
+  useFocusEffect(useCallback(() => { if (contexto) cargarAnuncios(contexto.viviendaId); }, [contexto]));
 
   const handlePublicar = async () => {
     if (!titulo.trim() || !contenido.trim() || !contexto) return;
@@ -102,56 +96,75 @@ export default function CaseroTablonScreen() {
     }
   };
 
-  const cerrarModal = () => {
-    setModalVisible(false);
-    setTitulo('');
-    setContenido('');
-  };
+  const cerrarModal = () => { setModalVisible(false); setTitulo(''); setContenido(''); };
 
   const handleEliminar = (anuncio: Anuncio) => {
-    Alert.alert(
-      'Eliminar anuncio',
-      `¿Eliminar "${anuncio.titulo}"? Esta acción no se puede deshacer.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/anuncios/${anuncio.id}`);
-              setAnuncios((prev) => prev.filter((a) => a.id !== anuncio.id));
-            } catch (err: any) {
-              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar el anuncio.' });
-            }
-          },
+    Alert.alert('Eliminar anuncio', `¿Eliminar "${anuncio.titulo}"? Esta acción no se puede deshacer.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/anuncios/${anuncio.id}`);
+            setAnuncios((prev) => prev.filter((a) => a.id !== anuncio.id));
+          } catch (err: any) {
+            Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar el anuncio.' });
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const formatearFecha = (iso: string) =>
     new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 
+  const puedePublicar = titulo.trim().length > 0 && contenido.trim().length > 0;
+
   if (loadingCtx) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} />
-      </View>
-    );
+    return <View style={styles.container}><ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} /></View>;
   }
 
   if (!contexto) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.emptyText}>
-          Añade tu primera vivienda para ver el tablón de anuncios.
-        </Text>
+      <View style={[styles.container, { justifyContent: 'center' }]}>
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="home-outline" size={44} color={Theme.colors.primary} />
+          </View>
+          <Text style={styles.emptyTitulo}>Primero añade una vivienda</Text>
+          <Text style={styles.emptySubtitulo}>
+            El tablón aparecerá aquí en cuanto tengas una vivienda creada.
+          </Text>
+        </View>
       </View>
     );
   }
 
-  const puedePublicar = titulo.trim().length > 0 && contenido.trim().length > 0;
+  const renderAnuncio = ({ item }: { item: Anuncio }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitulo}>{item.titulo}</Text>
+        <Pressable
+          onPress={() => handleEliminar(item)}
+          style={styles.eliminarBtn}
+          hitSlop={8}
+          accessibilityLabel="Eliminar anuncio"
+          accessibilityRole="button"
+        >
+          <Text style={styles.eliminarBtnTexto}>✕</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.cardContenido}>{item.contenido}</Text>
+      <View style={styles.cardFooter}>
+        <View style={styles.cardAutorRow}>
+          <View style={styles.cardAutorDot} />
+          <Text style={styles.cardAutor}>{item.autor.nombre}</Text>
+        </View>
+        <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -162,23 +175,18 @@ export default function CaseroTablonScreen() {
           contentContainerStyle={styles.content}
           data={anuncios}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitulo}>{item.titulo}</Text>
-                <Pressable onPress={() => handleEliminar(item)} hitSlop={8}>
-                  <Text style={styles.eliminarBtn}>✕</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.cardContenido}>{item.contenido}</Text>
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardAutor}>{item.autor.nombre}</Text>
-                <Text style={styles.cardFecha}>{formatearFecha(item.fecha_creacion)}</Text>
-              </View>
-            </View>
-          )}
+          renderItem={renderAnuncio}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No hay anuncios todavía. ¡Sé el primero en publicar!</Text>
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="megaphone-outline" size={44} color={Theme.colors.primary} />
+              </View>
+              <Text style={styles.emptyTitulo}>¡Rompe el hielo!</Text>
+              <Text style={styles.emptySubtitulo}>
+                Sé el primero en publicar algo para tu vivienda.
+              </Text>
+            </View>
           }
         />
       )}
@@ -186,40 +194,42 @@ export default function CaseroTablonScreen() {
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={() => setModalVisible(true)}
+        accessibilityLabel="Nuevo anuncio"
+        accessibilityRole="button"
       >
-        <Text style={styles.fabTexto}>+</Text>
+        <Ionicons name="add" size={28} color={Theme.colors.surface} />
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={cerrarModal}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+          <Pressable style={{ flex: 1 }} onPress={cerrarModal} />
           <View style={styles.modalContainer}>
+            <View style={styles.modalHandle} />
             <Text style={styles.modalTitulo}>Nuevo anuncio</Text>
             <TextInput
-              style={styles.inputTitulo}
+              style={[styles.inputTitulo, tituloFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight }]}
               placeholder="Título"
-              placeholderTextColor="#9e9e9e"
+              placeholderTextColor={Theme.colors.textMuted}
               value={titulo}
               onChangeText={setTitulo}
+              onFocus={() => setTituloFocused(true)}
+              onBlur={() => setTituloFocused(false)}
               maxLength={100}
             />
             <TextInput
-              style={styles.inputContenido}
+              style={[styles.inputContenido, contenidoFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight }]}
               placeholder="¿Qué quieres comunicar?"
-              placeholderTextColor="#9e9e9e"
+              placeholderTextColor={Theme.colors.textMuted}
               value={contenido}
               onChangeText={setContenido}
+              onFocus={() => setContenidoFocused(true)}
+              onBlur={() => setContenidoFocused(false)}
               multiline
               textAlignVertical="top"
               maxLength={500}
             />
             <View style={styles.modalAcciones}>
-              <Pressable
-                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
-                onPress={cerrarModal}
-              >
+              <Pressable style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]} onPress={cerrarModal}>
                 <Text style={styles.botonCancelarTexto}>Cancelar</Text>
               </Pressable>
               <Pressable
@@ -227,10 +237,7 @@ export default function CaseroTablonScreen() {
                 onPress={handlePublicar}
                 disabled={!puedePublicar || publicando}
               >
-                {publicando
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.botonPublicarTexto}>Publicar</Text>
-                }
+                {publicando ? <ActivityIndicator color={Theme.colors.surface} /> : <Text style={styles.botonPublicarTexto}>Publicar</Text>}
               </Pressable>
             </View>
           </View>
