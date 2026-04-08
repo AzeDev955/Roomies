@@ -1,6 +1,7 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert, LayoutAnimation } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Theme } from '@/constants/theme';
@@ -39,6 +40,12 @@ export default function EditarHabitacionScreen() {
   const [loading, setLoading] = useState(false);
   const [expulsando, setExpulsando] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [mostrarPeligro, setMostrarPeligro] = useState(false);
+
+  const togglePeligro = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setMostrarPeligro(!mostrarPeligro);
+  };
 
   const expulsarInquilino = () => {
     Alert.alert(
@@ -183,28 +190,39 @@ export default function EditarHabitacionScreen() {
           )}
         </Pressable>
 
-        {/* Zona de peligro */}
+        {/* Zona de peligro — acordeón */}
         <View style={styles.zonaPeligroSeparador} />
-        <Text style={styles.zonaPeligroTitulo}>Zona de peligro</Text>
-
-        {!!inquilinoId && (
-          <Pressable
-            style={[styles.botonDestructivoSoft, expulsando && { opacity: 0.5 }]}
-            onPress={expulsarInquilino}
-            disabled={expulsando}
-          >
-            <Text style={styles.botonDestructivoSoftTexto}>
-              {expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
-            </Text>
-          </Pressable>
-        )}
-
-        <Pressable
-          style={styles.botonDestructivoSoft}
-          onPress={eliminarHabitacion}
-        >
-          <Text style={styles.botonDestructivoSoftTexto}>Eliminar habitación</Text>
+        <Pressable style={styles.acordeonCabecera} onPress={togglePeligro}>
+          <Text style={styles.zonaPeligroTitulo}>Zona de peligro</Text>
+          <Ionicons
+            name={mostrarPeligro ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={Theme.colors.danger}
+          />
         </Pressable>
+
+        {mostrarPeligro && (
+          <View>
+            {!!inquilinoId && (
+              <Pressable
+                style={[styles.botonDestructivoSoft, expulsando && { opacity: 0.5 }]}
+                onPress={expulsarInquilino}
+                disabled={expulsando}
+              >
+                <Text style={styles.botonDestructivoSoftTexto}>
+                  {expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
+                </Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              style={styles.botonDestructivoSoft}
+              onPress={eliminarHabitacion}
+            >
+              <Text style={styles.botonDestructivoSoftTexto}>Eliminar habitación</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

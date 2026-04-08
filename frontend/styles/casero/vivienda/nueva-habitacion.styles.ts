@@ -97,7 +97,14 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // — Zona de peligro —
+  // — Zona de peligro — acordeón —
+  acordeonCabecera: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Theme.spacing.sm,
+    marginBottom: Theme.spacing.xs,
+  },
   zonaPeligroSeparador: {
     height: 1,
     backgroundColor: Theme.colors.border,
@@ -107,10 +114,9 @@ export const styles = StyleSheet.create({
   zonaPeligroTitulo: {
     fontSize: Theme.typography.caption,
     fontWeight: '600',
-    color: Theme.colors.textMuted,
+    color: Theme.colors.danger,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginBottom: Theme.spacing.sm,
   },
   botonDestructivoSoft: {
     borderRadius: Theme.radius.lg,
