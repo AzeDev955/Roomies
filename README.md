@@ -39,10 +39,10 @@ La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 | Infraestructura | Docker Compose (PostgreSQL + backend + frontend) |
 
 ## 🗺️ Roadmap (Próximas versiones)
-- [ ] Módulo de limpieza: Asignación de tareas semanales rotativas.
-- [ ] Recordatorios de pago automáticos.
+- [x] Módulo de limpieza: Asignación de tareas semanales rotativas.
+- [x] Recordatorios de pago automáticos.
 - [ ] Chat integrado Inquilino <-> Casero.
-- [ ] Tablón de anuncios para la vivienda.
+- [x] Tablón de anuncios para la vivienda.
 
 ## ☁️ Despliegue en Producción (Railway)
 
