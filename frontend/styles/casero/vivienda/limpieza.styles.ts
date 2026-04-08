@@ -3,14 +3,7 @@ import { Theme } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
-  content: { padding: Theme.spacing.base, paddingBottom: 96 },
-  emptyText: {
-    textAlign: 'center',
-    color: Theme.colors.textTertiary,
-    fontSize: 14,
-    marginTop: 40,
-    lineHeight: 22,
-  },
+  content: { paddingHorizontal: Theme.spacing.lg, paddingTop: Theme.spacing.base, paddingBottom: 96 },
 
   // — Botón generar turnos —
   botonGenerar: {
@@ -21,8 +14,31 @@ export const styles = StyleSheet.create({
   // — Empty state —
   emptyContainer: {
     alignItems: 'center',
-    paddingTop: Theme.spacing.xl,
-    paddingHorizontal: Theme.spacing.lg,
+    paddingTop: Theme.spacing.xxl,
+    paddingHorizontal: Theme.spacing.xl,
+    gap: Theme.spacing.md,
+  },
+  emptyIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: Theme.radius.xl,
+    backgroundColor: Theme.colors.success + '18',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.sm,
+  },
+  emptyTitulo: {
+    fontSize: Theme.typography.title,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  emptySubtitulo: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
   },
 
   // — Quick Chips —

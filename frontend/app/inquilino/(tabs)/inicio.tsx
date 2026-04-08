@@ -414,7 +414,13 @@ export default function InquilinoInicioScreen() {
           ) : (
             <>
               {activas.length === 0 && (
-                <Text style={styles.emptyText}>No hay incidencias activas.</Text>
+                <View style={{ alignItems: 'center', paddingVertical: Theme.spacing.xl, gap: Theme.spacing.md }}>
+                  <View style={{ width: 64, height: 64, borderRadius: Theme.radius.xl, backgroundColor: Theme.colors.success + '18', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="checkmark-circle-outline" size={32} color={Theme.colors.success} />
+                  </View>
+                  <Text style={{ fontSize: Theme.typography.subtitle, fontWeight: '700', color: Theme.colors.text, textAlign: 'center' }}>¡Todo tranquilo!</Text>
+                  <Text style={{ fontSize: Theme.typography.body, color: Theme.colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>No hay incidencias activas en tu vivienda.</Text>
+                </View>
               )}
               {activas.map((item) => renderIncidencia(item))}
 
