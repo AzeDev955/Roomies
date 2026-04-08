@@ -1,10 +1,10 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert, LayoutAnimation } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Theme } from '@/constants/theme';
-import { CustomButton } from '@/components/common/CustomButton';
 import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
@@ -40,6 +40,12 @@ export default function EditarHabitacionScreen() {
   const [loading, setLoading] = useState(false);
   const [expulsando, setExpulsando] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [mostrarPeligro, setMostrarPeligro] = useState(false);
+
+  const togglePeligro = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setMostrarPeligro(!mostrarPeligro);
+  };
 
   const expulsarInquilino = () => {
     Alert.alert(
@@ -184,22 +190,39 @@ export default function EditarHabitacionScreen() {
           )}
         </Pressable>
 
-        {!!inquilinoId && (
-          <CustomButton
-            label={expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
-            variant="danger"
-            onPress={expulsarInquilino}
-            disabled={expulsando}
-            style={{ marginTop: 12 }}
+        {/* Zona de peligro — acordeón */}
+        <View style={styles.zonaPeligroSeparador} />
+        <Pressable style={styles.acordeonCabecera} onPress={togglePeligro}>
+          <Text style={styles.zonaPeligroTitulo}>Zona de peligro</Text>
+          <Ionicons
+            name={mostrarPeligro ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={Theme.colors.danger}
           />
-        )}
+        </Pressable>
 
-        <CustomButton
-          label="Eliminar habitación"
-          variant="danger"
-          onPress={eliminarHabitacion}
-          style={{ marginTop: 8 }}
-        />
+        {mostrarPeligro && (
+          <View>
+            {!!inquilinoId && (
+              <Pressable
+                style={[styles.botonDestructivoSoft, expulsando && { opacity: 0.5 }]}
+                onPress={expulsarInquilino}
+                disabled={expulsando}
+              >
+                <Text style={styles.botonDestructivoSoftTexto}>
+                  {expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
+                </Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              style={styles.botonDestructivoSoft}
+              onPress={eliminarHabitacion}
+            >
+              <Text style={styles.botonDestructivoSoftTexto}>Eliminar habitación</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
