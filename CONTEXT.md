@@ -300,8 +300,18 @@ GOOGLE_CLIENT_ID=<mismo que arriba>
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)
 
+El proyecto tiene tres entornos de API — descomenta el que quieras usar:
+
 ```
-EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
+# Desarrollo en Railway (por defecto)
+EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+
+# Producción en Railway
+#EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api
+
+# Local con Docker Compose
+#EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
+
 EXPO_PUBLIC_MAPBOX_TOKEN=<token Mapbox>
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=<Web Client ID>
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<Android Client ID o vacío>
@@ -309,6 +319,13 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<iOS Client ID o vacío>
 ```
 
 > Las variables `EXPO_PUBLIC_*` se hornean en el bundle de Metro. Cambiarlas requiere reiniciar Metro con `--clear`.
+
+### `.env.example` disponibles
+
+Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados:
+- `.env.example` — raíz (Docker Compose)
+- `backend/.env.example` — backend local / Railway
+- `frontend/.env.example` — frontend con los tres entornos de API comentados
 
 ---
 

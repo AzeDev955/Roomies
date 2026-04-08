@@ -1,88 +1,67 @@
-# 🏠 Roomies
+# Roomies
 
-Aplicación integral para la gestión de alquiler de habitaciones y co-living. Conecta a caseros e inquilinos para facilitar la convivencia, centralizar el reporte de incidencias y automatizar la gestión del día a día.
+Aplicación móvil integral para la gestión de alquiler de habitaciones y co-living. Conecta a caseros e inquilinos para facilitar la convivencia, centralizar el reporte de incidencias y automatizar la gestión del día a día.
 
-## 🚀 Características (MVP)
+## Características (MVP)
 
 La aplicación cuenta con dos perfiles de usuario bien diferenciados:
 
-### 👑 Para el Casero / Gestor
-* **Gestión Multipropiedad:** Creación y administración de diferentes viviendas y sus respectivas habitaciones.
-* **Códigos de Invitación:** Generación de códigos únicos para vincular a los inquilinos con su habitación exacta.
-* **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado (Pendiente, En Proceso, Resuelto) de los problemas reportados en las viviendas.
+### Para el Casero / Gestor
 
-### 🛋️ Para el Inquilino
-* **Mi Espacio:** Vista rápida de la información de su vivienda y habitación.
-* **Reporte Rápido:** Formulario ágil para reportar incidencias directamente al casero, evitando la fricción de los mensajes informales.
-* **Seguimiento:** Visualización del estado de sus reportes en tiempo real.
+- **Gestión multipropiedad:** Creación y administración de viviendas y sus habitaciones (con autocompletado de dirección vía Mapbox).
+- **Códigos de invitación:** Generación de códigos únicos de un solo uso para vincular inquilinos a habitaciones (biometría para revelar el código).
+- **Centro de mando por vivienda:** Panel con habitaciones, estados de ocupación y accesos rápidos.
+- **Gestión de incidencias:** Panel completo para recibir, seguir y cambiar el estado (Pendiente → En Proceso → Resuelto) de los problemas reportados.
+- **Tablón de anuncios:** Publicación y lectura de anuncios compartidos por vivienda.
+- **Módulo de limpieza:** Gestión de zonas, turnos rotativos semanales y seguimiento de tareas por inquilino.
 
-## 🛠️ Stack Tecnológico
+### Para el Inquilino
 
-El proyecto está dividido en dos repositorios/carpetas principales:
+- **Mi vivienda:** Vista de habitación propia, compañeros de piso y zonas comunes.
+- **Reporte de incidencias:** Formulario con selector de ubicación y prioridad (Sugerencia / Aviso / Urgente).
+- **Seguimiento de incidencias:** Visualización y cambio de estado de sus propios reportes.
+- **Tablón:** Lectura y publicación de anuncios del piso.
+- **Módulo de limpieza:** Vista del turno asignado con acción de marcar como completado.
 
-* **Frontend (Mobile App):** React Native + Expo.
-* **Backend (API REST):** Node.js + Express.
-* **Base de Datos:** PostgreSQL (gestionada mediante Prisma ORM).
+## Stack Tecnológico
 
-## 🗺️ Roadmap (Próximas versiones)
-- [ ] Módulo de limpieza: Asignación de tareas semanales rotativas.
-- [ ] Recordatorios de pago automáticos.
-- [ ] Chat integrado Inquilino <-> Casero.
-- [ ] Tablón de anuncios para la vivienda.
+| Capa | Tecnología |
+|---|---|
+| Frontend | React Native + Expo (SDK 54) |
+| Routing | `expo-router` — file-based |
+| Backend | Node.js + Express 5 + TypeScript |
+| ORM | Prisma 7 (PostgreSQL) |
+| Auth | JWT + bcrypt + Google OAuth |
+| Infraestructura | Docker Compose / Railway |
 
-## ☁️ Despliegue en Producción (Railway)
-
-El backend y la base de datos pueden desplegarse en [Railway](https://railway.app) sin servidor propio. Ver los pasos completos en [`docs/backend/setup.md → Despliegue en Railway`](docs/backend/setup.md#despliegue-en-railway).
-
-Una vez obtenido el dominio público del backend, actualiza `frontend/.env`:
-
-```env
-EXPO_PUBLIC_API_URL=https://<tu-dominio>.up.railway.app/api
-```
-
-Y reinicia Metro desde `frontend/` para hornear la nueva URL en el bundle:
-
-```bash
-npx expo start --clear
-```
-
----
-
-## ⚙️ Levantar el entorno con Docker (recomendado)
-
-La forma más rápida de tener todo funcionando es con Docker Compose.
+## Levantar el entorno con Docker (recomendado)
 
 ### Prerrequisitos
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### Pasos
 
-1. Edita `docker-compose.yml` y reemplaza `<TU_IP_LOCAL>` en la variable `EXPO_PUBLIC_API_URL` del servicio `frontend` por la IP de tu máquina en la red local (ej: `192.168.1.50`).
-   * Windows: `ipconfig` → IPv4 de tu adaptador de red
-   * Mac/Linux: `ifconfig` o `ip addr`
+1. Copia `.env.example` a `.env` en la raíz y completa `HOST_IP` con la IP de tu máquina en la red local:
+   - Windows: `ipconfig` → IPv4 del adaptador Wi-Fi
+   - Mac/Linux: `ifconfig` o `ip addr`
 
 2. Levanta todos los servicios:
-   ```bash
-   docker-compose up --build
-   ```
 
-Esto arrancará tres servicios:
-| Servicio | Puerto | Descripción |
-|---|---|---|
-| `db` | 5432 | PostgreSQL 15 con volumen persistente |
-| `backend` | 3000 | API Express — aplica el schema automáticamente al arrancar |
-| `frontend` | 8081 | Metro bundler de Expo — escanea el QR con Expo Go |
-
-> **Dispositivo físico:** el QR de Expo usará la IP de la red del contenedor. Si no conecta, establece la variable `REACT_NATIVE_PACKAGER_HOSTNAME=<TU_IP_LOCAL>` en el servicio `frontend` del compose.
-
-### Seeder (usuarios de prueba)
-
-Con el backend corriendo, ejecuta en otra terminal:
 ```bash
-docker-compose exec backend npx prisma db seed
+docker-compose up --build
 ```
 
-Credenciales creadas:
+| Servicio | Puerto | Descripción |
+|---|---|---|
+| `db` | 5433 | PostgreSQL 15 con volumen persistente |
+| `backend` | 3001 | API Express — aplica schema + seed al arrancar |
+| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
+
+> El puerto 8080 se usa en lugar de 8081 para evitar conflictos con reglas de firewall en Windows.
+
+### Usuarios de prueba (seed)
+
 | Rol | Email | Contraseña |
 |---|---|---|
 | CASERO | `casero@test.com` | `casero123` |
@@ -90,27 +69,64 @@ Credenciales creadas:
 
 ---
 
-## ⚙️ Instalación Manual (sin Docker)
+## Instalación manual (sin Docker)
 
-### Prerrequisitos
-* [Node.js](https://nodejs.org/) (v20 o superior)
-* [Expo Go](https://expo.dev/go) en el móvil, o un emulador Android/iOS
-* PostgreSQL accesible (local o Prisma Postgres via `npx prisma dev`)
+### Backend
 
-### Backend (API)
-1. `cd backend && npm install`
-2. Copia `.env.example` a `.env` y configura `DATABASE_URL` con una URL estándar `postgresql://...`
-3. `npx prisma db push`
-4. `npm run dev`
+```bash
+cd backend
+npm install
+cp .env.example .env   # configurar DATABASE_URL y JWT_SECRET
+npx prisma db push
+npx prisma db seed
+npm run dev
+```
 
-### Frontend (App)
-1. `cd frontend && npm install`
-2. `npx expo start`
-3. Escanea el código QR con **Expo Go** o pulsa `a` / `i` para el emulador.
+### Frontend
+
+```bash
+cd frontend
+npm install
+npx expo start
+```
+
+Escanea el QR con **Expo Go** o pulsa `a` / `i` para abrir el emulador.
 
 ---
-*Desarrollado con ☕ y código.*
 
-## 📋 Registro de Desarrollo
+## Despliegue en producción (Railway)
 
-El historial de cambios por issue/épica está en [`docs/changelog/`](docs/changelog/).
+El backend y la base de datos se despliegan en [Railway](https://railway.app). Ver pasos completos en [`docs/backend/setup.md`](docs/backend/setup.md).
+
+El proyecto tiene dos entornos en Railway:
+
+| Entorno | Variable |
+|---|---|
+| Desarrollo | `EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api` |
+| Producción | `EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api` |
+
+Cambia el valor en `frontend/.env` y reinicia Metro con `--clear` para hornear la nueva URL en el bundle.
+
+---
+
+## Roadmap
+
+- [ ] Recordatorios de pago automáticos.
+- [ ] Chat integrado Inquilino ↔ Casero.
+- [ ] Notificaciones push avanzadas (nuevas incidencias, cambios de estado).
+
+---
+
+## Documentación
+
+| Recurso | Ruta |
+|---|---|
+| Arquitectura y convenciones | [`context.md`](context.md) |
+| Setup frontend | [`docs/frontend/setup.md`](docs/frontend/setup.md) |
+| API REST (referencia) | [`docs/backend/api.md`](docs/backend/api.md) |
+| Setup backend / Railway | [`docs/backend/setup.md`](docs/backend/setup.md) |
+| Historial de cambios | [`docs/changelog/`](docs/changelog/) |
+
+---
+
+*Desarrollado con café y código.*
