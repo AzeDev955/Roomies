@@ -1,9 +1,24 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 
+const obtenerParamNumerico = (valor: string | string[] | undefined) => {
+  const normalizado = Array.isArray(valor) ? valor[0] : valor;
+
+  if (!normalizado) {
+    return NaN;
+  }
+
+  return parseInt(normalizado, 10);
+};
+
 export const listarGastos: express.RequestHandler = async (req, res) => {
-  const viviendaId = parseInt(req.params.viviendaId, 10);
+  const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const usuarioId = req.usuario!.id;
+
+  if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
+    res.status(400).json({ error: 'viviendaId inválido.' });
+    return;
+  }
 
   const pertenece = await prisma.habitacion.findFirst({
     where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
@@ -27,8 +42,13 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
 };
 
 export const listarDeudas: express.RequestHandler = async (req, res) => {
-  const viviendaId = parseInt(req.params.viviendaId, 10);
+  const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const usuarioId = req.usuario!.id;
+
+  if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
+    res.status(400).json({ error: 'viviendaId inválido.' });
+    return;
+  }
 
   const pertenece = await prisma.habitacion.findFirst({
     where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
@@ -56,9 +76,19 @@ export const listarDeudas: express.RequestHandler = async (req, res) => {
 };
 
 export const saldarDeuda: express.RequestHandler = async (req, res) => {
-  const viviendaId = parseInt(req.params.viviendaId, 10);
-  const deudaId    = parseInt(req.params.deudaId, 10);
+  const viviendaId = obtenerParamNumerico(req.params.viviendaId);
+  const deudaId = obtenerParamNumerico(req.params.deudaId);
   const usuarioId  = req.usuario!.id;
+
+  if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
+    res.status(400).json({ error: 'viviendaId inválido.' });
+    return;
+  }
+
+  if (!Number.isInteger(deudaId) || deudaId <= 0) {
+    res.status(400).json({ error: 'deudaId inválido.' });
+    return;
+  }
 
   const pertenece = await prisma.habitacion.findFirst({
     where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
@@ -97,8 +127,13 @@ export const saldarDeuda: express.RequestHandler = async (req, res) => {
 };
 
 export const crearGasto: express.RequestHandler = async (req, res) => {
-  const viviendaId = parseInt(req.params.viviendaId, 10);
+  const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const pagadorId = req.usuario!.id;
+
+  if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
+    res.status(400).json({ error: 'viviendaId inválido.' });
+    return;
+  }
 
   const { concepto, importe, implicadosIds } = req.body as {
     concepto: string;
