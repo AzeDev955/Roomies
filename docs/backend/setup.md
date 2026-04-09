@@ -135,3 +135,15 @@ npx expo start --clear
 | bcrypt 10 rondas | Balance coste/seguridad estándar para producción |
 | JWT 7 días | Simplicidad MVP: sin refresh tokens por ahora |
 | `req.usuario` en Express.Request | Extensión de tipos en `src/types/express/index.d.ts` para que TypeScript acepte la inyección del payload JWT |
+## Update 2026-04-09 - Backend real
+
+- El backend actual usa `backend/Dockerfile` en Railway.
+- Inventario requiere tambien:
+  - `CLOUDINARY_CLOUD_NAME`
+  - `CLOUDINARY_API_KEY`
+  - `CLOUDINARY_API_SECRET`
+- Scripts actuales:
+  - `npm run dev` -> `nodemon --exec ts-node src/index.ts`
+  - `npm run build` -> `npx prisma generate && tsc`
+  - `npm start` -> `npx prisma db push --accept-data-loss && node dist/index.js`
+- En entornos con red restringida, Prisma puede fallar al descargar binarios aunque el codigo este correcto.

@@ -464,3 +464,19 @@ adb logcat -s ReactNativeJS AndroidRuntime
 | Mapas de color semánticos (`PRIORIDAD_BG`, etc.)         | Exportar objetos `Record<string, string>` desde el `.styles.ts` y aplicarlos inline en JSX permite cambiar la paleta de prioridad/estado en un solo lugar sin lógica condicional en el componente |
 | Empty states con Ionicons box                            | El contenedor cuadrado con icono grande y texto alentador (en lugar de texto gris simple) comunica que la pantalla está activa y esperando datos — reduce la percepción de "app rota"             |
 | Focus state via `focusedInput` local                     | Un `useState<string \| null>(null)` por pantalla con `onFocus`/`onBlur` en cada `TextInput` es más ligero que un componente wrapper y evita re-renders de toda la pantalla al tipear              |
+## Update 2026-04-09 - Inventario Epica 11
+
+- Navegacion:
+  - Casero: existe `app/casero/(tabs)/inventario.tsx`
+  - Inquilino: existe `app/inquilino/(tabs)/inventario.tsx`
+  - La tab bar actual del inquilino incluye `Mi vivienda`, `Tablon`, `Limpieza`, `Gastos`, `Inventario` y `Perfil`
+- Pantallas nuevas:
+  - `/casero/inventario`
+  - `/inquilino/inventario`
+- Tema:
+  - `Theme.colors.successLight`
+  - `Theme.colors.dangerLight`
+- Flujo inquilino:
+  - carga vivienda con `GET /inquilino/vivienda`
+  - carga inventario con `GET /viviendas/:viviendaId/inventario`
+  - valida con `PATCH /inventario/:itemId/conformidad`

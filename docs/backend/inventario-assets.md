@@ -62,3 +62,9 @@ Reglas:
   "fecha_subida": "2026-04-09T21:15:00.000Z"
 }
 ```
+## Update 2026-04-09 - Conformidad del inquilino
+
+- El inventario listado por `GET /api/viviendas/:viviendaId/inventario` incluye el flag `revisado_por_inquilino`.
+- El inquilino puede validar un item con `PATCH /api/inventario/:itemId/conformidad`.
+- El endpoint no recibe body y marca `revisado_por_inquilino = true`.
+- El flujo de discrepancia no sube fotos aqui: redirige al modulo de incidencias para que el inquilino adjunte sus propias evidencias.

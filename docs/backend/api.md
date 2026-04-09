@@ -1441,3 +1441,19 @@ Marca un turno como `HECHO`. No tiene body.
 | `200` | Turno actualizado. Devuelve el `TurnoLimpieza` con `zona` y `usuario` embebidos. |
 | `403` | El usuario no es el asignado ni el casero. |
 | `404` | Turno no encontrado en esa vivienda. |
+## Update 2026-04-09 - Inventario inquilino
+
+### PATCH `/inventario/:itemId/conformidad`
+
+Marca un `ItemInventario` como revisado por el inquilino.
+
+- Auth: `Bearer token`
+- Solo `INQUILINO`
+- Requiere acceso del inquilino a la vivienda del item
+- No requiere body
+- Actualiza `revisado_por_inquilino` a `true`
+
+Notas:
+
+- `POST /viviendas/:viviendaId/inventario` crea los items con `revisado_por_inquilino = false`
+- `GET /viviendas/:viviendaId/inventario` devuelve tambien este flag

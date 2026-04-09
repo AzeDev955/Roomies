@@ -38,6 +38,11 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 - El flujo del casero crea primero el item y después puede subir una foto con `multipart/form-data` en el campo `foto`.
 - El frontend del casero incorpora una pestaña `Inventario` con selector de vivienda, agrupado por ubicación y alta de items con `expo-image-picker`.
 
+- `ItemInventario` incorpora el campo `revisado_por_inquilino` con valor por defecto `false`.
+- El backend expone `PATCH /api/inventario/:itemId/conformidad` para que el inquilino marque un item como validado.
+- El frontend del inquilino incorpora la pestaÃ±a `Inventario` con agrupado por habitaciÃ³n/zona, galerÃ­a de fotos y modal de revisiÃ³n.
+- Si el item no coincide, el flujo redirige al mÃ³dulo de incidencias mediante un `Alert` nativo.
+
 - El backend desplegado en Railway se construye con `backend/Dockerfile`.
 - Se aÃ±adiÃ³ infraestructura de inventario con `ItemInventario` y `FotoAsset` en Prisma.
 - La subida de fotos del inventario usa Cloudinary con `multer` + `multer-storage-cloudinary`.
@@ -528,3 +533,13 @@ Usuarios de prueba creados por `prisma db seed`:
 - `docs/backend/api.md` — referencia completa de endpoints con ejemplos de body/response.
 - `docs/frontend/setup.md` — guía de configuración del frontend, variables de entorno, estructura de la app, flujo de autenticación y decisiones de arquitectura.
 - `docs/changelog/` — un archivo por issue implementado, con decisiones técnicas.
+## Update 2026-04-09 - Inventario Epica 11
+
+- Backend:
+  - `ItemInventario` incluye `revisado_por_inquilino`.
+  - Inventario expone `POST /api/viviendas/:viviendaId/inventario`, `GET /api/viviendas/:viviendaId/inventario`, `POST /api/inventario/:itemId/fotos` y `PATCH /api/inventario/:itemId/conformidad`.
+- Frontend:
+  - El casero tiene una pestana `Inventario` para alta de items y subida de fotos.
+  - El inquilino tiene una pestana `Inventario` para check-in visual y validacion del estado de cada item.
+- UI:
+  - `Theme.colors.successLight` y `Theme.colors.dangerLight` se usan para badges de validacion y acciones destructivas suaves.
