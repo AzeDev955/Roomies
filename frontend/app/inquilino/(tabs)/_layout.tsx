@@ -61,6 +61,15 @@ export default function InquilinoTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="inventario"
+        options={{
+          title: "Inventario",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="images-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="perfil"
         options={{
           title: "Perfil",

@@ -6,8 +6,10 @@ export const Theme = {
     primaryDisabled:  '#FFBCBC',
     // Semánticos
     success:          '#06D6A0',  // Teal-verde vibrante
+    successLight:     '#E8FBF5',
     successDisabled:  '#A3E8DA',
     danger:           '#FF4757',
+    dangerLight:      '#FFF0F2',
     warning:          '#FFA726',
     // Fondos
     background:       '#F8F7F4',  // Off-white cálido (no frío puro)
