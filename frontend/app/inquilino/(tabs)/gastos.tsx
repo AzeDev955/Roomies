@@ -4,9 +4,13 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
@@ -57,13 +61,7 @@ const AvatarInitials = ({
         flexShrink: 0,
       }}
     >
-      <Text
-        style={{
-          fontSize: size * 0.33,
-          fontWeight: '700',
-          color: Theme.colors.primary,
-        }}
-      >
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
         {initials}
       </Text>
     </View>
@@ -71,11 +69,7 @@ const AvatarInitials = ({
 };
 
 const formatFecha = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const formatImporte = (n: number) =>
   n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
@@ -88,11 +82,30 @@ export default function GastosInquilinoTab() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Modal
+  const [modalVisible, setModalVisible] = useState(false);
+  const [concepto, setConcepto] = useState('');
+  const [importe, setImporte] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [conceptoFocused, setConceptoFocused] = useState(false);
+  const [importeFocused, setImporteFocused] = useState(false);
+
+  // ── Carga de datos ────────────────────────────────────────────────────────
+
+  const cargarGastos = useCallback(async (vId: number) => {
+    try {
+      const { data } = await api.get<Gasto[]>(`/viviendas/${vId}/gastos`);
+      setGastos(data);
+    } catch {
+      // Feed vacío — se muestra empty state
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       let activo = true;
 
-      const cargarDatos = async () => {
+      const inicializar = async () => {
         setLoading(true);
         try {
           const { data: viviendaData } = await api.get<{
@@ -109,23 +122,17 @@ export default function GastosInquilinoTab() {
           if (!activo) return;
           setViviendaId(vId);
           setMiId(uId);
-
-          const { data: gastosData } = await api.get<Gasto[]>(
-            `/viviendas/${vId}/gastos`
-          );
-          if (activo) setGastos(gastosData);
+          await cargarGastos(vId);
         } catch {
-          // Sin vivienda o sin gastos aún — se muestra estado vacío
+          // Sin vivienda — se muestra empty state
         } finally {
           if (activo) setLoading(false);
         }
       };
 
-      cargarDatos();
-      return () => {
-        activo = false;
-      };
-    }, [])
+      inicializar();
+      return () => { activo = false; };
+    }, [cargarGastos])
   );
 
   // ── Cálculo de balance ────────────────────────────────────────────────────
@@ -136,19 +143,50 @@ export default function GastosInquilinoTab() {
     for (const g of gastos) {
       for (const d of g.deudas) {
         if (d.estado === 'PAGADA') continue;
-        if (d.acreedor_id === miId) balance += d.importe;   // me deben
-        if (d.deudor_id === miId) balance -= d.importe;     // debo
+        if (d.acreedor_id === miId) balance += d.importe;
+        if (d.deudor_id === miId) balance -= d.importe;
       }
     }
     return balance;
   };
 
+  // ── Guardar gasto ─────────────────────────────────────────────────────────
+
+  const handleGuardar = async () => {
+    if (!concepto.trim() || !importe.trim() || !viviendaId) return;
+    const importeNum = parseFloat(importe.replace(',', '.'));
+    if (isNaN(importeNum) || importeNum <= 0) {
+      Toast.show({ type: 'error', text1: 'Introduce un importe válido mayor que 0.' });
+      return;
+    }
+    setGuardando(true);
+    try {
+      const { data: nuevoGasto } = await api.post<Gasto>(
+        `/viviendas/${viviendaId}/gastos`,
+        { concepto: concepto.trim(), importe: importeNum }
+      );
+      setGastos((prev) => [nuevoGasto, ...prev]);
+      cerrarModal();
+      Toast.show({ type: 'success', text1: '¡Gasto registrado!', text2: `${concepto.trim()} · ${formatImporte(importeNum)}` });
+    } catch (err: any) {
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo registrar el gasto.' });
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const cerrarModal = () => {
+    setModalVisible(false);
+    setConcepto('');
+    setImporte('');
+  };
+
+  const puedeGuardar = concepto.trim().length > 0 && importe.trim().length > 0;
+
   // ── Loading ───────────────────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />
-    );
+    return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
   }
 
   const balance = calcularBalance();
@@ -161,16 +199,14 @@ export default function GastosInquilinoTab() {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
         {/* ── Cabecera ── */}
         <View style={styles.header}>
-          <Text style={styles.headerEtiqueta}>Épica 10</Text>
-          <Text style={styles.headerTitulo}>Gastos comunes</Text>
+          <Text style={styles.headerEtiqueta}>Gastos comunes</Text>
+          <Text style={styles.headerTitulo}>Balance del piso</Text>
           <Text style={styles.headerSubtitulo}>
-            Divide los gastos de la casa de forma justa y transparente.
+            Divide los gastos de forma justa y transparente.
           </Text>
         </View>
 
@@ -199,8 +235,7 @@ export default function GastosInquilinoTab() {
             </View>
             <Text style={styles.emptyTitulo}>Sin gastos todavía</Text>
             <Text style={styles.emptySubtitulo}>
-              Cuando alguien pague algo por la casa, aparecerá aquí para que todos
-              contribuyan su parte.
+              Cuando alguien pague algo por la casa, aparecerá aquí para que todos contribuyan su parte.
             </Text>
           </View>
         ) : (
@@ -208,16 +243,10 @@ export default function GastosInquilinoTab() {
             <Text style={styles.seccionTitulo}>Movimientos</Text>
             {gastos.map((g) => (
               <View key={g.id} style={styles.gastoCard}>
-                <AvatarInitials
-                  nombre={g.pagador.nombre}
-                  apellidos={g.pagador.apellidos}
-                  size={46}
-                />
+                <AvatarInitials nombre={g.pagador.nombre} apellidos={g.pagador.apellidos} size={46} />
                 <View style={styles.gastoInfo}>
                   <Text style={styles.gastoConcepto}>{g.concepto}</Text>
-                  <Text style={styles.gastoPagador}>
-                    Pagado por {g.pagador.nombre}
-                  </Text>
+                  <Text style={styles.gastoPagador}>Pagado por {g.pagador.nombre}</Text>
                   <Text style={styles.gastoFecha}>{formatFecha(g.fecha_creacion)}</Text>
                 </View>
                 <View style={styles.gastoImporteBox}>
@@ -233,12 +262,89 @@ export default function GastosInquilinoTab() {
       {/* ── FAB ── */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => Alert.alert('Nuevo gasto', 'Funcionalidad próximamente.')}
+        onPress={() => setModalVisible(true)}
         accessibilityLabel="Añadir nuevo gasto"
         accessibilityRole="button"
       >
         <Ionicons name="add" size={28} color={Theme.colors.surface} />
       </Pressable>
+
+      {/* ── Modal Nuevo Gasto ── */}
+      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={cerrarModal}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <Pressable style={{ flex: 1 }} onPress={cerrarModal} />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitulo}>Nuevo gasto</Text>
+
+            {/* Concepto */}
+            <View>
+              <Text style={styles.inputLabel}>Concepto</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  conceptoFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                ]}
+                placeholder="Ej. Papel higiénico, gas, pizza…"
+                placeholderTextColor={Theme.colors.textMuted}
+                value={concepto}
+                onChangeText={setConcepto}
+                onFocus={() => setConceptoFocused(true)}
+                onBlur={() => setConceptoFocused(false)}
+                maxLength={120}
+                returnKeyType="next"
+              />
+            </View>
+
+            {/* Importe */}
+            <View>
+              <Text style={styles.inputLabel}>Importe (€)</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  importeFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                ]}
+                placeholder="0,00"
+                placeholderTextColor={Theme.colors.textMuted}
+                value={importe}
+                onChangeText={setImporte}
+                onFocus={() => setImporteFocused(true)}
+                onBlur={() => setImporteFocused(false)}
+                keyboardType="decimal-pad"
+                returnKeyType="done"
+              />
+            </View>
+
+            {/* Acciones */}
+            <View style={styles.modalAcciones}>
+              <Pressable
+                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
+                onPress={cerrarModal}
+              >
+                <Text style={styles.botonCancelarTexto}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.botonGuardar,
+                  !puedeGuardar && styles.botonGuardarDisabled,
+                  pressed && !guardando && styles.botonPressed,
+                ]}
+                onPress={handleGuardar}
+                disabled={!puedeGuardar || guardando}
+              >
+                {guardando ? (
+                  <ActivityIndicator color={Theme.colors.surface} />
+                ) : (
+                  <Text style={styles.botonGuardarTexto}>Guardar</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }

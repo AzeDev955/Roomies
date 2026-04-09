@@ -158,6 +158,96 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
+  // — Modal (bottom sheet) —
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: Theme.colors.surface,
+    borderTopLeftRadius: Theme.radius.xl,
+    borderTopRightRadius: Theme.radius.xl,
+    padding: Theme.spacing.lg,
+    paddingTop: Theme.spacing.xl,
+    paddingBottom: 40,
+    gap: Theme.spacing.md,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.border,
+    alignSelf: 'center',
+    marginBottom: Theme.spacing.md,
+  },
+  modalTitulo: {
+    fontSize: Theme.typography.title,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    letterSpacing: -0.3,
+  },
+  inputLabel: {
+    fontSize: Theme.typography.label,
+    fontWeight: '700',
+    color: Theme.colors.textSecondary,
+    marginBottom: Theme.spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  input: {
+    backgroundColor: Theme.colors.background,
+    borderRadius: Theme.radius.md,
+    borderWidth: 2,
+    borderColor: Theme.colors.border,
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: Theme.spacing.base,
+    fontSize: Theme.typography.input,
+    color: Theme.colors.text,
+    minHeight: 52,
+  },
+  modalAcciones: {
+    flexDirection: 'row',
+    gap: Theme.spacing.md,
+    marginTop: Theme.spacing.xs,
+  },
+  botonCancelar: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.radius.lg,
+    paddingVertical: 14,
+    alignItems: 'center',
+    minHeight: 52,
+    justifyContent: 'center',
+  },
+  botonCancelarTexto: {
+    color: Theme.colors.textMedium,
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+  },
+  botonGuardar: {
+    flex: 1,
+    backgroundColor: Theme.colors.primary,
+    borderRadius: Theme.radius.lg,
+    paddingVertical: 14,
+    alignItems: 'center',
+    minHeight: 52,
+    justifyContent: 'center',
+  },
+  botonGuardarDisabled: {
+    backgroundColor: Theme.colors.primaryDisabled,
+  },
+  botonGuardarTexto: {
+    color: Theme.colors.surface,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+  },
+  botonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.97 }],
+  },
+
   // — FAB —
   fab: {
     position: 'absolute',

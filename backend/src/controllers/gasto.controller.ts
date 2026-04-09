@@ -1,6 +1,31 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 
+export const listarGastos: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params.viviendaId, 10);
+  const usuarioId = req.usuario!.id;
+
+  const pertenece = await prisma.habitacion.findFirst({
+    where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
+  });
+
+  if (!pertenece) {
+    res.status(403).json({ error: 'No perteneces a esta vivienda.' });
+    return;
+  }
+
+  const gastos = await prisma.gasto.findMany({
+    where: { vivienda_id: viviendaId },
+    orderBy: { fecha_creacion: 'desc' },
+    include: {
+      pagador: { select: { id: true, nombre: true, apellidos: true } },
+      deudas: true,
+    },
+  });
+
+  res.status(200).json(gastos);
+};
+
 export const crearGasto: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params.viviendaId, 10);
   const pagadorId = req.usuario!.id;
