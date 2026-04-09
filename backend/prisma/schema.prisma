@@ -170,6 +170,7 @@ model ItemInventario {
   nombre         String
   descripcion    String?
   estado         EstadoItem  @default(BUENO)
+  revisado_por_inquilino Boolean @default(false)
   habitacion_id  Int?
   habitacion     Habitacion? @relation(fields: [habitacion_id], references: [id])
   vivienda_id    Int?

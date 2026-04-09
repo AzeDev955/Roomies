@@ -228,6 +228,74 @@ export const listarInventarioVivienda: express.RequestHandler = async (req, res)
   res.status(200).json(items);
 };
 
+export const marcarConformidadInventario: express.RequestHandler = async (req, res) => {
+  const itemId = Number(req.params['itemId']);
+  const usuarioId = req.usuario!.id;
+  const rol = req.usuario!.rol;
+
+  if (!Number.isInteger(itemId) || itemId <= 0) {
+    res.status(400).json({ error: 'itemId inválido.' });
+    return;
+  }
+
+  if (rol !== RolUsuario.INQUILINO) {
+    res.status(403).json({ error: 'Solo el inquilino puede dar conformidad al inventario.' });
+    return;
+  }
+
+  const item = await prisma.itemInventario.findUnique({
+    where: { id: itemId },
+    include: {
+      habitacion: {
+        select: {
+          vivienda_id: true,
+        },
+      },
+    },
+  });
+
+  if (!item) {
+    res.status(404).json({ error: 'Item de inventario no encontrado.' });
+    return;
+  }
+
+  const viviendaId = item.vivienda_id ?? item.habitacion?.vivienda_id;
+
+  if (!viviendaId) {
+    res.status(400).json({ error: 'El item de inventario no está vinculado a una vivienda válida.' });
+    return;
+  }
+
+  const tieneAcceso = await usuarioTieneAccesoAVivienda(usuarioId, rol, viviendaId);
+  if (!tieneAcceso) {
+    res.status(403).json({ error: 'No tienes acceso a este item de inventario.' });
+    return;
+  }
+
+  const itemActualizado = await prisma.itemInventario.update({
+    where: { id: itemId },
+    data: {
+      revisado_por_inquilino: true,
+    },
+    include: {
+      habitacion: {
+        select: {
+          id: true,
+          nombre: true,
+          tipo: true,
+        },
+      },
+      fotos: {
+        orderBy: {
+          fecha_subida: 'desc',
+        },
+      },
+    },
+  });
+
+  res.status(200).json(itemActualizado);
+};
+
 export const subirFotoInventario: express.RequestHandler = async (req, res) => {
   const itemId = Number(req.params['itemId']);
   const usuarioId = req.usuario!.id;
