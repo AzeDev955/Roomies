@@ -29,7 +29,7 @@ app.use('/api/incidencias', incidenciaRoutes);
 app.use('/api/anuncios', anuncioRoutes);
 app.use('/api/viviendas', limpiezaRoutes);
 app.use('/api/viviendas', gastoRoutes);
-app.use('/api/inventario', inventarioRoutes);
+app.use('/api', inventarioRoutes);
 app.use('/api/users', userRoutes);
 
 app.listen(PORT, () => {

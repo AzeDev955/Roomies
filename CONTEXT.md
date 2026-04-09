@@ -32,6 +32,12 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 ## Actualizaciones recientes
 
+### Inventario del casero
+
+- El módulo de inventario expone `POST /api/viviendas/:viviendaId/inventario`, `GET /api/viviendas/:viviendaId/inventario` y `POST /api/inventario/:itemId/fotos`.
+- El flujo del casero crea primero el item y después puede subir una foto con `multipart/form-data` en el campo `foto`.
+- El frontend del casero incorpora una pestaña `Inventario` con selector de vivienda, agrupado por ubicación y alta de items con `expo-image-picker`.
+
 - El backend desplegado en Railway se construye con `backend/Dockerfile`.
 - Se aÃ±adiÃ³ infraestructura de inventario con `ItemInventario` y `FotoAsset` en Prisma.
 - La subida de fotos del inventario usa Cloudinary con `multer` + `multer-storage-cloudinary`.

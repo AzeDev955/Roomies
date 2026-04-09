@@ -1,8 +1,8 @@
-# Inventario Assets — Cloudinary
+# Inventario Assets y Flujo de Alta
 
 ## Resumen
 
-El backend sube las fotos de inventario a Cloudinary y guarda en base de datos la `secure_url` devuelta como registro `FotoAsset`.
+El módulo de inventario permite crear `ItemInventario` por vivienda o por habitación y subir después sus fotos a Cloudinary como `FotoAsset`.
 
 ## Variables necesarias
 
@@ -14,29 +14,45 @@ CLOUDINARY_API_KEY=tu_api_key
 CLOUDINARY_API_SECRET=tu_api_secret
 ```
 
-## Endpoint
-
-Ruta:
+## Endpoints
 
 ```http
+POST /api/viviendas/:viviendaId/inventario
+GET /api/viviendas/:viviendaId/inventario
 POST /api/inventario/:itemId/fotos
 ```
 
-Requisitos:
+## Contrato de creación
 
-- Auth con `Bearer token`
-- `multipart/form-data`
-- Archivo en el campo `foto`
+Para crear un item el backend espera JSON con:
 
-## Comportamiento
+- `nombre`
+- `descripcion` opcional
+- `estado` (`NUEVO`, `BUENO`, `DESGASTADO`, `ROTO`)
+- exactamente uno entre `habitacion_id` o `vivienda_id`
+
+Reglas:
+
+- solo el casero propietario puede crear items
+- `habitacion_id` y `vivienda_id` no pueden viajar juntos
+- `vivienda_id` debe coincidir con la vivienda de la ruta
+- si se usa `habitacion_id`, esa habitación debe pertenecer a la vivienda
+
+## Flujo recomendado desde frontend
+
+1. Crear el item con `POST /api/viviendas/:viviendaId/inventario`.
+2. Si el usuario eligió una imagen, llamar inmediatamente a `POST /api/inventario/:itemId/fotos`.
+3. Refrescar el listado con `GET /api/viviendas/:viviendaId/inventario`.
+
+## Comportamiento de subida
 
 1. El backend valida que el `itemId` exista.
 2. Resuelve la vivienda del item a partir de `vivienda_id` o de la vivienda de su habitación.
 3. Comprueba que el usuario autenticado tenga acceso a esa vivienda.
 4. Sube la imagen a Cloudinary en la carpeta `roomies-inventario`.
-5. Crea un `FotoAsset` con la URL resultante.
+5. Crea un `FotoAsset` con la `secure_url` resultante.
 
-## Respuesta esperada
+## Respuesta esperada al subir foto
 
 ```json
 {
