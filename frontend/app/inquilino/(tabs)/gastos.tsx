@@ -283,7 +283,12 @@ export default function GastosInquilinoTab() {
   const balance = calcularBalance();
   const debeMas = balance < 0;
   const heroColor      = debeMas ? Theme.colors.danger : Theme.colors.success;
-  const heroBackground = heroColor + '15';
+  const heroBackground = balance === 0 ? Theme.colors.surface2 : Theme.colors.surface;
+  const heroBadgeBackground = balance === 0
+    ? Theme.colors.surface2
+    : debeMas
+    ? Theme.colors.dangerLight
+    : Theme.colors.successLight;
   const heroLabel      = debeMas ? 'Debes al grupo' : balance === 0 ? 'Estás al día' : 'Te deben';
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -302,14 +307,16 @@ export default function GastosInquilinoTab() {
         </View>
 
         {/* ── Hero Card Balance ── */}
-        <View style={[styles.heroCard, { backgroundColor: heroBackground }]}>
-          <Text style={[styles.heroEtiqueta, { color: heroColor }]}>
-            {heroLabel.toUpperCase()}
-          </Text>
+        <View style={[styles.heroCard, { backgroundColor: heroBackground }]}> 
+          <View style={[styles.heroEtiquetaBadge, { backgroundColor: heroBadgeBackground }]}>
+            <Text style={[styles.heroEtiqueta, { color: heroColor }]}>
+              {heroLabel.toUpperCase()}
+            </Text>
+          </View>
           <Text style={[styles.heroImporte, { color: heroColor }]}>
             {formatImporte(Math.abs(balance))}
           </Text>
-          <Text style={[styles.heroDescripcion, { color: heroColor }]}>
+          <Text style={styles.heroDescripcion}>
             {debeMas
               ? 'Tienes deudas pendientes con tus compañeros'
               : balance === 0
@@ -551,3 +558,4 @@ export default function GastosInquilinoTab() {
     </View>
   );
 }
+
