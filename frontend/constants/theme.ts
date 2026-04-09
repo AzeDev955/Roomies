@@ -51,6 +51,15 @@ export const Theme = {
     heading:  24,
     hero:     32,
   },
+  shadows: {
+    sm: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+  },
 } as const;
 
 // Expo template compatibility — used by unused boilerplate components
