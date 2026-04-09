@@ -1014,6 +1014,105 @@ Elimina un anuncio.
 
 ## Inventario (`/inventario`)
 
+### POST `/viviendas/:viviendaId/inventario`
+
+Crea un nuevo `ItemInventario` para una vivienda. Pensado para el flujo de configuración del casero.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `viviendaId` | ID de la vivienda |
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `nombre` | string | Sí | Nombre del ítem |
+| `descripcion` | string | No | Texto libre opcional |
+| `estado` | `NUEVO` \| `BUENO` \| `DESGASTADO` \| `ROTO` | No | Default: `BUENO` |
+| `habitacion_id` | number | Condicional | Obligatorio si no se envía `vivienda_id` |
+| `vivienda_id` | number | Condicional | Obligatorio si no se envía `habitacion_id` |
+
+**Validaciones:**
+
+- Solo el `CASERO` propietario puede crear items.
+- Debe llegar exactamente uno de estos campos: `habitacion_id` o `vivienda_id`.
+- Si se usa `vivienda_id`, debe coincidir con `:viviendaId`.
+- Si se usa `habitacion_id`, esa habitación debe pertenecer a la vivienda.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Item creado con `habitacion` y `fotos[]`. |
+| `400` | Datos inválidos, estado incorrecto o violación de la regla XOR entre `habitacion_id` y `vivienda_id`. |
+| `403` | El usuario no es el casero propietario de la vivienda. |
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "id": 5,
+  "nombre": "Sofá chaise longue",
+  "descripcion": "Tapicería beige, lado derecho",
+  "estado": "BUENO",
+  "habitacion_id": null,
+  "vivienda_id": 2,
+  "fecha_registro": "2026-04-09T22:30:00.000Z",
+  "habitacion": null,
+  "fotos": []
+}
+```
+
+---
+
+### GET `/viviendas/:viviendaId/inventario`
+
+Lista todos los items de inventario de una vivienda, incluyendo habitación asociada si existe y el array de fotos.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+
+- `CASERO`: debe ser propietario de la vivienda.
+- `INQUILINO`: debe tener habitación asignada en esa vivienda.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Array de `ItemInventario[]`. Puede ser `[]`. |
+| `400` | `viviendaId` inválido. |
+| `403` | El usuario no tiene acceso al inventario de esa vivienda. |
+
+**Ejemplo respuesta 200:**
+```json
+[
+  {
+    "id": 5,
+    "nombre": "Sofá chaise longue",
+    "descripcion": "Tapicería beige, lado derecho",
+    "estado": "BUENO",
+    "habitacion_id": null,
+    "vivienda_id": 2,
+    "fecha_registro": "2026-04-09T22:30:00.000Z",
+    "habitacion": null,
+    "fotos": [
+      {
+        "id": 11,
+        "url": "https://res.cloudinary.com/.../roomies-inventario/sofa.jpg",
+        "item_id": 5,
+        "fecha_subida": "2026-04-09T22:31:00.000Z"
+      }
+    ]
+  }
+]
+```
+
+---
+
 ### POST `/inventario/:itemId/fotos`
 
 Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item.
