@@ -43,6 +43,11 @@ enum EstadoTurno {
   NO_HECHO
 }
 
+enum EstadoDeuda {
+  PENDIENTE
+  PAGADA
+}
+
 model Usuario {
   id                 Int                      @id @default(autoincrement())
   nombre             String
@@ -64,6 +69,9 @@ model Usuario {
   anuncios           Anuncio[]
   turnos_limpieza    TurnoLimpieza[]
   asignaciones_fijas AsignacionLimpiezaFija[]
+  gastos_pagados     Gasto[]
+  deudas_a_pagar     Deuda[]                  @relation("DeudorDeuda")
+  deudas_a_cobrar    Deuda[]                  @relation("AcreedorDeuda")
 }
 
 model Vivienda {
@@ -79,6 +87,7 @@ model Vivienda {
   incidencias    Incidencia[]
   anuncios       Anuncio[]
   zonas_limpieza ZonaLimpieza[]
+  gastos         Gasto[]
 }
 
 model Habitacion {
@@ -119,6 +128,32 @@ model Anuncio {
   titulo         String
   contenido      String
   fecha_creacion DateTime @default(now())
+}
+
+// ── Módulo de gastos y balances ───────────────────────────────────────────────
+
+model Gasto {
+  id             Int      @id @default(autoincrement())
+  concepto       String
+  importe        Float
+  fecha_creacion DateTime @default(now())
+  pagador_id     Int
+  pagador        Usuario  @relation(fields: [pagador_id], references: [id])
+  vivienda_id    Int
+  vivienda       Vivienda @relation(fields: [vivienda_id], references: [id])
+  deudas         Deuda[]
+}
+
+model Deuda {
+  id          Int         @id @default(autoincrement())
+  gasto_id    Int
+  gasto       Gasto       @relation(fields: [gasto_id], references: [id])
+  deudor_id   Int
+  deudor      Usuario     @relation("DeudorDeuda", fields: [deudor_id], references: [id])
+  acreedor_id Int
+  acreedor    Usuario     @relation("AcreedorDeuda", fields: [acreedor_id], references: [id])
+  importe     Float
+  estado      EstadoDeuda @default(PENDIENTE)
 }
 
 // ── Módulo de limpieza ────────────────────────────────────────────────────────
