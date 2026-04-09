@@ -48,6 +48,13 @@ enum EstadoDeuda {
   PAGADA
 }
 
+enum EstadoItem {
+  NUEVO
+  BUENO
+  DESGASTADO
+  ROTO
+}
+
 model Usuario {
   id                 Int                      @id @default(autoincrement())
   nombre             String
@@ -75,33 +82,35 @@ model Usuario {
 }
 
 model Vivienda {
-  id             Int            @id @default(autoincrement())
-  casero_id      Int
-  casero         Usuario        @relation(fields: [casero_id], references: [id])
-  alias_nombre   String
-  direccion      String
-  codigo_postal  String
-  ciudad         String
-  provincia      String
-  habitaciones   Habitacion[]
-  incidencias    Incidencia[]
-  anuncios       Anuncio[]
-  zonas_limpieza ZonaLimpieza[]
-  gastos         Gasto[]
+  id               Int              @id @default(autoincrement())
+  casero_id        Int
+  casero           Usuario          @relation(fields: [casero_id], references: [id])
+  alias_nombre     String
+  direccion        String
+  codigo_postal    String
+  ciudad           String
+  provincia        String
+  habitaciones     Habitacion[]
+  incidencias      Incidencia[]
+  anuncios         Anuncio[]
+  zonas_limpieza   ZonaLimpieza[]
+  gastos           Gasto[]
+  items_inventario ItemInventario[]
 }
 
 model Habitacion {
-  id                Int            @id @default(autoincrement())
+  id                Int              @id @default(autoincrement())
   vivienda_id       Int
-  vivienda          Vivienda       @relation(fields: [vivienda_id], references: [id])
+  vivienda          Vivienda         @relation(fields: [vivienda_id], references: [id])
   inquilino_id      Int?
-  inquilino         Usuario?       @relation(fields: [inquilino_id], references: [id])
+  inquilino         Usuario?         @relation(fields: [inquilino_id], references: [id])
   nombre            String
-  tipo              TipoHabitacion @default(DORMITORIO)
-  es_habitable      Boolean        @default(true)
+  tipo              TipoHabitacion   @default(DORMITORIO)
+  es_habitable      Boolean          @default(true)
   metros_cuadrados  Float?
-  codigo_invitacion String?        @unique
+  codigo_invitacion String?          @unique
   incidencias       Incidencia[]
+  items_inventario  ItemInventario[]
 }
 
 model Incidencia {
@@ -154,6 +163,27 @@ model Deuda {
   acreedor    Usuario     @relation("AcreedorDeuda", fields: [acreedor_id], references: [id])
   importe     Float
   estado      EstadoDeuda @default(PENDIENTE)
+}
+
+model ItemInventario {
+  id             Int         @id @default(autoincrement())
+  nombre         String
+  descripcion    String?
+  estado         EstadoItem  @default(BUENO)
+  habitacion_id  Int?
+  habitacion     Habitacion? @relation(fields: [habitacion_id], references: [id])
+  vivienda_id    Int?
+  vivienda       Vivienda?   @relation(fields: [vivienda_id], references: [id])
+  fecha_registro DateTime    @default(now())
+  fotos          FotoAsset[]
+}
+
+model FotoAsset {
+  id           Int            @id @default(autoincrement())
+  url          String
+  item_id      Int
+  item         ItemInventario @relation(fields: [item_id], references: [id])
+  fecha_subida DateTime       @default(now())
 }
 
 // ── Módulo de limpieza ────────────────────────────────────────────────────────
