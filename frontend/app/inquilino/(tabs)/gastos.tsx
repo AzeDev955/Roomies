@@ -283,7 +283,12 @@ export default function GastosInquilinoTab() {
   const balance = calcularBalance();
   const debeMas = balance < 0;
   const heroColor      = debeMas ? Theme.colors.danger : Theme.colors.success;
-  const heroBackground = heroColor + '15';
+  const heroBackground = balance === 0 ? Theme.colors.surface2 : Theme.colors.surface;
+  const heroBadgeBackground = balance === 0
+    ? Theme.colors.surface2
+    : debeMas
+    ? Theme.colors.dangerLight
+    : Theme.colors.successLight;
   const heroLabel      = debeMas ? 'Debes al grupo' : balance === 0 ? 'Estás al día' : 'Te deben';
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -302,14 +307,16 @@ export default function GastosInquilinoTab() {
         </View>
 
         {/* ── Hero Card Balance ── */}
-        <View style={[styles.heroCard, { backgroundColor: heroBackground }]}>
-          <Text style={[styles.heroEtiqueta, { color: heroColor }]}>
-            {heroLabel.toUpperCase()}
-          </Text>
+        <View style={[styles.heroCard, { backgroundColor: heroBackground }]}> 
+          <View style={[styles.heroEtiquetaBadge, { backgroundColor: heroBadgeBackground }]}>
+            <Text style={[styles.heroEtiqueta, { color: heroColor }]}>
+              {heroLabel.toUpperCase()}
+            </Text>
+          </View>
           <Text style={[styles.heroImporte, { color: heroColor }]}>
             {formatImporte(Math.abs(balance))}
           </Text>
-          <Text style={[styles.heroDescripcion, { color: heroColor }]}>
+          <Text style={styles.heroDescripcion}>
             {debeMas
               ? 'Tienes deudas pendientes con tus compañeros'
               : balance === 0
@@ -325,50 +332,53 @@ export default function GastosInquilinoTab() {
             {deudoasPendientes.map((d) => {
               const yoDebo = d.deudor_id === miId;
               const companero = yoDebo ? d.acreedor : d.deudor;
-              const tintColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
-              const cardBg    = tintColor + '12';
-              const borderColor = tintColor + '30';
+              const amountColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
+              const statusBackground = yoDebo ? Theme.colors.dangerLight : Theme.colors.successLight;
+              const statusText = yoDebo ? Theme.colors.danger : Theme.colors.success;
 
               return (
-                <View
-                  key={d.id}
-                  style={[styles.deudaCard, { backgroundColor: cardBg, borderColor }]}
-                >
-                  <AvatarInitials nombre={companero.nombre} apellidos={companero.apellidos} size={44} />
+                <View key={d.id} style={styles.deudaCard}>
+                  <AvatarInitials nombre={companero.nombre} apellidos={companero.apellidos} size={52} />
                   <View style={styles.deudaInfo}>
-                    <Text style={styles.deudaConcepto}>{d.gasto.concepto}</Text>
-                    <Text style={[styles.deudaRelacion, { color: tintColor }]}>
-                      {yoDebo
-                        ? `Debes a ${companero.nombre}`
-                        : `${companero.nombre} te debe`}
+                    <Text style={styles.deudaNombre} numberOfLines={1}>
+                      {companero.nombre}
+                      {companero.apellidos ? ` ${companero.apellidos}` : ''}
                     </Text>
-                    <Text style={styles.deudaImporte}>{formatImporte(d.importe)}</Text>
+                    <Text style={styles.deudaConcepto} numberOfLines={2}>
+                      {d.gasto.concepto}
+                    </Text>
                   </View>
+                  <View style={styles.deudaMeta}>
+                    <Text style={[styles.deudaImporte, { color: amountColor }]}>
+                      {formatImporte(d.importe)}
+                    </Text>
 
-                  {yoDebo ? (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.botonSaldar,
-                        pressed && styles.botonSaldarPressed,
-                        saldando === d.id && { opacity: 0.6 },
-                      ]}
-                      onPress={() => handleSaldar(d)}
-                      disabled={saldando === d.id}
-                      accessibilityLabel={`Saldar deuda de ${formatImporte(d.importe)} con ${companero.nombre}`}
-                      accessibilityRole="button"
-                    >
-                      {saldando === d.id ? (
-                        <ActivityIndicator size="small" color={Theme.colors.surface} />
-                      ) : (
-                        <Text style={styles.botonSaldarTexto}>Saldar</Text>
-                      )}
-                    </Pressable>
-                  ) : (
-                    <View style={styles.badgeEsperando}>
-                      <Ionicons name="time-outline" size={13} color={Theme.colors.success} />
-                      <Text style={styles.badgeEsperandoTexto}>Esperando</Text>
-                    </View>
-                  )}
+                    {yoDebo ? (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.botonSaldar,
+                          { backgroundColor: statusBackground },
+                          pressed && styles.botonSaldarPressed,
+                          saldando === d.id && { opacity: 0.6 },
+                        ]}
+                        onPress={() => handleSaldar(d)}
+                        disabled={saldando === d.id}
+                        accessibilityLabel={`Saldar deuda de ${formatImporte(d.importe)} con ${companero.nombre}`}
+                        accessibilityRole="button"
+                      >
+                        {saldando === d.id ? (
+                          <ActivityIndicator size="small" color={statusText} />
+                        ) : (
+                          <Text style={[styles.botonSaldarTexto, { color: statusText }]}>Saldar</Text>
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View style={[styles.badgeEsperando, { backgroundColor: statusBackground }]}>
+                        <Ionicons name="time-outline" size={13} color={statusText} />
+                        <Text style={[styles.badgeEsperandoTexto, { color: statusText }]}>Esperando</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               );
             })}
@@ -548,3 +558,4 @@ export default function GastosInquilinoTab() {
     </View>
   );
 }
+
