@@ -22,6 +22,13 @@ import { styles } from '@/styles/inquilino/gastos.styles';
 
 type UsuarioBasico = { id: number; nombre: string; apellidos: string | null };
 
+type HabitacionVivienda = {
+  id: number;
+  tipo: string;
+  es_habitable?: boolean;
+  inquilino: UsuarioBasico | null;
+};
+
 type Deuda = {
   id: number;
   gasto_id: number;
@@ -86,6 +93,7 @@ const formatImporte = (n: number) =>
 export default function GastosInquilinoTab() {
   const [viviendaId, setViviendaId] = useState<number | null>(null);
   const [miId, setMiId] = useState<number | null>(null);
+  const [companerosPiso, setCompanerosPiso] = useState<UsuarioBasico[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [deudas, setDeudas] = useState<Deuda[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +106,7 @@ export default function GastosInquilinoTab() {
   const [guardando, setGuardando] = useState(false);
   const [conceptoFocused, setConceptoFocused] = useState(false);
   const [importeFocused, setImporteFocused] = useState(false);
+  const [implicadosSeleccionados, setImplicadosSeleccionados] = useState<number[]>([]);
 
   // ── Carga de datos ────────────────────────────────────────────────────────
 
@@ -131,10 +140,15 @@ export default function GastosInquilinoTab() {
             (h: any) => h.id === viviendaData.miHabitacionId
           );
           const uId: number = miHab?.inquilino?.id ?? 0;
+          const participantes = (viviendaData.vivienda.habitaciones as HabitacionVivienda[])
+            .filter((h) => h.tipo === 'DORMITORIO' && h.inquilino !== null)
+            .map((h) => h.inquilino!);
 
           if (!activo) return;
           setViviendaId(vId);
           setMiId(uId);
+          setCompanerosPiso(participantes);
+          setImplicadosSeleccionados(participantes.map((inquilino) => inquilino.id));
           await cargarTodo(vId);
         } catch {
           // Sin vivienda
@@ -202,6 +216,10 @@ export default function GastosInquilinoTab() {
 
   const handleGuardar = async () => {
     if (!concepto.trim() || !importe.trim() || !viviendaId) return;
+    if (implicadosSeleccionados.length === 0) {
+      Toast.show({ type: 'error', text1: 'Selecciona al menos un participante para el gasto.' });
+      return;
+    }
     const importeNum = parseFloat(importe.replace(',', '.'));
     if (isNaN(importeNum) || importeNum <= 0) {
       Toast.show({ type: 'error', text1: 'Introduce un importe válido mayor que 0.' });
@@ -212,6 +230,7 @@ export default function GastosInquilinoTab() {
       await api.post(`/viviendas/${viviendaId}/gastos`, {
         concepto: concepto.trim(),
         importe: importeNum,
+        implicadosIds: implicadosSeleccionados,
       });
       await cargarTodo(viviendaId);
       cerrarModal();
@@ -234,9 +253,26 @@ export default function GastosInquilinoTab() {
     setModalVisible(false);
     setConcepto('');
     setImporte('');
+    setImplicadosSeleccionados(companerosPiso.map((inquilino) => inquilino.id));
   };
 
-  const puedeGuardar = concepto.trim().length > 0 && importe.trim().length > 0;
+  const abrirModal = () => {
+    setImplicadosSeleccionados(companerosPiso.map((inquilino) => inquilino.id));
+    setModalVisible(true);
+  };
+
+  const toggleImplicado = (inquilinoId: number) => {
+    setImplicadosSeleccionados((actuales) =>
+      actuales.includes(inquilinoId)
+        ? actuales.filter((id) => id !== inquilinoId)
+        : [...actuales, inquilinoId]
+    );
+  };
+
+  const puedeGuardar =
+    concepto.trim().length > 0 &&
+    importe.trim().length > 0 &&
+    implicadosSeleccionados.length > 0;
 
   // ── Loading ───────────────────────────────────────────────────────────────
 
@@ -374,7 +410,7 @@ export default function GastosInquilinoTab() {
       {/* ── FAB ── */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => setModalVisible(true)}
+        onPress={abrirModal}
         accessibilityLabel="Añadir nuevo gasto"
         accessibilityRole="button"
       >
@@ -426,6 +462,61 @@ export default function GastosInquilinoTab() {
                 keyboardType="decimal-pad"
                 returnKeyType="done"
               />
+            </View>
+
+            <View style={styles.participantesSection}>
+              <Text style={styles.inputLabel}>Quien participa?</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.participantesRow}
+              >
+                {companerosPiso.map((inquilino) => {
+                  const estaSeleccionado = implicadosSeleccionados.includes(inquilino.id);
+                  const esYo = inquilino.id === miId;
+
+                  return (
+                    <Pressable
+                      key={inquilino.id}
+                      style={({ pressed }) => [
+                        styles.participantePill,
+                        estaSeleccionado && styles.participantePillSelected,
+                        pressed && styles.participantePillPressed,
+                      ]}
+                      onPress={() => toggleImplicado(inquilino.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${
+                        estaSeleccionado ? 'Quitar de' : 'Anadir a'
+                      } participantes a ${esYo ? 'ti' : inquilino.nombre}`}
+                    >
+                      <AvatarInitials
+                        nombre={inquilino.nombre}
+                        apellidos={inquilino.apellidos}
+                        size={36}
+                      />
+                      <View style={styles.participanteTextoBox}>
+                        <Text
+                          style={[
+                            styles.participanteNombre,
+                            estaSeleccionado && styles.participanteNombreSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {esYo ? 'Tu' : inquilino.nombre}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.participanteEstado,
+                            estaSeleccionado && styles.participanteEstadoSelected,
+                          ]}
+                        >
+                          {estaSeleccionado ? 'Incluido' : 'Fuera'}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
 
             <View style={styles.modalAcciones}>

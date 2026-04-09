@@ -100,10 +100,22 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params.viviendaId, 10);
   const pagadorId = req.usuario!.id;
 
-  const { concepto, importe } = req.body as { concepto: string; importe: number };
+  const { concepto, importe, implicadosIds } = req.body as {
+    concepto: string;
+    importe: number;
+    implicadosIds?: number[];
+  };
 
   if (!concepto || importe == null || importe <= 0) {
     res.status(400).json({ error: 'concepto e importe (> 0) son obligatorios.' });
+    return;
+  }
+
+  if (
+    implicadosIds != null &&
+    (!Array.isArray(implicadosIds) || implicadosIds.some((id) => !Number.isInteger(id)))
+  ) {
+    res.status(400).json({ error: 'implicadosIds debe ser un array de IDs numéricos.' });
     return;
   }
 
@@ -117,22 +129,43 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  // Obtener todos los inquilinos actuales de la vivienda
+  // Obtener todos los inquilinos activos de la vivienda
   const habitaciones = await prisma.habitacion.findMany({
     where: {
       vivienda_id: viviendaId,
       inquilino_id: { not: null },
       es_habitable: true,
     },
-    select: { inquilino_id: true },
+    select: {
+      inquilino_id: true,
+    },
   });
 
-  const inquilinoIds = habitaciones
-    .map((h) => h.inquilino_id!)
-    .filter((id) => id !== pagadorId);
+  const inquilinosActivosIds = habitaciones.map((h) => h.inquilino_id!);
+  const inquilinosActivosSet = new Set(inquilinosActivosIds);
+  const implicadosNormalizados = Array.isArray(implicadosIds)
+    ? [...new Set(implicadosIds)]
+    : [];
 
-  const totalInquilinos = inquilinoIds.length + 1; // incluye al pagador
-  const importePorPersona = parseFloat((importe / totalInquilinos).toFixed(2));
+  if (implicadosNormalizados.length > 0) {
+    const hayInvalidos = implicadosNormalizados.some((id) => !inquilinosActivosSet.has(id));
+    if (hayInvalidos) {
+      res.status(400).json({ error: 'Todos los implicados deben pertenecer a la vivienda.' });
+      return;
+    }
+  }
+
+  const participantesIds =
+    implicadosNormalizados.length > 0 ? implicadosNormalizados : inquilinosActivosIds;
+
+  const totalParticipantes = participantesIds.length;
+  if (totalParticipantes === 0) {
+    res.status(400).json({ error: 'No hay inquilinos activos para repartir este gasto.' });
+    return;
+  }
+
+  const deudoresIds = participantesIds.filter((id) => id !== pagadorId);
+  const importePorPersona = parseFloat((importe / totalParticipantes).toFixed(2));
 
   const [gasto] = await prisma.$transaction([
     prisma.gasto.create({
@@ -142,7 +175,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
         pagador_id: pagadorId,
         vivienda_id: viviendaId,
         deudas: {
-          create: inquilinoIds.map((deudorId) => ({
+          create: deudoresIds.map((deudorId) => ({
             deudor_id: deudorId,
             acreedor_id: pagadorId,
             importe: importePorPersona,

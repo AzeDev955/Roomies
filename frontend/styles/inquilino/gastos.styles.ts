@@ -276,6 +276,54 @@ export const styles = StyleSheet.create({
     color: Theme.colors.text,
     minHeight: 52,
   },
+  participantesSection: {
+    gap: Theme.spacing.sm,
+  },
+  participantesRow: {
+    gap: Theme.spacing.sm,
+    paddingRight: Theme.spacing.sm,
+  },
+  participantePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
+    paddingVertical: Theme.spacing.sm,
+    paddingHorizontal: Theme.spacing.sm,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.background,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.border,
+    minWidth: 124,
+  },
+  participantePillSelected: {
+    backgroundColor: Theme.colors.primary + '14',
+    borderColor: Theme.colors.primary + '38',
+  },
+  participantePillPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.97 }],
+  },
+  participanteTextoBox: {
+    flex: 1,
+    minWidth: 0,
+  },
+  participanteNombre: {
+    fontSize: Theme.typography.label,
+    fontWeight: '700',
+    color: Theme.colors.text,
+  },
+  participanteNombreSelected: {
+    color: Theme.colors.primary,
+  },
+  participanteEstado: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '600',
+    color: Theme.colors.textMuted,
+    marginTop: 2,
+  },
+  participanteEstadoSelected: {
+    color: Theme.colors.primary,
+  },
   modalAcciones: {
     flexDirection: 'row',
     gap: Theme.spacing.md,
