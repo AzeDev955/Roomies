@@ -6,6 +6,7 @@
 ## Qué se hizo
 
 ### Backend
+
 - Añadido handler `listarDeudas` en `gasto.controller.ts`:
   - Verifica pertenencia a vivienda vía habitación asignada
   - Filtra deudas de la vivienda donde el usuario es deudor o acreedor
@@ -19,8 +20,14 @@
 - Registradas rutas en `gasto.routes.ts`:
   - `GET /:viviendaId/deudas` → `listarDeudas`
   - `PATCH /:viviendaId/deudas/:deudaId/saldar` → `saldarDeuda`
+  - `backend/src/controllers/gasto.controller.ts`: el endpoint `POST /viviendas/:viviendaId/gastos` ahora acepta `implicadosIds`, valida que sean IDs enteros de inquilinos activos de la vivienda y reparte el importe entre los implicados seleccionados o entre todos si no llega selección.
+- `backend/src/controllers/gasto.controller.ts`: se mantiene la regla de no crear nunca una deuda del pagador consigo mismo, aunque su ID aparezca en `implicadosIds`.
+- `frontend/app/inquilino/(tabs)/gastos.tsx`: el modal de nuevo gasto ahora carga y mantiene una selección de participantes, muestra pills horizontales con todos los inquilinos activos marcados por defecto y envía `implicadosIds` al guardar.
+- `frontend/styles/inquilino/gastos.styles.ts`: se añadieron estilos del selector horizontal de participantes con pills soft-tint y estado visual seleccionado/no seleccionado siguiendo `Theme`.
+- `frontend/app/inquilino/(tabs)/gastos.tsx`: validación manual revisada para impedir guardar un gasto sin participantes seleccionados y para resetear la selección al abrir/cerrar el modal.
 
 ### Frontend
+
 - Reescrita `frontend/app/inquilino/(tabs)/gastos.tsx`:
   - Carga simultánea de gastos y deudas con `Promise.all` en `cargarTodo()`
   - Balance neto calculado desde el endpoint de deudas (más preciso)
