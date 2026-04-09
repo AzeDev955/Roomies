@@ -19,6 +19,9 @@ Crea `backend/.env` con:
 ```env
 DATABASE_URL="prisma+postgres://localhost:<PUERTO>/?api_key=<TU_API_KEY>"
 JWT_SECRET=<cadena_aleatoria_larga>
+CLOUDINARY_CLOUD_NAME=<tu_cloud_name>
+CLOUDINARY_API_KEY=<tu_api_key>
+CLOUDINARY_API_SECRET=<tu_api_secret>
 ```
 
 > `DATABASE_URL` la proporciona el proceso `npx prisma dev` al arrancar.
@@ -60,6 +63,8 @@ GET http://localhost:3000/ping  →  pong
 ## Despliegue en Railway
 
 Railway gestiona el build y el arranque automáticamente usando los scripts de `package.json`. No se necesita `Dockerfile` ni configuración adicional.
+
+Nota: en la configuraciÃ³n actual del proyecto, Railway despliega el backend usando `backend/Dockerfile`, y el contenedor ejecuta `prisma db push` al arrancar antes de `npm run dev`.
 
 ### 1. Base de datos
 
