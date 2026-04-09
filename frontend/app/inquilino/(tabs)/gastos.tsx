@@ -8,6 +8,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
@@ -19,12 +20,18 @@ import { styles } from '@/styles/inquilino/gastos.styles';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
+type UsuarioBasico = { id: number; nombre: string; apellidos: string | null };
+
 type Deuda = {
   id: number;
+  gasto_id: number;
   deudor_id: number;
   acreedor_id: number;
   importe: number;
   estado: 'PENDIENTE' | 'PAGADA';
+  deudor: UsuarioBasico;
+  acreedor: UsuarioBasico;
+  gasto: { concepto: string };
 };
 
 type Gasto = {
@@ -33,8 +40,8 @@ type Gasto = {
   importe: number;
   fecha_creacion: string;
   pagador_id: number;
-  pagador: { id: number; nombre: string; apellidos: string | null };
-  deudas: Deuda[];
+  pagador: UsuarioBasico;
+  deudas: Omit<Deuda, 'deudor' | 'acreedor' | 'gasto'>[];
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -80,7 +87,9 @@ export default function GastosInquilinoTab() {
   const [viviendaId, setViviendaId] = useState<number | null>(null);
   const [miId, setMiId] = useState<number | null>(null);
   const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [deudas, setDeudas] = useState<Deuda[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saldando, setSaldando] = useState<number | null>(null);
 
   // Modal
   const [modalVisible, setModalVisible] = useState(false);
@@ -92,10 +101,14 @@ export default function GastosInquilinoTab() {
 
   // ── Carga de datos ────────────────────────────────────────────────────────
 
-  const cargarGastos = useCallback(async (vId: number) => {
+  const cargarTodo = useCallback(async (vId: number) => {
     try {
-      const { data } = await api.get<Gasto[]>(`/viviendas/${vId}/gastos`);
-      setGastos(data);
+      const [{ data: gastosData }, { data: deudasData }] = await Promise.all([
+        api.get<Gasto[]>(`/viviendas/${vId}/gastos`),
+        api.get<Deuda[]>(`/viviendas/${vId}/deudas`),
+      ]);
+      setGastos(gastosData);
+      setDeudas(deudasData);
     } catch {
       // Feed vacío — se muestra empty state
     }
@@ -122,9 +135,9 @@ export default function GastosInquilinoTab() {
           if (!activo) return;
           setViviendaId(vId);
           setMiId(uId);
-          await cargarGastos(vId);
+          await cargarTodo(vId);
         } catch {
-          // Sin vivienda — se muestra empty state
+          // Sin vivienda
         } finally {
           if (activo) setLoading(false);
         }
@@ -132,25 +145,60 @@ export default function GastosInquilinoTab() {
 
       inicializar();
       return () => { activo = false; };
-    }, [cargarGastos])
+    }, [cargarTodo])
   );
 
-  // ── Cálculo de balance ────────────────────────────────────────────────────
+  // ── Balance desde deudas PENDIENTE ───────────────────────────────────────
 
   const calcularBalance = (): number => {
     if (!miId) return 0;
-    let balance = 0;
-    for (const g of gastos) {
-      for (const d of g.deudas) {
-        if (d.estado === 'PAGADA') continue;
-        if (d.acreedor_id === miId) balance += d.importe;
-        if (d.deudor_id === miId) balance -= d.importe;
-      }
+    let bal = 0;
+    for (const d of deudas) {
+      if (d.estado === 'PAGADA') continue;
+      if (d.acreedor_id === miId) bal += d.importe;
+      if (d.deudor_id === miId)   bal -= d.importe;
     }
-    return balance;
+    return bal;
   };
 
-  // ── Guardar gasto ─────────────────────────────────────────────────────────
+  const deudoasPendientes = deudas.filter((d) => d.estado === 'PENDIENTE');
+
+  // ── Saldar deuda ──────────────────────────────────────────────────────────
+
+  const handleSaldar = (deuda: Deuda) => {
+    Alert.alert(
+      '¿Confirmar pago?',
+      `¿Has hecho ya el Bizum o transferencia de ${formatImporte(deuda.importe)} a ${deuda.acreedor.nombre}?`,
+      [
+        { text: 'Aún no', style: 'cancel' },
+        {
+          text: 'Sí, ya lo hice',
+          onPress: async () => {
+            if (!viviendaId) return;
+            setSaldando(deuda.id);
+            try {
+              await api.patch(`/viviendas/${viviendaId}/deudas/${deuda.id}/saldar`);
+              await cargarTodo(viviendaId);
+              Toast.show({
+                type: 'success',
+                text1: '¡Deuda saldada!',
+                text2: `${formatImporte(deuda.importe)} marcados como pagados.`,
+              });
+            } catch (err: any) {
+              Toast.show({
+                type: 'error',
+                text1: err.response?.data?.error ?? 'No se pudo saldar la deuda.',
+              });
+            } finally {
+              setSaldando(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ── Guardar nuevo gasto ───────────────────────────────────────────────────
 
   const handleGuardar = async () => {
     if (!concepto.trim() || !importe.trim() || !viviendaId) return;
@@ -161,15 +209,22 @@ export default function GastosInquilinoTab() {
     }
     setGuardando(true);
     try {
-      const { data: nuevoGasto } = await api.post<Gasto>(
-        `/viviendas/${viviendaId}/gastos`,
-        { concepto: concepto.trim(), importe: importeNum }
-      );
-      setGastos((prev) => [nuevoGasto, ...prev]);
+      await api.post(`/viviendas/${viviendaId}/gastos`, {
+        concepto: concepto.trim(),
+        importe: importeNum,
+      });
+      await cargarTodo(viviendaId);
       cerrarModal();
-      Toast.show({ type: 'success', text1: '¡Gasto registrado!', text2: `${concepto.trim()} · ${formatImporte(importeNum)}` });
+      Toast.show({
+        type: 'success',
+        text1: '¡Gasto registrado!',
+        text2: `${concepto.trim()} · ${formatImporte(importeNum)}`,
+      });
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo registrar el gasto.' });
+      Toast.show({
+        type: 'error',
+        text1: err.response?.data?.error ?? 'No se pudo registrar el gasto.',
+      });
     } finally {
       setGuardando(false);
     }
@@ -191,9 +246,9 @@ export default function GastosInquilinoTab() {
 
   const balance = calcularBalance();
   const debeMas = balance < 0;
-  const heroColor = debeMas ? Theme.colors.danger : Theme.colors.success;
+  const heroColor      = debeMas ? Theme.colors.danger : Theme.colors.success;
   const heroBackground = heroColor + '15';
-  const heroLabel = debeMas ? 'Debes al grupo' : balance === 0 ? 'Estás al día' : 'Te deben';
+  const heroLabel      = debeMas ? 'Debes al grupo' : balance === 0 ? 'Estás al día' : 'Te deben';
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -226,6 +281,63 @@ export default function GastosInquilinoTab() {
               : 'Tus compañeros te deben dinero'}
           </Text>
         </View>
+
+        {/* ── Sección Deudas Pendientes ── */}
+        {deudoasPendientes.length > 0 && (
+          <>
+            <Text style={styles.seccionTitulo}>Deudas pendientes</Text>
+            {deudoasPendientes.map((d) => {
+              const yoDebo = d.deudor_id === miId;
+              const companero = yoDebo ? d.acreedor : d.deudor;
+              const tintColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
+              const cardBg    = tintColor + '12';
+              const borderColor = tintColor + '30';
+
+              return (
+                <View
+                  key={d.id}
+                  style={[styles.deudaCard, { backgroundColor: cardBg, borderColor }]}
+                >
+                  <AvatarInitials nombre={companero.nombre} apellidos={companero.apellidos} size={44} />
+                  <View style={styles.deudaInfo}>
+                    <Text style={styles.deudaConcepto}>{d.gasto.concepto}</Text>
+                    <Text style={[styles.deudaRelacion, { color: tintColor }]}>
+                      {yoDebo
+                        ? `Debes a ${companero.nombre}`
+                        : `${companero.nombre} te debe`}
+                    </Text>
+                    <Text style={styles.deudaImporte}>{formatImporte(d.importe)}</Text>
+                  </View>
+
+                  {yoDebo ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.botonSaldar,
+                        pressed && styles.botonSaldarPressed,
+                        saldando === d.id && { opacity: 0.6 },
+                      ]}
+                      onPress={() => handleSaldar(d)}
+                      disabled={saldando === d.id}
+                      accessibilityLabel={`Saldar deuda de ${formatImporte(d.importe)} con ${companero.nombre}`}
+                      accessibilityRole="button"
+                    >
+                      {saldando === d.id ? (
+                        <ActivityIndicator size="small" color={Theme.colors.surface} />
+                      ) : (
+                        <Text style={styles.botonSaldarTexto}>Saldar</Text>
+                      )}
+                    </Pressable>
+                  ) : (
+                    <View style={styles.badgeEsperando}>
+                      <Ionicons name="time-outline" size={13} color={Theme.colors.success} />
+                      <Text style={styles.badgeEsperandoTexto}>Esperando</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
 
         {/* ── Feed de movimientos ── */}
         {gastos.length === 0 ? (
@@ -280,7 +392,6 @@ export default function GastosInquilinoTab() {
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitulo}>Nuevo gasto</Text>
 
-            {/* Concepto */}
             <View>
               <Text style={styles.inputLabel}>Concepto</Text>
               <TextInput
@@ -299,7 +410,6 @@ export default function GastosInquilinoTab() {
               />
             </View>
 
-            {/* Importe */}
             <View>
               <Text style={styles.inputLabel}>Importe (€)</Text>
               <TextInput
@@ -318,7 +428,6 @@ export default function GastosInquilinoTab() {
               />
             </View>
 
-            {/* Acciones */}
             <View style={styles.modalAcciones}>
               <Pressable
                 style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}

@@ -26,6 +26,76 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
   res.status(200).json(gastos);
 };
 
+export const listarDeudas: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params.viviendaId, 10);
+  const usuarioId = req.usuario!.id;
+
+  const pertenece = await prisma.habitacion.findFirst({
+    where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
+  });
+
+  if (!pertenece) {
+    res.status(403).json({ error: 'No perteneces a esta vivienda.' });
+    return;
+  }
+
+  const deudas = await prisma.deuda.findMany({
+    where: {
+      gasto: { vivienda_id: viviendaId },
+      OR: [{ deudor_id: usuarioId }, { acreedor_id: usuarioId }],
+    },
+    include: {
+      deudor:   { select: { id: true, nombre: true, apellidos: true } },
+      acreedor: { select: { id: true, nombre: true, apellidos: true } },
+      gasto:    { select: { concepto: true } },
+    },
+    orderBy: { id: 'desc' },
+  });
+
+  res.status(200).json(deudas);
+};
+
+export const saldarDeuda: express.RequestHandler = async (req, res) => {
+  const viviendaId = parseInt(req.params.viviendaId, 10);
+  const deudaId    = parseInt(req.params.deudaId, 10);
+  const usuarioId  = req.usuario!.id;
+
+  const pertenece = await prisma.habitacion.findFirst({
+    where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
+  });
+
+  if (!pertenece) {
+    res.status(403).json({ error: 'No perteneces a esta vivienda.' });
+    return;
+  }
+
+  const deuda = await prisma.deuda.findFirst({
+    where: { id: deudaId, gasto: { vivienda_id: viviendaId } },
+  });
+
+  if (!deuda) {
+    res.status(404).json({ error: 'Deuda no encontrada.' });
+    return;
+  }
+
+  if (deuda.deudor_id !== usuarioId) {
+    res.status(403).json({ error: 'Solo el deudor puede saldar esta deuda.' });
+    return;
+  }
+
+  if (deuda.estado === 'PAGADA') {
+    res.status(409).json({ error: 'Esta deuda ya está saldada.' });
+    return;
+  }
+
+  const actualizada = await prisma.deuda.update({
+    where: { id: deudaId },
+    data:  { estado: 'PAGADA' },
+  });
+
+  res.status(200).json(actualizada);
+};
+
 export const crearGasto: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params.viviendaId, 10);
   const pagadorId = req.usuario!.id;

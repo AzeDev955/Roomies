@@ -75,6 +75,76 @@ export const styles = StyleSheet.create({
     marginBottom: Theme.spacing.md,
   },
 
+  // — Tarjetas de Deuda —
+  deudaCard: {
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+    borderWidth: 1.5,
+  },
+  deudaInfo: {
+    flex: 1,
+  },
+  deudaConcepto: {
+    fontSize: Theme.typography.label,
+    fontWeight: '700',
+    color: Theme.colors.text,
+    letterSpacing: -0.1,
+  },
+  deudaRelacion: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginTop: 2,
+  },
+  deudaImporte: {
+    fontSize: Theme.typography.subtitle,
+    fontWeight: '900',
+    color: Theme.colors.text,
+    letterSpacing: -0.3,
+    marginTop: 4,
+  },
+  botonSaldar: {
+    backgroundColor: Theme.colors.danger,
+    borderRadius: Theme.radius.full,
+    paddingVertical: 10,
+    paddingHorizontal: Theme.spacing.base,
+    minWidth: 72,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botonSaldarPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.96 }],
+  },
+  botonSaldarTexto: {
+    color: Theme.colors.surface,
+    fontSize: Theme.typography.label,
+    fontWeight: '700',
+  },
+  badgeEsperando: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Theme.colors.success + '18',
+    borderRadius: Theme.radius.full,
+    paddingVertical: 8,
+    paddingHorizontal: Theme.spacing.md,
+    minHeight: 34,
+  },
+  badgeEsperandoTexto: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Theme.colors.success,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
   // — Card de Gasto —
   gastoCard: {
     backgroundColor: Theme.colors.surface,
