@@ -26,7 +26,17 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 | Token storage   | `expo-secure-store`                                                  |
 | Geocoding       | Mapbox Geocoding API                                                 |
 | Auth social     | `expo-auth-session/providers/google` + `expo-web-browser`            |
-| Infraestructura | Docker Compose (PostgreSQL + backend + frontend)                     |
+| Infraestructura | Docker Compose + Railway (backend desplegado con `backend/Dockerfile`) |
+
+---
+
+## Actualizaciones recientes
+
+- El backend desplegado en Railway se construye con `backend/Dockerfile`.
+- Se aÃ±adiÃ³ infraestructura de inventario con `ItemInventario` y `FotoAsset` en Prisma.
+- La subida de fotos del inventario usa Cloudinary con `multer` + `multer-storage-cloudinary`.
+- El endpoint disponible es `POST /api/inventario/:itemId/fotos` y espera `multipart/form-data` con el archivo en el campo `foto`.
+- Para backend local y Railway ahora son obligatorias las variables `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`.
 
 ---
 
@@ -297,6 +307,9 @@ GOOGLE_CLIENT_ID=<Web Client ID de Google Cloud Console>
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/roomies
 JWT_SECRET=roomies_dev_secret_local
 GOOGLE_CLIENT_ID=<mismo que arriba>
+CLOUDINARY_CLOUD_NAME=<cloud_name de Cloudinary>
+CLOUDINARY_API_KEY=<api_key de Cloudinary>
+CLOUDINARY_API_SECRET=<api_secret de Cloudinary>
 ```
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)

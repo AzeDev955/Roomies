@@ -1012,6 +1012,55 @@ Elimina un anuncio.
 
 ---
 
+## Inventario (`/inventario`)
+
+### POST `/inventario/:itemId/fotos`
+
+Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item.
+
+**Auth requerida:** SÃ­ â€” `Authorization: Bearer <token>`
+
+**Content-Type:** `multipart/form-data`
+
+**Params:**
+
+| Param | DescripciÃ³n |
+|---|---|
+| `itemId` | ID del `ItemInventario` |
+
+**Body multipart:**
+
+| Campo | Tipo | Requerido | DescripciÃ³n |
+|---|---|---|---|
+| `foto` | file | SÃ­ | Imagen (`jpg`, `jpeg`, `png`, `webp`) |
+
+**Reglas de acceso:**
+
+- `CASERO`: debe ser propietario de la vivienda a la que pertenece el item.
+- `INQUILINO`: debe tener habitaciÃ³n asignada en la vivienda a la que pertenece el item.
+
+**Respuestas:**
+
+| CÃ³digo | DescripciÃ³n |
+|---|---|
+| `201` | Foto subida y asset creado. |
+| `400` | `itemId` invÃ¡lido, falta imagen o el item no tiene vivienda resoluble. |
+| `403` | El usuario no tiene permiso sobre el item. |
+| `404` | Item de inventario no encontrado. |
+| `500` | Cloudinary no estÃ¡ configurado en el servidor o no se obtiene la URL subida. |
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "id": 14,
+  "url": "https://res.cloudinary.com/.../roomies-inventario/item.jpg",
+  "item_id": 3,
+  "fecha_subida": "2026-04-09T21:15:00.000Z"
+}
+```
+
+---
+
 ## Limpieza — `/viviendas/:id/limpieza`
 
 Todos los endpoints requieren que el usuario autenticado sea el **casero propietario** de la vivienda.
