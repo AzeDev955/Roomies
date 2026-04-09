@@ -52,6 +52,15 @@ export default function InquilinoTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="gastos"
+        options={{
+          title: "Gastos",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="perfil"
         options={{
           title: "Perfil",
