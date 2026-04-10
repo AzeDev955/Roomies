@@ -1,146 +1,100 @@
 # Roomies
 
-Aplicación móvil integral para la gestión de alquiler de habitaciones y co-living. Conecta a caseros e inquilinos para facilitar la convivencia, centralizar el reporte de incidencias y automatizar la gestión del día a día.
+Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilinos para centralizar viviendas, incidencias, tablones, limpieza, inventario y ahora tambien cobros recurrentes con recordatorios push.
 
-## Características (MVP)
+## Que incluye hoy
 
-La aplicación cuenta con dos perfiles de usuario bien diferenciados:
+### Casero
 
-### 👑 Para el Casero / Gestor
-* **Gestión Multipropiedad:** Creación y administración de diferentes viviendas y sus respectivas habitaciones, con autocompletado de dirección vía Mapbox.
-* **Centro de mandos por vivienda:** Al entrar en una propiedad, un menú inferior propio con tres pestañas — Resumen, Incidencias y Tablón — sin perder la navegación principal.
-* **Códigos de Invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
-* **Gestión de Inquilinos:** Expulsión de inquilinos por habitación, y acceso al perfil de contacto completo (nombre, email, teléfono) de cada inquilino con un toque.
-* **Centro de Incidencias:** Panel de control para recibir, gestionar y cambiar el estado de los problemas reportados en las viviendas.
-* **Tablón de anuncios:** Publicación y eliminación de anuncios en cada vivienda; el casero puede moderar cualquier anuncio.
+- Gestion multipropiedad con alta de viviendas y habitaciones.
+- Centro de mando por vivienda con resumen, incidencias, tablon y limpieza.
+- Pestanas globales de `Mis viviendas`, `Cobros`, `Inventario`, `Tablon` y `Perfil`.
+- Dashboard de cobros mensuales con detalle de deudas pagadas, pendientes y justificantes.
+- Inventario por vivienda con subida de imagenes a Cloudinary.
 
-<<<<<<< Updated upstream
-### 🛋️ Para el Inquilino
-* **Mi Espacio:** Vista rápida de la vivienda, compañeros de piso, zonas comunes e incidencias.
-* **Reporte Rápido:** Formulario ágil para reportar incidencias con selector de habitación y prioridad.
-* **Seguimiento con permisos:** Selector de estado en las incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
-* **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
-=======
-- **Gestión multipropiedad:** Creación y administración de viviendas y habitaciones, con autocompletado de dirección vía Mapbox.
-- **Centro de mandos por vivienda:** Menú inferior propio con cuatro pestañas — Resumen, Incidencias, Tablón y Limpieza — sin perder la navegación principal.
-- **Códigos de invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
-- **Gestión de inquilinos:** Expulsión de inquilinos por habitación y acceso al perfil de contacto completo (nombre, email, teléfono).
-- **Centro de incidencias:** Panel para recibir, gestionar y cambiar el estado (Pendiente → En Proceso → Resuelto) de los problemas reportados.
-- **Tablón de anuncios:** Publicación y moderación de anuncios en cada vivienda.
-- **Módulo de limpieza:** Gestión de zonas, turnos rotativos semanales y seguimiento de tareas por inquilino.
->>>>>>> Stashed changes
+### Inquilino
 
-### 🔐 Autenticación
-* Registro e inicio de sesión con **email y contraseña**.
-* Inicio de sesión con **Google OAuth** (expo-auth-session + google-auth-library).
-* Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
+- Onboarding por codigo de invitacion y dashboard de vivienda.
+- Tablon, limpieza, gastos, inventario y perfil en navegacion principal.
+- Gestion de gastos puntuales y mensualidades.
+- Subida de justificantes de pago y saldado de deudas desde la app.
+- Check-in visual del inventario con conformidad por item.
 
-<<<<<<< Updated upstream
-## 🛠️ Stack Tecnológico
-=======
-- **Mi vivienda:** Vista de habitación propia, compañeros de piso, zonas comunes e incidencias.
-- **Reporte rápido:** Formulario con selector de habitación y prioridad (Sugerencia / Aviso / Urgente).
-- **Seguimiento con permisos:** Selector de estado en incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
-- **Módulo de limpieza:** Vista del turno asignado con acción de marcar como completado.
-- **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
+### Automatizaciones
 
-### Autenticación
+- Cron diario de mensualidades para convertir `GastoRecurrente` en gastos normales.
+- Cron mensual de recordatorios push para deudas pendientes con `expo_push_token` registrado.
 
-- Registro e inicio de sesión con **email y contraseña** (con verificación de correo por magic link).
-- Inicio de sesión con **Google OAuth** (`expo-auth-session` + `google-auth-library`).
-- Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
+### Autenticacion
 
-## Stack Tecnológico
->>>>>>> Stashed changes
+- Email y contrasena con verificacion por correo.
+- Google OAuth.
+- Selector de rol para altas nuevas desde Google.
 
-| Capa | Tecnología |
+## Stack tecnologico
+
+| Capa | Tecnologia |
 |---|---|
-| Frontend | React Native + Expo SDK 54 + expo-router ~6.0.23 |
+| Frontend | React Native + Expo SDK 54 + `expo-router` |
 | Backend | Node.js + Express 5 + TypeScript |
 | ORM | Prisma 7 (PostgreSQL) |
-| Auth | JWT + bcrypt + Google OAuth (`google-auth-library`) |
-| Token storage | `expo-secure-store` |
-| HTTP client | Axios con interceptor Bearer token |
-| Geocoding | Mapbox Geocoding API |
-<<<<<<< Updated upstream
-| Infraestructura | Docker Compose (PostgreSQL + backend + frontend) |
-
-## 🗺️ Roadmap (Próximas versiones)
-- [x] Módulo de limpieza: Asignación de tareas semanales rotativas.
-- [x] Recordatorios de pago automáticos.
-- [ ] Chat integrado Inquilino <-> Casero.
-- [x] Tablón de anuncios para la vivienda.
-=======
-| Infraestructura | Docker Compose / Railway |
->>>>>>> Stashed changes
+| Auth | JWT + bcrypt + Google OAuth |
+| Media | Cloudinary + multer |
+| Push | `expo-notifications` + `expo-server-sdk` |
+| Infraestructura | Docker Compose + Railway |
 
 ## Roadmap
 
-- [ ] Chat integrado Inquilino ↔ Casero.
-- [ ] Recordatorios de pago automáticos.
-- [ ] Notificaciones push avanzadas (nuevas incidencias, cambios de estado).
+- [x] Modulo de limpieza
+- [x] Cobros mensuales del casero
+- [x] Mensualidades recurrentes
+- [x] Recordatorios de pago por push
+- [ ] Chat integrado Inquilino <-> Casero
+- [ ] Notificaciones push avanzadas para incidencias y cambios de estado
 
-## Despliegue en Railway
-
-El proyecto tiene dos entornos desplegados en Railway:
+## Entornos Railway
 
 | Entorno | URL de API |
 |---|---|
 | Desarrollo | `https://roomies-dev.up.railway.app/api` |
-| Producción | `https://roomies-production-c884.up.railway.app/api` |
+| Produccion | `https://roomies-production-c884.up.railway.app/api` |
 
-Cambia el valor en `frontend/.env` y reinicia Metro con `--clear` para hornear la nueva URL en el bundle. Ver pasos completos en [`docs/backend/setup.md`](docs/backend/setup.md).
-
----
-
-## Levantar el entorno con Docker (recomendado)
+## Levantar el proyecto con Docker
 
 ### Prerrequisitos
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Docker Desktop
 
 ### Pasos
 
-1. Copia `.env.example` a `.env` y rellena `HOST_IP` con la IP de tu máquina en la red local:
-   - Windows: `ipconfig` → IPv4 del adaptador Wi-Fi
-   - Mac/Linux: `ifconfig` o `ip addr`
-
-2. Levanta todos los servicios:
+1. Copia `.env.example` a `.env` y rellena `HOST_IP`.
+2. Levanta los servicios:
 
 ```bash
 docker-compose up --build
 ```
 
-| Servicio | Puerto | Descripción |
+| Servicio | Puerto | Descripcion |
 |---|---|---|
-| `db` | 5433 | PostgreSQL 15 con volumen persistente |
-| `backend` | 3001 | API Express — aplica schema + seed al arrancar |
-| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
+| `db` | 5433 | PostgreSQL 15 |
+| `backend` | 3001 | API Express |
+| `frontend` | 8080 | Metro Bundler |
 
-> El puerto 8080 se usa en lugar de 8081 para evitar conflictos con reglas de firewall en Windows.
+### Usuarios de prueba
 
-### Usuarios de prueba (seed)
-
-| Rol | Email | Contraseña |
+| Rol | Email | Contrasena |
 |---|---|---|
 | CASERO | `casero@test.com` | `casero123` |
 | INQUILINO | `inquilino@test.com` | `inquilino123` |
 
----
+## Instalacion manual
 
-## Instalación manual (sin Docker)
-
-Esto arrancará tres servicios:
-| Servicio | Puerto | Descripción |
-|---|---|---|
-| `db` | 5432 | PostgreSQL 15 con volumen persistente |
-| `backend` | 3001 | API Express — aplica el schema automáticamente al arrancar |
-| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
+### Backend
 
 ```bash
 cd backend
 npm install
-cp .env.example .env   # configurar DATABASE_URL y JWT_SECRET
+cp .env.example .env
 npx prisma db push
 npx prisma db seed
 npm run dev
@@ -151,28 +105,18 @@ npm run dev
 ```bash
 cd frontend
 npm install
-cp .env.example .env   # elegir entorno de API
+cp .env.example .env
 npx expo start
 ```
 
-Credenciales creadas:
-| Rol | Email | Contraseña |
-|---|---|---|
-| CASERO | `casero@test.com` | `password123` |
-| INQUILINO | `inquilino@test.com` | `password123` |
+> Para probar push real necesitas una build nativa o development build. Expo Go no registra push tokens nativos.
 
----
-
-## Documentación
+## Documentacion
 
 | Recurso | Ruta |
 |---|---|
-| Arquitectura y convenciones | [`context.md`](context.md) |
-| Setup frontend | [`docs/frontend/setup.md`](docs/frontend/setup.md) |
-| API REST (referencia) | [`docs/backend/api.md`](docs/backend/api.md) |
-| Setup backend / Railway | [`docs/backend/setup.md`](docs/backend/setup.md) |
-| Historial de cambios | [`docs/changelog/`](docs/changelog/) |
-
----
-
-*Desarrollado con café y código.*
+| Contexto de proyecto | `CONTEXT.md` |
+| Setup backend | `docs/backend/setup.md` |
+| API REST | `docs/backend/api.md` |
+| Setup frontend | `docs/frontend/setup.md` |
+| Changelog tecnico | `docs/changelog/` |

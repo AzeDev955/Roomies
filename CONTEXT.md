@@ -25,12 +25,25 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 | HTTP client     | Axios con interceptor Bearer token                                   |
 | Token storage   | `expo-secure-store`                                                  |
 | Geocoding       | Mapbox Geocoding API                                                 |
+| Media uploads   | Cloudinary + `multer` + `multer-storage-cloudinary`                  |
 | Auth social     | `expo-auth-session/providers/google` + `expo-web-browser`            |
+| Push            | `expo-notifications` + `expo-server-sdk`                             |
 | Infraestructura | Docker Compose + Railway (backend desplegado con `backend/Dockerfile`) |
 
 ---
 
 ## Actualizaciones recientes
+
+### Cobros, mensualidades y push (Epica 12)
+
+- El backend expone `GET /api/viviendas/:viviendaId/gastos`, `POST /api/viviendas/:viviendaId/gastos`, `GET /api/viviendas/:viviendaId/deudas`, `PATCH /api/viviendas/:viviendaId/deudas/:deudaId/saldar`, `GET /api/viviendas/:viviendaId/gastos-recurrentes`, `POST /api/viviendas/:viviendaId/gastos-recurrentes` y `GET /api/viviendas/:viviendaId/cobros`.
+- `GastoRecurrente` guarda mensualidades activas por vivienda y el cron diario de las `02:00` las transforma en `Gasto` normal con reparto automatico entre inquilinos activos.
+- `Deuda` incorpora `justificante_url`; el deudor puede subir imagen con `POST /api/deudas/:deudaId/justificante` usando `multipart/form-data` en el campo `justificante`.
+- El casero dispone de una pestana global `Cobros` con selector de vivienda, resumen mensual de pagado/pendiente y visualizacion del justificante cuando existe.
+- El frontend del inquilino amplia la pestana `Gastos` con bloque de mensualidades, alta de suscripciones recurrentes y bottom sheet para subir justificante antes de marcar una deuda como pagada.
+- El backend expone `PATCH /api/usuarios/me/push-token` y el alias legado `PUT /api/usuarios/push-token` para registrar el `expo_push_token` del usuario autenticado.
+- El frontend sincroniza el token push desde `app/_layout.tsx`, login, registro y selector de rol; en Expo Go el registro se omite y solo funciona en dispositivo fisico o build nativa.
+- El cron mensual `0 12 5 * *` envia recordatorios push a deudores con deudas `PENDIENTE` y token Expo registrado.
 
 ### Inventario del casero
 
@@ -189,6 +202,7 @@ Roomies/
 | `google_id`     | String? unique | null si el usuario se registró con email/pass |
 | `telefono`           | String?        | obligatorio en registro manual                |
 | `rol`                | RolUsuario     | `CASERO` \| `INQUILINO`                       |
+| `expo_push_token`    | String?        | token Expo opcional para recordatorios de pago y avisos push |
 | `correo_verificado`  | Boolean        | `@default(false)`; el login lo exige en `true` |
 | `token_verificacion` | String?        | token hex-32 generado al registrarse; null tras verificar |
 
@@ -241,6 +255,41 @@ Roomies/
 | `titulo`         | String        |                                           |
 | `contenido`      | String        |                                           |
 | `fecha_creacion` | DateTime      | `@default(now())`                         |
+
+### `Gasto`
+
+| Campo            | Tipo          | Notas |
+| ---------------- | ------------- | ----- |
+| `id`             | Int PK        | autoincrement |
+| `vivienda_id`    | FK â†’ Vivienda | gasto asociado a una vivienda |
+| `pagador_id`     | FK â†’ Usuario  | usuario que adelanta el pago |
+| `concepto`       | String        | descripcion corta del gasto |
+| `importe`        | Float         | importe total |
+| `fecha_creacion` | DateTime      | `@default(now())` |
+
+### `GastoRecurrente`
+
+| Campo         | Tipo          | Notas |
+| ------------- | ------------- | ----- |
+| `id`          | Int PK        | autoincrement |
+| `concepto`    | String        | nombre de la mensualidad |
+| `importe`     | Float         | importe total a repartir |
+| `dia_del_mes` | Int           | entero entre `1` y `31` |
+| `vivienda_id` | FK â†’ Vivienda | vivienda donde se genera |
+| `pagador_id`  | FK â†’ Usuario  | usuario que queda como pagador del gasto generado |
+| `activo`      | Boolean       | `@default(true)` |
+
+### `Deuda`
+
+| Campo              | Tipo                    | Notas |
+| ------------------ | ----------------------- | ----- |
+| `id`               | Int PK                  | autoincrement |
+| `gasto_id`         | FK â†’ Gasto             | deuda derivada de un gasto |
+| `deudor_id`        | FK â†’ Usuario           | usuario que debe pagar |
+| `acreedor_id`      | FK â†’ Usuario           | usuario que debe cobrar |
+| `importe`          | Float                   | importe individual |
+| `estado`           | `PENDIENTE` \| `PAGADA` | estado actual |
+| `justificante_url` | String?                 | URL Cloudinary del comprobante si el deudor lo sube |
 
 ---
 
@@ -296,6 +345,31 @@ Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e in
 | POST   | `/anuncios`     | Sí   | Publica anuncio. Body: `{ titulo, contenido, vivienda_id }`                         |
 | DELETE | `/anuncios/:id` | Sí   | Elimina anuncio. Solo el autor o el casero de la vivienda                           |
 
+### Finanzas â€” `/viviendas/:viviendaId`
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| GET    | `/viviendas/:viviendaId/gastos` | Si | Lista gastos de la vivienda con pagador y `deudas[]` |
+| POST   | `/viviendas/:viviendaId/gastos` | Si | Crea gasto y reparte deuda entre inquilinos activos; acepta `implicadosIds` opcional |
+| GET    | `/viviendas/:viviendaId/deudas` | Si | Lista deudas donde el usuario autenticado es deudor o acreedor |
+| PATCH  | `/viviendas/:viviendaId/deudas/:deudaId/saldar` | Si | Marca una deuda como `PAGADA`; solo el deudor puede hacerlo |
+| GET    | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Lista mensualidades activas o inactivas de la vivienda |
+| POST   | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Crea una mensualidad recurrente con `concepto`, `importe` y `dia_del_mes` |
+| GET    | `/viviendas/:viviendaId/cobros` | Si | Dashboard mensual del casero con resumen pagado o pendiente y detalle de justificantes |
+
+### Deudas â€” `/deudas`
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| POST   | `/deudas/:deudaId/justificante` | Si | Sube un justificante de pago a Cloudinary; campo multipart `justificante` |
+
+### Usuarios â€” `/usuarios`
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| PATCH  | `/usuarios/me/push-token` | Si | Guarda o limpia (`token: null`) el `expo_push_token` del usuario autenticado |
+| PUT    | `/usuarios/push-token` | Si | Alias legado del mismo flujo |
+
 ---
 
 ## Variables de entorno
@@ -344,6 +418,7 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<iOS Client ID o vacío>
 ```
 
 > Las variables `EXPO_PUBLIC_*` se hornean en el bundle de Metro. Cambiarlas requiere reiniciar Metro con `--clear`.
+> El registro de push usa `expo-notifications` y el `projectId` definido en `frontend/app.json` (`expo.extra.eas.projectId`), no una variable `EXPO_PUBLIC_*` adicional.
 
 ### `.env.example` disponibles
 
@@ -533,6 +608,21 @@ Usuarios de prueba creados por `prisma db seed`:
 - `docs/backend/api.md` — referencia completa de endpoints con ejemplos de body/response.
 - `docs/frontend/setup.md` — guía de configuración del frontend, variables de entorno, estructura de la app, flujo de autenticación y decisiones de arquitectura.
 - `docs/changelog/` — un archivo por issue implementado, con decisiones técnicas.
+
+## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
+
+- Backend:
+  - `GastoRecurrente` soporta mensualidades por vivienda y el cron diario `0 2 * * *` las convierte en gastos repartidos.
+  - `Deuda` guarda `justificante_url` y expone `POST /api/deudas/:deudaId/justificante`.
+  - `GET /api/viviendas/:viviendaId/cobros` resume cobros del mes actual para el casero.
+  - `PATCH /api/usuarios/me/push-token` registra el `expo_push_token` del usuario autenticado.
+- Frontend:
+  - El casero tiene pestanas globales `Cobros` e `Inventario`.
+  - El inquilino tiene pestanas `Limpieza`, `Gastos` e `Inventario`, y en `Gastos` puede crear mensualidades y subir justificantes.
+  - `app/_layout.tsx`, login, registro y selector de rol sincronizan el push token cuando existe sesion.
+- Automatizaciones:
+  - El cron `0 12 5 * *` envia recordatorios push de deudas pendientes a usuarios con token Expo registrado.
+
 ## Update 2026-04-09 - Inventario Epica 11
 
 - Backend:

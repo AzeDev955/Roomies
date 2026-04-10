@@ -1012,6 +1012,280 @@ Elimina un anuncio.
 
 ---
 
+## Gastos y cobros (`/viviendas/:viviendaId`)
+
+### GET `/viviendas/:viviendaId/gastos`
+
+Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generado para cada gasto.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Debes pertenecer a la vivienda (`CASERO` propietario o `INQUILINO` con habitacion asignada).
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de `Gasto[]` ordenado por `fecha_creacion` descendente. |
+| `400` | `viviendaId` invalido. |
+| `403` | No perteneces a la vivienda. |
+
+**Campos relevantes por gasto:**
+- `pagador { id, nombre, apellidos }`
+- `deudas[]` con `id`, `deudor_id`, `acreedor_id`, `importe`, `estado` y `justificante_url`
+
+---
+
+### POST `/viviendas/:viviendaId/gastos`
+
+Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos activos de la vivienda.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | Si | Nombre corto del gasto |
+| `importe` | number | Si | Importe total, debe ser mayor que `0` |
+| `implicadosIds` | number[] | No | IDs concretos a repartir; si se omite se usan todos los inquilinos activos |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Gasto creado con sus `deudas[]`. |
+| `400` | Faltan datos, `importe <= 0` o `implicadosIds` no es un array numerico valido. |
+| `403` | No perteneces a la vivienda. |
+
+---
+
+### GET `/viviendas/:viviendaId/deudas`
+
+Lista las deudas de la vivienda donde el usuario autenticado participa como deudor o acreedor.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de `Deuda[]` ordenado por `id` descendente. |
+| `400` | `viviendaId` invalido. |
+| `403` | No perteneces a la vivienda. |
+
+**Incluye:**
+- `deudor { id, nombre, apellidos }`
+- `acreedor { id, nombre, apellidos }`
+- `gasto { concepto }`
+
+---
+
+### PATCH `/viviendas/:viviendaId/deudas/:deudaId/saldar`
+
+Marca una deuda como `PAGADA`.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Debes pertenecer a la vivienda.
+- Solo el `deudor` de esa deuda puede saldarla.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Deuda actualizada con `estado: "PAGADA"`. |
+| `400` | `viviendaId` o `deudaId` invalidos. |
+| `403` | No perteneces a la vivienda o no eres el deudor. |
+| `404` | Deuda no encontrada en esa vivienda. |
+| `409` | La deuda ya estaba saldada. |
+
+---
+
+### GET `/viviendas/:viviendaId/gastos-recurrentes`
+
+Lista las mensualidades configuradas para una vivienda.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Debes pertenecer a la vivienda.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de `GastoRecurrente[]`, ordenado por `activo`, `dia_del_mes` e `id`. |
+| `400` | `viviendaId` invalido. |
+| `403` | No perteneces a la vivienda. |
+
+**Incluye:**
+- `pagador { id, nombre, apellidos }`
+
+**Nota automatica:**
+- El cron `0 2 * * *` revisa cada dia las mensualidades activas cuyo `dia_del_mes` coincide con la fecha actual y las convierte en `Gasto`.
+
+---
+
+### POST `/viviendas/:viviendaId/gastos-recurrentes`
+
+Crea una mensualidad recurrente para la vivienda.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | Si | Nombre de la mensualidad |
+| `importe` | number | Si | Importe total, mayor que `0` |
+| `dia_del_mes` | number | Si | Entero entre `1` y `31` |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Mensualidad creada. |
+| `400` | Datos invalidos o `dia_del_mes` fuera de rango. |
+| `403` | No perteneces a la vivienda. |
+
+---
+
+### GET `/viviendas/:viviendaId/cobros`
+
+Devuelve el dashboard financiero mensual del casero para una vivienda.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede consultar este endpoint.
+
+**Comportamiento:**
+- Filtra deudas del mes actual donde el usuario autenticado es el acreedor.
+- Calcula `total_pagado_mes`, `total_pendiente` y `total_deudas`.
+- Devuelve detalle por deuda con `deudor`, `gasto` y `justificante_url`.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Resumen mensual de cobros de la vivienda. |
+| `400` | `viviendaId` invalido. |
+| `403` | No tienes acceso a los cobros de esta vivienda. |
+| `404` | Vivienda no encontrada. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "vivienda": {
+    "id": 3,
+    "alias_nombre": "Piso Centro",
+    "direccion": "Calle Mayor 10, 3B"
+  },
+  "periodo": {
+    "inicio": "2026-04-01T00:00:00.000Z",
+    "fin": "2026-05-01T00:00:00.000Z"
+  },
+  "resumen": {
+    "total_pagado_mes": 620,
+    "total_pendiente": 310,
+    "total_deudas": 5
+  },
+  "deudas": [
+    {
+      "id": 14,
+      "importe": 310,
+      "estado": "PAGADA",
+      "justificante_url": "https://res.cloudinary.com/.../roomies-justificantes/deuda-14.jpg",
+      "gasto": {
+        "id": 8,
+        "concepto": "Alquiler abril",
+        "fecha_creacion": "2026-04-01T00:00:00.000Z"
+      },
+      "deudor": {
+        "id": 6,
+        "nombre": "Marta",
+        "apellidos": "Lopez",
+        "avatar": null
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Deudas (`/deudas`)
+
+### POST `/deudas/:deudaId/justificante`
+
+Sube un justificante de pago a Cloudinary y guarda la `secure_url` en la deuda.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Content-Type:** `multipart/form-data`
+
+**Params:**
+
+| Param | Descripcion |
+|---|---|
+| `deudaId` | ID de la deuda |
+
+**Body multipart:**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `justificante` | file | Si | Imagen (`jpg`, `jpeg`, `png`, `webp`) |
+
+**Reglas de acceso:**
+- Debes pertenecer a la vivienda asociada a la deuda.
+- Solo el `deudor` de la deuda puede subir el justificante.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Deuda actualizada con `justificante_url`. |
+| `400` | `deudaId` invalido o falta la imagen. |
+| `403` | No perteneces a la vivienda o no eres el deudor. |
+| `404` | Deuda no encontrada. |
+| `500` | Cloudinary no esta configurado o no se pudo obtener la URL subida. |
+
+---
+
+## Usuarios (`/usuarios`)
+
+### PATCH `/usuarios/me/push-token`
+
+Guarda o limpia el `expo_push_token` del usuario autenticado.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `token` | string \| null | Si | Token Expo valido, o `null` para eliminarlo |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | `{ "mensaje": "Push token actualizado." }` |
+| `400` | `token` no es string no vacio ni `null`. |
+
+**Alias legacy disponibles:**
+- `PUT /usuarios/push-token`
+- `PATCH /users/me/push-token`
+- `PUT /users/push-token`
+
+**Nota automatica:**
+- El cron `0 12 5 * *` envia recordatorios push de deudas `PENDIENTE` a usuarios con este token registrado.
+
+---
+
 ## Inventario (`/inventario`)
 
 ### POST `/viviendas/:viviendaId/inventario`
