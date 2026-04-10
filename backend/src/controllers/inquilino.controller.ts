@@ -4,6 +4,14 @@ import { RolUsuario } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
 import { enviarNotificacionPush } from '../services/notification.service';
 
+const serializarHabitacionParaInquilino = <T extends { precio: number | null; inquilino_id?: number | null }>(
+  habitacion: T,
+  usuarioId: number,
+): T => ({
+  ...habitacion,
+  precio: habitacion.inquilino_id === usuarioId ? habitacion.precio : null,
+});
+
 export const obtenerPerfilInquilino: express.RequestHandler = async (req, res) => {
   const id = Number(req.params['id']);
   if (isNaN(id)) {
@@ -182,6 +190,11 @@ export const obtenerMiVivienda: express.RequestHandler = async (req, res) => {
 
   res.status(200).json({
     miHabitacionId: habitacion.id,
-    vivienda: habitacion.vivienda,
+    vivienda: {
+      ...habitacion.vivienda,
+      habitaciones: habitacion.vivienda.habitaciones.map((h) =>
+        serializarHabitacionParaInquilino(h, req.usuario!.id)
+      ),
+    },
   });
 };

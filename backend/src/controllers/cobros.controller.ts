@@ -67,8 +67,9 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
         select: {
           id: true,
           concepto: true,
-          fecha_creacion: true,
+          importe: true,
           factura_url: true,
+          fecha_creacion: true,
         },
       },
     },

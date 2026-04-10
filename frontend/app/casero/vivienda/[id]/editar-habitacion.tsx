@@ -20,7 +20,7 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
 
 export default function EditarHabitacionScreen() {
   const router = useRouter();
-  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam, inquilinoId } =
+  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam, precio: precioParam, inquilinoId } =
     useLocalSearchParams<{
       id: string;
       habId: string;
@@ -28,6 +28,7 @@ export default function EditarHabitacionScreen() {
       tipo: string;
       esHabitable: string;
       metrosCuadrados: string;
+      precio: string;
       inquilinoId: string;
     }>();
 
@@ -37,6 +38,7 @@ export default function EditarHabitacionScreen() {
   const [tipo, setTipo] = useState<TipoHabitacion>(tipoInicial);
   const [esHabitable, setEsHabitable] = useState(esHabitableParam === 'true');
   const [metrosCuadrados, setMetrosCuadrados] = useState(metrosParam ?? '');
+  const [precio, setPrecio] = useState(precioParam ?? '');
   const [loading, setLoading] = useState(false);
   const [expulsando, setExpulsando] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
@@ -109,6 +111,7 @@ export default function EditarHabitacionScreen() {
         tipo,
         es_habitable: tipo === 'DORMITORIO' ? esHabitable : false,
         metros_cuadrados: metrosCuadrados ? parseFloat(metrosCuadrados) : null,
+        precio: tipo === 'DORMITORIO' && esHabitable && precio ? parseFloat(precio.replace(',', '.')) : null,
       });
       router.back();
     } catch (err: any) {
@@ -163,6 +166,22 @@ export default function EditarHabitacionScreen() {
                 thumbColor={Theme.colors.surface}
               />
             </View>
+          </>
+        )}
+
+        {tipo === 'DORMITORIO' && esHabitable && (
+          <>
+            <Text style={styles.label}>Precio mensual (€)</Text>
+            <TextInput
+              style={[styles.input, focusedInput === 'precio' && styles.inputFocused]}
+              placeholder="Ej: 450"
+              placeholderTextColor={Theme.colors.textMuted}
+              value={precio}
+              onChangeText={setPrecio}
+              keyboardType="decimal-pad"
+              onFocus={() => setFocusedInput('precio')}
+              onBlur={() => setFocusedInput(null)}
+            />
           </>
         )}
 
