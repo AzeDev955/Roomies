@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { styles } from '@/styles/rol.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
+import { syncPushToken } from '@/utils/notifications';
 
 type Rol = 'CASERO' | 'INQUILINO';
 
@@ -21,6 +22,7 @@ export default function SeleccionRolScreen() {
         rol: rolSeleccionado,
       });
       await guardarToken(data.token);
+      void syncPushToken();
       const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
       router.replace(destino);
     } catch {
