@@ -5,7 +5,7 @@
 
 ## Cambios tecnicos
 
-- `backend/prisma/schema.prisma`: anadido `Gasto.factura_url` para conservar la factura original de un gasto puntual.
+- `backend/prisma/schema.prisma`: usado `Gasto.factura_url` para conservar la factura original de un gasto puntual, compatible con el campo compartido por la edicion de facturas mensuales.
 - `backend/src/config/cloudinary.config.ts`: anadido uploader `uploadFacturaGasto` para imagenes y PDF en Cloudinary.
 - `backend/src/routes/gasto.routes.ts`: el endpoint `POST /api/viviendas/:viviendaId/gastos` acepta ahora `multipart/form-data` con campo `factura`.
 - `backend/src/controllers/gasto.controller.ts`: normaliza importes desde JSON o form-data, valida `repartoManual`, acepta `fecha` y permite crear gastos al casero propietario.
