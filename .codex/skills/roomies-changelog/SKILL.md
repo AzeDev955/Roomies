@@ -9,7 +9,7 @@ Al cerrar una tarea en este repositorio, revisar `docs/changelog/` y crear o act
 
 ## Formato de nombre
 
-Usar `docs/changelog/epica-[X]-issue-[Y].md` como patrón base.
+Usar `docs/changelog/epica[X]/epica-[X]-issue-[Y].md` como patrón base.
 
 - Sustituir `X` por el identificador de épica cuando exista.
 - Sustituir `Y` por el identificador de issue cuando exista.

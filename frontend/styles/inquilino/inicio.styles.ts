@@ -134,6 +134,27 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.primary,
   },
+  precioHabitacionPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: Theme.colors.successLight,
+    borderRadius: Theme.radius.full,
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: Theme.spacing.sm,
+    marginTop: Theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+  },
+  precioHabitacionLabel: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.success,
+  },
+  precioHabitacionValor: {
+    fontSize: Theme.typography.label,
+    fontWeight: '800',
+    color: Theme.colors.success,
+  },
 
   // — Sección genérica —
   seccion: {

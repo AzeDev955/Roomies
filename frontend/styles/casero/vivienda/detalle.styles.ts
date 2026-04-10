@@ -291,6 +291,28 @@ export const styles = StyleSheet.create({
     fontStyle: 'italic',
     flexShrink: 0,
   },
+  habPrecioRow: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
+    backgroundColor: Theme.colors.successLight,
+    borderRadius: Theme.radius.full,
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: Theme.spacing.sm,
+  },
+  habPrecioLabel: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.success,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  habPrecioValor: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.success,
+  },
 
   // — Código de invitación —
   codigoContainer: {

@@ -30,6 +30,7 @@ export default function NuevaHabitacionScreen() {
   const [tipo, setTipo] = useState<TipoHabitacion>('DORMITORIO');
   const [esHabitable, setEsHabitable] = useState(true);
   const [metrosCuadrados, setMetrosCuadrados] = useState('');
+  const [precio, setPrecio] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ export default function NuevaHabitacionScreen() {
         tipo,
         es_habitable: tipo === 'DORMITORIO' ? esHabitable : false,
         metros_cuadrados: metrosCuadrados ? parseFloat(metrosCuadrados) : undefined,
+        precio: tipo === 'DORMITORIO' && esHabitable && precio ? parseFloat(precio.replace(',', '.')) : null,
       });
       router.back();
     } catch {
@@ -102,6 +104,22 @@ export default function NuevaHabitacionScreen() {
                 thumbColor={Theme.colors.surface}
               />
             </View>
+          </>
+        )}
+
+        {tipo === 'DORMITORIO' && esHabitable && (
+          <>
+            <Text style={styles.label}>Precio mensual (€)</Text>
+            <TextInput
+              style={[styles.input, focusedInput === 'precio' && styles.inputFocused]}
+              placeholder="Ej: 450"
+              placeholderTextColor={Theme.colors.textMuted}
+              value={precio}
+              onChangeText={setPrecio}
+              keyboardType="decimal-pad"
+              onFocus={() => setFocusedInput('precio')}
+              onBlur={() => setFocusedInput(null)}
+            />
           </>
         )}
 
