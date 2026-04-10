@@ -13,6 +13,7 @@ export const Theme = {
     danger:           '#FF4757',
     dangerLight:      '#FFF0F2',
     warning:          '#FFA726',
+    warningLight:     '#FFF7E8',
     // Fondos
     background:       '#F8F7F4',  // Off-white cálido (no frío puro)
     surface:          '#FFFFFF',
