@@ -158,6 +158,13 @@ Cada rol tiene su propio grupo `(tabs)`:
 
 Las rutas fuera de tabs se apilan sobre el tab bar gracias a `casero/_layout.tsx` e `inquilino/_layout.tsx`.
 
+La navegacion es modular por vivienda:
+
+- `mod_limpieza` oculta la tab `Limpieza` en el detalle de vivienda del casero y en el inquilino.
+- `mod_gastos` oculta `Gastos` en inquilino y `Cobros` en casero si ninguna vivienda del casero lo tiene activo.
+- `mod_inventario` oculta `Inventario` en inquilino y casero si no hay viviendas con el modulo activo.
+- El centro de mando `casero/vivienda/[id]/(tabs)/index.tsx` muestra switches para activar o desactivar modulos via `PATCH /api/viviendas/:id`.
+
 ## Autenticacion y sesion
 
 El layout raiz (`app/_layout.tsx`) hace tres cosas:
@@ -189,6 +196,31 @@ La app usa `expo-notifications`.
   - `app/rol.tsx` cuando un alta nueva confirma el rol
 - El backend guarda el token con `PATCH /api/usuarios/me/push-token`.
 
+## Flujos destacados de las epicas 13 y 14
+
+### Modulos por vivienda
+
+- `casero/vivienda/[id]/(tabs)/index.tsx` carga `mod_limpieza`, `mod_gastos` y `mod_inventario` junto con el detalle de vivienda.
+- Los switches de "Configuracion de Modulos" hacen PATCH parcial con el flag cambiado y actualizan el estado local.
+- Las tabs globales del casero (`casero/(tabs)/_layout.tsx`) consultan viviendas y solo muestran `Cobros`/`Inventario` cuando al menos una vivienda tiene el modulo correspondiente activo.
+- Las tabs del inquilino (`inquilino/(tabs)/_layout.tsx`) consultan `/inquilino/vivienda` y ocultan `Limpieza`, `Gastos` e `Inventario` segun los flags de su vivienda.
+
+### Precio privado por habitacion
+
+- `casero/nueva-vivienda.tsx`, `casero/vivienda/[id]/nueva-habitacion.tsx` y `casero/vivienda/[id]/editar-habitacion.tsx` muestran el input de precio mensual solo cuando la habitacion es habitable.
+- Las tarjetas de habitaciones del casero muestran el precio privado cuando existe.
+- `inquilino/(tabs)/inicio.tsx` muestra el precio de la habitacion propia; los companeros llegan desde backend con `precio: null`.
+- Si una habitacion se convierte en zona comun, el backend limpia `precio` y el frontend deja de mostrar el campo.
+
+### Facturacion flexible
+
+- `casero/(tabs)/cobros.tsx` permite crear facturas puntuales con concepto, importe, fecha, adjunto opcional y reparto desigual por inquilino activo.
+- El reparto se valida en tiempo real en la UI y el backend exige que la suma coincida con el total.
+- Las facturas emitidas se agrupan por gasto y pueden editarse desde un modal con concepto, importe y fecha.
+- Si alguna deuda hija esta `PAGADA`, el modal deshabilita la edicion del importe y mantiene editables concepto/fecha.
+- Desde el modal y desde la tarjeta se puede subir, reemplazar o abrir la factura original (`factura_url`).
+- `inquilino/(tabs)/gastos.tsx` muestra "Ver factura original" cuando una deuda procede de un gasto con factura adjunta.
+
 ## Flujos destacados de la epica 12
 
 ### Cobros del casero
@@ -199,6 +231,7 @@ La app usa `expo-notifications`.
   - resumen de `pagado` vs `pendiente`
   - listas separadas de deudas pendientes y pagadas
   - modal para ver `justificante_url`
+  - facturas emitidas agrupadas por gasto con acciones de editar y ver/subir factura original
 
 ### Gastos del inquilino
 
@@ -261,3 +294,11 @@ eas build --platform android --profile preview
 - La navegacion del inquilino ahora incluye `Limpieza`, `Gastos` e `Inventario`.
 - `gastos.tsx` documenta el flujo completo de mensualidades, justificantes y saldado de deuda.
 - `app/_layout.tsx` sincroniza el push token al restaurar sesion.
+
+## Update 2026-04-10 - Epicas 13 y 14
+
+- La navegacion de casero e inquilino se adapta a `mod_limpieza`, `mod_gastos` y `mod_inventario`.
+- El centro de mando de vivienda permite configurar modulos con switches persistidos por API.
+- Alta y edicion de habitaciones soportan precio mensual privado para dormitorios habitables.
+- `Cobros` permite crear facturas puntuales con reparto desigual, editar facturas ya emitidas y gestionar `factura_url`.
+- `Gastos` del inquilino muestra enlaces a factura original cuando existen.

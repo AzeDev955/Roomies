@@ -34,6 +34,15 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 ## Actualizaciones recientes
 
+### Arquitectura modular y facturacion flexible (Epicas 13 y 14)
+
+- `Vivienda` incorpora los flags `mod_limpieza`, `mod_gastos` y `mod_inventario` con valor por defecto `true`.
+- El casero configura esos modulos desde el centro de mando de la vivienda con `PATCH /api/viviendas/:id`.
+- El backend usa `protegerModuloVivienda()` para devolver `403` si limpieza, gastos/cobros/mensualidades/deudas o inventario estan desactivados para una vivienda.
+- La navegacion del casero y del inquilino oculta tabs de `Limpieza`, `Gastos`, `Cobros` e `Inventario` segun los flags activos.
+- `Habitacion.precio` guarda el precio mensual privado de dormitorios habitables. El casero lo ve siempre; el inquilino solo ve el precio de su propia habitacion y el backend devuelve `precio: null` para dormitorios ajenos.
+- `Gasto.factura_url` guarda la factura original en Cloudinary. Los gastos pueden crearse con adjunto y `repartoManual`, y el casero puede editar concepto, fecha e importe mientras no existan deudas `PAGADA`.
+
 ### Cobros, mensualidades y push (Epica 12)
 
 - El backend expone `GET /api/viviendas/:viviendaId/gastos`, `POST /api/viviendas/:viviendaId/gastos`, `GET /api/viviendas/:viviendaId/deudas`, `PATCH /api/viviendas/:viviendaId/deudas/:deudaId/saldar`, `GET /api/viviendas/:viviendaId/gastos-recurrentes`, `POST /api/viviendas/:viviendaId/gastos-recurrentes` y `GET /api/viviendas/:viviendaId/cobros`.
@@ -217,6 +226,9 @@ Roomies/
 | `codigo_postal` | String       |
 | `ciudad`        | String       |
 | `provincia`     | String       |
+| `mod_limpieza`  | Boolean      |
+| `mod_gastos`    | Boolean      |
+| `mod_inventario` | Boolean     |
 
 ### `Habitacion`
 
@@ -229,6 +241,7 @@ Roomies/
 | `tipo`              | TipoHabitacion | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` |
 | `es_habitable`      | Boolean        | si true, tiene código de invitación                     |
 | `metros_cuadrados`  | Float?         |                                                         |
+| `precio`            | Float?         | precio mensual privado; solo visible para casero o inquilino asignado |
 | `codigo_invitacion` | String? unique | se genera con `generarCodigoInvitacion()`               |
 
 ### `Incidencia`
@@ -265,6 +278,7 @@ Roomies/
 | `pagador_id`     | FK â†’ Usuario  | usuario que adelanta el pago |
 | `concepto`       | String        | descripcion corta del gasto |
 | `importe`        | Float         | importe total |
+| `factura_url`    | String?       | URL Cloudinary de la factura original |
 | `fecha_creacion` | DateTime      | `@default(now())` |
 
 ### `GastoRecurrente`
@@ -313,6 +327,7 @@ Roomies/
 | GET    | `/viviendas`                                   | Sí   | Lista viviendas del casero autenticado                                     |
 | POST   | `/viviendas`                                   | Sí   | Crea vivienda (acepta array opcional `habitaciones`)                       |
 | GET    | `/viviendas/:id`                               | Sí   | Detalle con habitaciones e inquilinos                                      |
+| PATCH  | `/viviendas/:id`                               | Sí   | Actualiza `mod_limpieza`, `mod_gastos` y/o `mod_inventario` de la vivienda |
 | POST   | `/viviendas/:id/habitaciones`                  | Sí   | Añade habitación suelta                                                    |
 | PUT    | `/viviendas/:id/habitaciones/:habId`           | Sí   | Edita habitación                                                           |
 | DELETE | `/viviendas/:id/habitaciones/:habId`           | Sí   | Elimina habitación (falla si tiene inquilino)                              |
@@ -350,7 +365,9 @@ Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e in
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |
 | GET    | `/viviendas/:viviendaId/gastos` | Si | Lista gastos de la vivienda con pagador y `deudas[]` |
-| POST   | `/viviendas/:viviendaId/gastos` | Si | Crea gasto y reparte deuda entre inquilinos activos; acepta `implicadosIds` opcional |
+| POST   | `/viviendas/:viviendaId/gastos` | Si | Crea gasto y reparte deuda entre inquilinos activos; acepta `implicadosIds`, `repartoManual`, `fecha` y adjunto `factura` opcionales |
+| PATCH  | `/viviendas/:viviendaId/gastos/:gastoId` | Si | Edita concepto, fecha e importe de un gasto; el importe se bloquea si hay deudas pagadas |
+| POST   | `/viviendas/:viviendaId/gastos/:gastoId/factura` | Si | Sube o reemplaza la factura original de un gasto |
 | GET    | `/viviendas/:viviendaId/deudas` | Si | Lista deudas donde el usuario autenticado es deudor o acreedor |
 | PATCH  | `/viviendas/:viviendaId/deudas/:deudaId/saldar` | Si | Marca una deuda como `PAGADA`; solo el deudor puede hacerlo |
 | GET    | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Lista mensualidades activas o inactivas de la vivienda |
@@ -608,6 +625,22 @@ Usuarios de prueba creados por `prisma db seed`:
 - `docs/backend/api.md` — referencia completa de endpoints con ejemplos de body/response.
 - `docs/frontend/setup.md` — guía de configuración del frontend, variables de entorno, estructura de la app, flujo de autenticación y decisiones de arquitectura.
 - `docs/changelog/` — un archivo por issue implementado, con decisiones técnicas.
+
+## Update 2026-04-10 - Arquitectura modular y facturacion flexible (Epicas 13 y 14)
+
+- Backend:
+  - `Vivienda` tiene flags `mod_limpieza`, `mod_gastos` y `mod_inventario`; `PATCH /api/viviendas/:id` permite al casero propietario activarlos o desactivarlos.
+  - `protegerModuloVivienda()` protege limpieza, gastos, deudas, cobros, mensualidades recurrentes e inventario con 403 si el modulo esta desactivado.
+  - `Habitacion.precio` se persiste solo en habitaciones habitables; al convertir una habitacion en no habitable se limpia a `null`.
+  - `Gasto.factura_url` permite conservar facturas originales en Cloudinary.
+  - `POST /api/viviendas/:viviendaId/gastos` acepta `multipart/form-data`, `factura`, `fecha` y `repartoManual`.
+  - `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` edita concepto, fecha e importe; el importe no se puede cambiar si alguna deuda hija esta `PAGADA`.
+- Frontend:
+  - El centro de mando del casero muestra switches de modulos por vivienda.
+  - Las tabs globales y de vivienda se ocultan segun los flags activos.
+  - Los formularios de alta/edicion de habitaciones muestran precio mensual solo en dormitorios habitables.
+  - `Cobros` permite crear facturas puntuales con adjunto y reparto desigual, editar facturas emitidas y subir/reemplazar factura original.
+  - El inquilino ve el precio de su propia habitacion y enlaces a factura original cuando una deuda procede de un gasto con adjunto.
 
 ## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
 

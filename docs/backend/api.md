@@ -253,6 +253,9 @@ Devuelve todas las viviendas del casero logueado, incluyendo sus habitaciones.
     "codigo_postal": "28013",
     "ciudad": "Madrid",
     "provincia": "Madrid",
+    "mod_limpieza": true,
+    "mod_gastos": true,
+    "mod_inventario": true,
     "habitaciones": [
       {
         "id": 1,
@@ -262,6 +265,7 @@ Devuelve todas las viviendas del casero logueado, incluyendo sus habitaciones.
         "tipo": "DORMITORIO",
         "es_habitable": true,
         "metros_cuadrados": 12.5,
+        "precio": 450,
         "codigo_invitacion": "ROOM-AB3X"
       }
     ]
@@ -296,6 +300,7 @@ Crea una nueva vivienda. Solo accesible para usuarios con rol `CASERO`.
 | `tipo` | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` | No (default `DORMITORIO`) |
 | `es_habitable` | boolean | No (default `true`) |
 | `metros_cuadrados` | number | No |
+| `precio` | number/string/null | No | Precio mensual privado. Solo se guarda si `es_habitable: true`; se limpia a `null` en zonas comunes. |
 
 > Las habitaciones se crean en la misma transacción (nested create de Prisma). Si falla una habitación, toda la operación se revierte.
 
@@ -341,6 +346,9 @@ Devuelve el detalle de una vivienda con sus habitaciones e inquilinos asignados.
   "codigo_postal": "28013",
   "ciudad": "Madrid",
   "provincia": "Madrid",
+  "mod_limpieza": true,
+  "mod_gastos": true,
+  "mod_inventario": true,
   "habitaciones": [
     {
       "id": 1,
@@ -348,6 +356,7 @@ Devuelve el detalle de una vivienda con sus habitaciones e inquilinos asignados.
       "tipo": "DORMITORIO",
       "es_habitable": true,
       "metros_cuadrados": 12.5,
+      "precio": 450,
       "codigo_invitacion": "ROOM-AB3X7K",
       "inquilino": {
         "id": 3,
@@ -371,6 +380,36 @@ Devuelve el detalle de una vivienda con sus habitaciones e inquilinos asignados.
 
 ---
 
+### PATCH `/viviendas/:id`
+
+Actualiza la configuracion modular de una vivienda. Solo el casero propietario puede cambiar estos flags.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripcion |
+|---|---|
+| `id` | ID de la vivienda |
+
+**Body (JSON):** al menos uno de estos campos.
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `mod_limpieza` | boolean | No | Activa o desactiva rutas y tabs del modulo de limpieza |
+| `mod_gastos` | boolean | No | Activa o desactiva gastos, deudas, cobros y mensualidades recurrentes |
+| `mod_inventario` | boolean | No | Activa o desactiva inventario, fotos y conformidad |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Vivienda actualizada con habitaciones, inquilinos y contadores de incidencias. |
+| `400` | ID invalido, body vacio o algun flag no booleano. |
+| `403` | El usuario no es casero o la vivienda no le pertenece. |
+
+---
+
 ### POST `/viviendas/:id/habitaciones`
 
 Añade una habitación a una vivienda. Solo el casero propietario de la vivienda puede añadir habitaciones.
@@ -391,6 +430,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
 | `tipo` | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` | No | Default: `DORMITORIO` |
 | `es_habitable` | boolean | No | Si es habitable por un inquilino. Default: `true` |
 | `metros_cuadrados` | number | No | Superficie en m² |
+| `precio` | number/string/null | No | Precio mensual privado. Solo se guarda para habitaciones habitables. |
 
 **Respuestas:**
 
@@ -414,6 +454,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "tipo": "DORMITORIO",
   "es_habitable": true,
   "metros_cuadrados": 12.5,
+  "precio": 450,
   "codigo_invitacion": "ROOM-AB3X7K"
 }
 ```
@@ -428,6 +469,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "tipo": "COCINA",
   "es_habitable": false,
   "metros_cuadrados": null,
+  "precio": null,
   "codigo_invitacion": null
 }
 ```
@@ -447,12 +489,13 @@ Edita una habitación existente. Solo el casero propietario de la vivienda puede
 | `id` | ID de la vivienda |
 | `habId` | ID de la habitación |
 
-**Body (JSON):** Mismos campos que en la creación (`nombre`, `tipo`, `es_habitable`, `metros_cuadrados`), todos opcionales.
+**Body (JSON):** Mismos campos que en la creación (`nombre`, `tipo`, `es_habitable`, `metros_cuadrados`, `precio`), todos opcionales.
 
 **Comportamiento del `codigo_invitacion` al editar:**
 - `es_habitable` cambia `false → true` → se genera un nuevo código
 - `es_habitable` cambia `true → false` → el código se anula (`null`)
 - `es_habitable` no cambia → el código existente se conserva
+- `precio` se conserva o actualiza solo mientras la habitacion sea habitable; si pasa a zona comun se guarda como `null`.
 
 **Respuestas:**
 
@@ -580,6 +623,10 @@ Devuelve la vivienda completa del inquilino logueado, incluyendo todas las habit
 | `403` | El usuario tiene rol `CASERO`. |
 | `404` | El inquilino no tiene ninguna habitación asignada. |
 
+**Privacidad y modulos:**
+- La vivienda incluye `mod_limpieza`, `mod_gastos` y `mod_inventario` para adaptar la navegacion del cliente.
+- Las habitaciones incluyen `precio`, pero el backend solo conserva el importe en la habitacion asignada al usuario autenticado. El resto se serializa como `precio: null`.
+
 **Ejemplo respuesta 200:**
 ```json
 {
@@ -587,17 +634,22 @@ Devuelve la vivienda completa del inquilino logueado, incluyendo todas las habit
   "vivienda": {
     "id": 1,
     "alias_nombre": "Piso Centro",
+    "mod_limpieza": true,
+    "mod_gastos": true,
+    "mod_inventario": true,
     "habitaciones": [
       {
         "id": 2,
         "nombre": "Habitación A",
         "tipo": "DORMITORIO",
+        "precio": null,
         "inquilino": { "id": 5, "nombre": "Ana", "apellidos": "García" }
       },
       {
         "id": 3,
         "nombre": "Habitación B",
         "tipo": "DORMITORIO",
+        "precio": 450,
         "inquilino": null
       },
       {
@@ -1014,6 +1066,8 @@ Elimina un anuncio.
 
 ## Gastos y cobros (`/viviendas/:viviendaId`)
 
+Todos los endpoints de esta seccion estan protegidos por `mod_gastos`. Si el modulo esta desactivado en la vivienda, el backend responde `403` con `El modulo gastos esta desactivado para esta vivienda.`.
+
 ### GET `/viviendas/:viviendaId/gastos`
 
 Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generado para cada gasto.
@@ -1033,31 +1087,43 @@ Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generad
 
 **Campos relevantes por gasto:**
 - `pagador { id, nombre, apellidos }`
+- `factura_url` cuando existe factura original subida a Cloudinary
 - `deudas[]` con `id`, `deudor_id`, `acreedor_id`, `importe`, `estado` y `justificante_url`
 
 ---
 
 ### POST `/viviendas/:viviendaId/gastos`
 
-Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos activos de la vivienda.
+Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos activos de la vivienda. Tambien permite registrar facturas puntuales del casero con adjunto y reparto manual.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
-**Body (JSON):**
+**Content-Type:** `application/json` o `multipart/form-data` si se adjunta factura.
+
+**Body:**
 
 | Campo | Tipo | Requerido | Descripcion |
 |---|---|---|---|
 | `concepto` | string | Si | Nombre corto del gasto |
 | `importe` | number | Si | Importe total, debe ser mayor que `0` |
 | `implicadosIds` | number[] | No | IDs concretos a repartir; si se omite se usan todos los inquilinos activos |
+| `repartoManual` | `{ usuario_id, importe }[]` o JSON string | No | Reparto desigual por inquilino activo. La suma en centimos debe coincidir con `importe`. |
+| `fecha` | string ISO | No | Fecha del gasto/factura. Si se omite se usa `now()`. |
+| `factura` | file | No | Imagen o PDF de factura original cuando se usa `multipart/form-data`. |
 
 **Respuestas:**
 
 | Codigo | Descripcion |
 |---|---|
 | `201` | Gasto creado con sus `deudas[]`. |
-| `400` | Faltan datos, `importe <= 0` o `implicadosIds` no es un array numerico valido. |
+| `400` | Faltan datos, `importe <= 0`, fecha invalida, implicados invalidos o `repartoManual` descuadrado. |
 | `403` | No perteneces a la vivienda. |
+
+**Notas de reparto manual:**
+- Todos los `usuario_id` deben ser inquilinos activos de la vivienda y no pueden repetirse.
+- Los importes deben ser mayores que `0`.
+- Si el pagador aparece en `repartoManual`, no se genera deuda contra si mismo, pero su importe cuenta para cuadrar el total.
+- Si no se envia `repartoManual`, se usa el reparto automatico entre `implicadosIds` o todos los inquilinos activos.
 
 ---
 
@@ -1140,7 +1206,7 @@ Lista las deudas de la vivienda donde el usuario autenticado participa como deud
 **Incluye:**
 - `deudor { id, nombre, apellidos }`
 - `acreedor { id, nombre, apellidos }`
-- `gasto { concepto }`
+- `gasto { concepto, factura_url }`
 
 ---
 
@@ -1352,6 +1418,8 @@ Guarda o limpia el `expo_push_token` del usuario autenticado.
 
 ## Inventario (`/inventario`)
 
+Los endpoints de inventario estan protegidos por `mod_inventario`. Si el modulo esta desactivado en la vivienda, el backend responde `403` antes de crear, listar, subir fotos o marcar conformidad.
+
 ### POST `/viviendas/:viviendaId/inventario`
 
 Crea un nuevo `ItemInventario` para una vivienda. Pensado para el flujo de configuración del casero.
@@ -1499,6 +1567,8 @@ Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item
 ---
 
 ## Limpieza — `/viviendas/:id/limpieza`
+
+Los endpoints de limpieza estan protegidos por `mod_limpieza`. Si el modulo esta desactivado en la vivienda, el backend responde `403` antes de gestionar zonas, asignaciones o turnos.
 
 Todos los endpoints requieren que el usuario autenticado sea el **casero propietario** de la vivienda.
 
