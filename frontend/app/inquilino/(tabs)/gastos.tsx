@@ -86,6 +86,12 @@ const formatFecha = (iso: string) =>
 const formatImporte = (n: number) =>
   n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
+const formatNombreCompleto = ({ nombre, apellidos }: UsuarioBasico) =>
+  `${nombre}${apellidos ? ` ${apellidos}` : ''}`;
+
+const sumarImportes = (items: Deuda[]) =>
+  items.reduce((total, deuda) => total + deuda.importe, 0);
+
 export default function GastosInquilinoTab() {
   const [viviendaId, setViviendaId] = useState<number | null>(null);
   const [miId, setMiId] = useState<number | null>(null);
@@ -170,22 +176,32 @@ export default function GastosInquilinoTab() {
     }, [cargarTodo]),
   );
 
-  const calcularBalance = (): number => {
-    if (!miId) return 0;
+  const idsCompaneros = new Set(companerosPiso.map((inquilino) => inquilino.id));
+  const esDeudaMia = (deuda: Deuda) =>
+    miId !== null && (deuda.deudor_id === miId || deuda.acreedor_id === miId);
+  const esDeudaEntreCompaneros = (deuda: Deuda) =>
+    idsCompaneros.has(deuda.deudor_id) && idsCompaneros.has(deuda.acreedor_id);
 
-    let balance = 0;
-    for (const deuda of deudas) {
-      if (deuda.estado === 'PAGADA') continue;
-      if (deuda.acreedor_id === miId) balance += deuda.importe;
-      if (deuda.deudor_id === miId) balance -= deuda.importe;
-    }
-
-    return balance;
-  };
-
-  const deudasPendientes = deudas.filter((deuda) => deuda.estado === 'PENDIENTE');
-  const deudasPagadasConJustificante = deudas.filter(
+  const deudasRelacionadas = deudas.filter(esDeudaMia);
+  const deudasPendientes = deudasRelacionadas.filter((deuda) => deuda.estado === 'PENDIENTE');
+  const deudasPendientesCompaneros = deudasPendientes.filter(esDeudaEntreCompaneros);
+  const deudasPendientesCasero = deudasPendientes.filter(
+    (deuda) => !esDeudaEntreCompaneros(deuda),
+  );
+  const deudasPagadasConJustificante = deudasRelacionadas.filter(
     (deuda) => deuda.estado === 'PAGADA' && !!deuda.justificante_url,
+  );
+  const totalDeboCompaneros = sumarImportes(
+    deudasPendientesCompaneros.filter((deuda) => deuda.deudor_id === miId),
+  );
+  const totalMeDebenCompaneros = sumarImportes(
+    deudasPendientesCompaneros.filter((deuda) => deuda.acreedor_id === miId),
+  );
+  const totalDeboCasero = sumarImportes(
+    deudasPendientesCasero.filter((deuda) => deuda.deudor_id === miId),
+  );
+  const totalMeDebenCasero = sumarImportes(
+    deudasPendientesCasero.filter((deuda) => deuda.acreedor_id === miId),
   );
 
   const abrirModalPago = (deuda: Deuda) => {
@@ -371,18 +387,6 @@ export default function GastosInquilinoTab() {
     return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
   }
 
-  const balance = calcularBalance();
-  const debeMas = balance < 0;
-  const heroColor = debeMas ? Theme.colors.danger : Theme.colors.success;
-  const heroBackground = balance === 0 ? Theme.colors.surface2 : Theme.colors.surface;
-  const heroBadgeBackground =
-    balance === 0
-      ? Theme.colors.surface2
-      : debeMas
-        ? Theme.colors.dangerLight
-        : Theme.colors.successLight;
-  const heroLabel = debeMas ? 'Debes al grupo' : balance === 0 ? 'Estas al dia' : 'Te deben';
-
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -394,26 +398,106 @@ export default function GastosInquilinoTab() {
           </Text>
         </View>
 
-        <View style={[styles.heroCard, { backgroundColor: heroBackground }]}>
-          <View style={[styles.heroEtiquetaBadge, { backgroundColor: heroBadgeBackground }]}>
-            <Text style={[styles.heroEtiqueta, { color: heroColor }]}>{heroLabel.toUpperCase()}</Text>
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <View style={[styles.heroEtiquetaBadge, { backgroundColor: Theme.colors.primaryLight }]}>
+              <Text style={[styles.heroEtiqueta, { color: Theme.colors.primary }]}>
+                RESUMEN ENTRE COMPANEROS
+              </Text>
+            </View>
+            <Text style={styles.heroTitulo}>Lo que debes y lo que te deben van por separado</Text>
+            <Text style={styles.heroDescripcion}>
+              Ya no compensamos un pendiente con otro. Asi ves con claridad lo que debes y lo que
+              te deben dentro del piso.
+            </Text>
           </View>
-          <Text style={[styles.heroImporte, { color: heroColor }]}>
-            {formatImporte(Math.abs(balance))}
-          </Text>
-          <Text style={styles.heroDescripcion}>
-            {debeMas
-              ? 'Tienes deudas pendientes con tus companeros'
-              : balance === 0
-                ? 'No tienes deudas pendientes'
-                : 'Tus companeros te deben dinero'}
-          </Text>
+
+          <View style={styles.heroResumenGrid}>
+            <View
+              style={[
+                styles.heroResumenCard,
+                {
+                  backgroundColor:
+                    totalDeboCompaneros > 0 ? Theme.colors.dangerLight : Theme.colors.surface,
+                },
+              ]}
+            >
+              <View style={[styles.heroResumenBadge, { backgroundColor: Theme.colors.dangerLight }]}>
+                <Text style={[styles.heroResumenBadgeText, { color: Theme.colors.danger }]}>Debes</Text>
+              </View>
+              <Text style={[styles.heroResumenImporte, { color: Theme.colors.danger }]}>
+                {formatImporte(totalDeboCompaneros)}
+              </Text>
+              <Text style={styles.heroResumenTexto}>Pendiente con companeros</Text>
+            </View>
+
+            <View
+              style={[
+                styles.heroResumenCard,
+                {
+                  backgroundColor:
+                    totalMeDebenCompaneros > 0 ? Theme.colors.successLight : Theme.colors.surface,
+                },
+              ]}
+            >
+              <View style={[styles.heroResumenBadge, { backgroundColor: Theme.colors.successLight }]}>
+                <Text style={[styles.heroResumenBadgeText, { color: Theme.colors.success }]}>
+                  Te deben
+                </Text>
+              </View>
+              <Text style={[styles.heroResumenImporte, { color: Theme.colors.success }]}>
+                {formatImporte(totalMeDebenCompaneros)}
+              </Text>
+              <Text style={styles.heroResumenTexto}>Pendiente de cobrar</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroFootnote}>
+            <Ionicons name="swap-horizontal-outline" size={16} color={Theme.colors.textSecondary} />
+            <Text style={styles.heroFootnoteText}>
+              Solo se cruzan importes cuando la otra persona es la misma.
+            </Text>
+          </View>
         </View>
 
-        {deudasPendientes.length > 0 && (
+        {(totalDeboCasero > 0 || totalMeDebenCasero > 0) && (
+          <View style={styles.caseroCard}>
+            <View style={styles.caseroHeader}>
+              <View style={styles.caseroIconBox}>
+                <Ionicons name="business-outline" size={18} color={Theme.colors.info} />
+              </View>
+              <View style={styles.caseroHeaderTextos}>
+                <Text style={styles.caseroTitulo}>Relacion con el casero</Text>
+                <Text style={styles.caseroDescripcion}>
+                  Este bloque va aparte y no se mezcla con los companeros del piso.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.caseroResumenGrid}>
+              <View style={[styles.caseroResumenCard, { backgroundColor: Theme.colors.dangerLight }]}>
+                <Text style={[styles.caseroResumenLabel, { color: Theme.colors.danger }]}>Debes</Text>
+                <Text style={[styles.caseroResumenImporte, { color: Theme.colors.danger }]}>
+                  {formatImporte(totalDeboCasero)}
+                </Text>
+              </View>
+
+              <View style={[styles.caseroResumenCard, { backgroundColor: Theme.colors.successLight }]}>
+                <Text style={[styles.caseroResumenLabel, { color: Theme.colors.success }]}>
+                  Te deben
+                </Text>
+                <Text style={[styles.caseroResumenImporte, { color: Theme.colors.success }]}>
+                  {formatImporte(totalMeDebenCasero)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {deudasPendientesCompaneros.length > 0 && (
           <>
-            <Text style={styles.seccionTitulo}>Deudas pendientes</Text>
-            {deudasPendientes.map((deuda) => {
+            <Text style={styles.seccionTitulo}>Pendientes con companeros</Text>
+            {deudasPendientesCompaneros.map((deuda) => {
               const yoDebo = deuda.deudor_id === miId;
               const companero = yoDebo ? deuda.acreedor : deuda.deudor;
               const amountColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
@@ -431,8 +515,7 @@ export default function GastosInquilinoTab() {
                   />
                   <View style={styles.deudaInfo}>
                     <Text style={styles.deudaNombre} numberOfLines={1}>
-                      {companero.nombre}
-                      {companero.apellidos ? ` ${companero.apellidos}` : ''}
+                      {formatNombreCompleto(companero)}
                     </Text>
                     <Text style={styles.deudaConcepto} numberOfLines={2}>
                       {deuda.gasto.concepto}
@@ -477,6 +560,70 @@ export default function GastosInquilinoTab() {
           </>
         )}
 
+        {deudasPendientesCasero.length > 0 && (
+          <>
+            <Text style={styles.seccionTitulo}>Pendientes con casero</Text>
+            {deudasPendientesCasero.map((deuda) => {
+              const yoDebo = deuda.deudor_id === miId;
+              const contraparte = yoDebo ? deuda.acreedor : deuda.deudor;
+              const amountColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
+              const statusBackground = yoDebo ? Theme.colors.dangerLight : Theme.colors.infoLight;
+              const statusText = yoDebo ? Theme.colors.danger : Theme.colors.info;
+
+              return (
+                <View key={deuda.id} style={styles.deudaCard}>
+                  <AvatarInitials
+                    nombre={contraparte.nombre}
+                    apellidos={contraparte.apellidos}
+                    size={52}
+                  />
+                  <View style={styles.deudaInfo}>
+                    <Text style={styles.deudaNombre} numberOfLines={1}>
+                      {formatNombreCompleto(contraparte)}
+                    </Text>
+                    <Text style={styles.deudaConcepto} numberOfLines={2}>
+                      {deuda.gasto.concepto}
+                    </Text>
+                  </View>
+                  <View style={styles.deudaMeta}>
+                    <Text style={[styles.deudaImporte, { color: amountColor }]}>
+                      {formatImporte(deuda.importe)}
+                    </Text>
+
+                    {yoDebo ? (
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.botonSaldar,
+                          { backgroundColor: statusBackground },
+                          pressed && styles.botonSaldarPressed,
+                          saldando === deuda.id && { opacity: 0.6 },
+                        ]}
+                        onPress={() => abrirModalPago(deuda)}
+                        disabled={saldando === deuda.id}
+                        accessibilityLabel={`Saldar deuda de ${formatImporte(deuda.importe)} con ${contraparte.nombre}`}
+                        accessibilityRole="button"
+                      >
+                        {saldando === deuda.id ? (
+                          <ActivityIndicator size="small" color={statusText} />
+                        ) : (
+                          <Text style={[styles.botonSaldarTexto, { color: statusText }]}>Saldar</Text>
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View style={[styles.badgeEsperando, { backgroundColor: statusBackground }]}>
+                        <Ionicons name="time-outline" size={13} color={statusText} />
+                        <Text style={[styles.badgeEsperandoTexto, { color: statusText }]}>
+                          Pendiente
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </>
+        )}
+
         {deudasPagadasConJustificante.length > 0 && (
           <>
             <Text style={styles.seccionTitulo}>Pagadas con justificante</Text>
@@ -494,8 +641,7 @@ export default function GastosInquilinoTab() {
                     />
                     <View style={styles.deudaPagadaInfo}>
                       <Text style={styles.deudaNombre} numberOfLines={1}>
-                        {companero.nombre}
-                        {companero.apellidos ? ` ${companero.apellidos}` : ''}
+                        {formatNombreCompleto(companero)}
                       </Text>
                       <Text style={styles.deudaConcepto} numberOfLines={2}>
                         {deuda.gasto.concepto}
