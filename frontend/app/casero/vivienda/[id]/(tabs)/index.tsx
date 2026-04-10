@@ -1,4 +1,14 @@
-import { View, Text, ScrollView, Pressable, Alert, Share } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  Text,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
@@ -11,6 +21,7 @@ import { Theme } from '@/constants/theme';
 import { styles } from '@/styles/casero/vivienda/detalle.styles';
 import { COLORES_PRIORIDAD } from '@/styles/casero/vivienda/incidencias.styles';
 import { CustomButton } from '@/components/common/CustomButton';
+import { CustomInput } from '@/components/common/CustomInput';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
@@ -47,6 +58,14 @@ type Vivienda = {
   habitaciones: Habitacion[];
 };
 
+type GastoRecurrente = {
+  id: number;
+  concepto: string;
+  importe: number;
+  dia_del_mes: number;
+  activo: boolean;
+};
+
 const ETIQUETAS_TIPO: Record<string, string> = {
   DORMITORIO: 'Dormitorio',
   BANO: 'Baño',
@@ -57,13 +76,14 @@ const ETIQUETAS_TIPO: Record<string, string> = {
 
 const HAB_ICONS: Record<string, any> = {
   DORMITORIO: 'bed-outline',
-  BANO:       'water-outline',
-  COCINA:     'restaurant-outline',
-  SALON:      'tv-outline',
-  OTRO:       'grid-outline',
+  BANO: 'water-outline',
+  COCINA: 'restaurant-outline',
+  SALON: 'tv-outline',
+  OTRO: 'grid-outline',
 };
 
-// ── Sub-componentes ───────────────────────────────────────────────────────────
+const formatearImporte = (importe: number) =>
+  importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
 const AvatarInitials = ({
   nombre,
@@ -76,10 +96,17 @@ const AvatarInitials = ({
 }) => {
   const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
   return (
-    <View style={{
-      width: size, height: size, borderRadius: size / 2,
-      backgroundColor: Theme.colors.primary, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    }}>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: Theme.colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
       <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.surface }}>
         {initials}
       </Text>
@@ -87,31 +114,51 @@ const AvatarInitials = ({
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function ResumenViviendaTab() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
+  const [gastosRecurrentes, setGastosRecurrentes] = useState<GastoRecurrente[]>([]);
   const [loading, setLoading] = useState(true);
   const [codigosRevelados, setCodigosRevelados] = useState<Record<number, boolean>>({});
+  const [mensualidadModalVisible, setMensualidadModalVisible] = useState(false);
+  const [conceptoMensualidad, setConceptoMensualidad] = useState('');
+  const [importeMensualidad, setImporteMensualidad] = useState('');
+  const [diaMensualidad, setDiaMensualidad] = useState('');
+  const [guardandoMensualidad, setGuardandoMensualidad] = useState(false);
 
-  const cargarVivienda = async () => {
-    setLoading(true);
+  const cargarVivienda = useCallback(async () => {
     try {
       const { data } = await api.get<Vivienda>(`/viviendas/${id}`);
       setVivienda(data);
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudo cargar la vivienda.' });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [id]);
+
+  const cargarGastosRecurrentes = useCallback(async () => {
+    try {
+      const { data } = await api.get<GastoRecurrente[]>(`/viviendas/${id}/gastos-recurrentes`);
+      setGastosRecurrentes(data);
+    } catch (err: any) {
+      Toast.show({
+        type: 'error',
+        text1: err.response?.data?.error ?? 'No se pudieron cargar los gastos fijos.',
+      });
+      setGastosRecurrentes([]);
+    }
+  }, [id]);
 
   useFocusEffect(
     useCallback(() => {
-      cargarVivienda();
-    }, [id])
+      const cargarTodo = async () => {
+        setLoading(true);
+        await Promise.all([cargarVivienda(), cargarGastosRecurrentes()]);
+        setLoading(false);
+      };
+
+      cargarTodo();
+    }, [cargarGastosRecurrentes, cargarVivienda])
   );
 
   const revelarCodigo = async (habitacionId: number) => {
@@ -126,68 +173,64 @@ export default function ResumenViviendaTab() {
   const copiarCodigo = async (codigo: string) => {
     const codigoLimpio = codigo.replace(/^room[-\s]*/i, '').trim();
     await Clipboard.setStringAsync(codigoLimpio);
-    Toast.show({ type: 'info', text1: 'Código copiado', text2: 'Pégalo en la app para unirte a la habitación.' });
+    Toast.show({
+      type: 'info',
+      text1: 'Código copiado',
+      text2: 'Pégalo en la app para unirte a la habitación.',
+    });
   };
 
   const compartirCodigo = async (codigo: string) => {
     await Share.share({
-      message: `¡Únete a tu nueva habitación en Roomies! Tu código de invitación es: ${codigo}`,
+      message: `Únete a tu nueva habitación en Roomies. Tu código de invitación es: ${codigo}`,
     });
   };
 
   const handleEliminarHabitacion = (hab: Habitacion) => {
-    Alert.alert(
-      'Eliminar habitación',
-      `¿Eliminar "${hab.nombre}"? Esta acción no se puede deshacer.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/viviendas/${id}/habitaciones/${hab.id}`);
-              cargarVivienda();
-            } catch (err: any) {
-              const mensaje = err.response?.data?.error ?? 'No se pudo eliminar la habitación.';
-              Toast.show({ type: 'error', text1: mensaje });
-            }
-          },
+    Alert.alert('Eliminar habitación', `¿Eliminar "${hab.nombre}"? Esta acción no se puede deshacer.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/viviendas/${id}/habitaciones/${hab.id}`);
+            cargarVivienda();
+          } catch (err: any) {
+            const mensaje = err.response?.data?.error ?? 'No se pudo eliminar la habitación.';
+            Toast.show({ type: 'error', text1: mensaje });
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleExpulsarInquilino = (hab: Habitacion) => {
-    Alert.alert(
-      '¿Expulsar inquilino?',
-      'Esta acción desvinculará al usuario de la habitación.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Expulsar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/viviendas/${id}/habitaciones/${hab.id}/inquilino`);
-              setVivienda((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      habitaciones: prev.habitaciones.map((h) =>
-                        h.id === hab.id ? { ...h, inquilino: null } : h
-                      ),
-                    }
-                  : prev
-              );
-            } catch (err: any) {
-              const mensaje = err.response?.data?.error ?? 'No se pudo expulsar al inquilino.';
-              Toast.show({ type: 'error', text1: mensaje });
-            }
-          },
+    Alert.alert('¿Expulsar inquilino?', 'Esta acción desvinculará al usuario de la habitación.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Expulsar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.delete(`/viviendas/${id}/habitaciones/${hab.id}/inquilino`);
+            setVivienda((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    habitaciones: prev.habitaciones.map((h) =>
+                      h.id === hab.id ? { ...h, inquilino: null } : h
+                    ),
+                  }
+                : prev
+            );
+          } catch (err: any) {
+            const mensaje = err.response?.data?.error ?? 'No se pudo expulsar al inquilino.';
+            Toast.show({ type: 'error', text1: mensaje });
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleEditarHabitacion = (hab: Habitacion) => {
@@ -205,6 +248,61 @@ export default function ResumenViviendaTab() {
     });
   };
 
+  const cerrarModalMensualidad = () => {
+    setMensualidadModalVisible(false);
+    setConceptoMensualidad('');
+    setImporteMensualidad('');
+    setDiaMensualidad('');
+  };
+
+  const handleGuardarMensualidad = async () => {
+    const importeNum = parseFloat(importeMensualidad.replace(',', '.'));
+    const diaNum = parseInt(diaMensualidad, 10);
+
+    if (!conceptoMensualidad.trim()) {
+      Toast.show({ type: 'error', text1: 'Indica un concepto para el gasto fijo.' });
+      return;
+    }
+
+    if (isNaN(importeNum) || importeNum <= 0) {
+      Toast.show({ type: 'error', text1: 'Introduce un importe válido mayor que 0.' });
+      return;
+    }
+
+    if (!Number.isInteger(diaNum) || diaNum < 1 || diaNum > 31) {
+      Toast.show({ type: 'error', text1: 'El día del mes debe estar entre 1 y 31.' });
+      return;
+    }
+
+    setGuardandoMensualidad(true);
+    try {
+      await api.post(`/viviendas/${id}/gastos-recurrentes`, {
+        concepto: conceptoMensualidad.trim(),
+        importe: importeNum,
+        dia_del_mes: diaNum,
+      });
+      await cargarGastosRecurrentes();
+      cerrarModalMensualidad();
+      Toast.show({
+        type: 'success',
+        text1: 'Gasto fijo creado',
+        text2: `${conceptoMensualidad.trim()} · ${formatearImporte(importeNum)} · Día ${diaNum}`,
+      });
+    } catch (err: any) {
+      Toast.show({
+        type: 'error',
+        text1: err.response?.data?.error ?? 'No se pudo crear el gasto fijo.',
+      });
+    } finally {
+      setGuardandoMensualidad(false);
+    }
+  };
+
+  const puedeGuardarMensualidad =
+    conceptoMensualidad.trim().length > 0 &&
+    importeMensualidad.trim().length > 0 &&
+    diaMensualidad.trim().length > 0;
+
   if (loading) return <LoadingScreen />;
 
   if (!vivienda) {
@@ -216,12 +314,11 @@ export default function ResumenViviendaTab() {
   }
 
   const numInquilinos = vivienda.habitaciones.filter((h) => h.inquilino !== null).length;
+  const mensualidadesActivas = gastosRecurrentes.filter((gasto) => gasto.activo);
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        {/* ── Header card ── */}
         <View style={styles.headerCard}>
           <Text style={styles.headerNombre}>{vivienda.alias_nombre}</Text>
           <Text style={styles.headerDireccion}>{vivienda.direccion}</Text>
@@ -237,7 +334,6 @@ export default function ResumenViviendaTab() {
           </View>
         </View>
 
-        {/* ── Accesos rápidos ── */}
         <View style={styles.accionesGrid}>
           <Pressable
             style={({ pressed }) => [styles.accionBtn, pressed && styles.accionBtnPressed]}
@@ -267,7 +363,56 @@ export default function ResumenViviendaTab() {
           </Pressable>
         </View>
 
-        {/* ── Habitaciones ── */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.sectionHeaderTextGroup}>
+            <Text style={styles.seccionTitulo}>Gastos fijos / Mensualidades</Text>
+            <Text style={styles.sectionDescription}>
+              Suscripciones y recibos fijos que la app divide de forma automática cada mes.
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+            onPress={() => setMensualidadModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Crear nuevo gasto fijo"
+          >
+            <Ionicons name="repeat-outline" size={16} color={Theme.colors.primary} />
+            <Text style={styles.secondaryButtonText}>Nuevo</Text>
+          </Pressable>
+        </View>
+
+        {mensualidadesActivas.length === 0 ? (
+          <View style={styles.recurringEmptyCard}>
+            <View style={styles.recurringEmptyIcon}>
+              <Ionicons name="calendar-outline" size={22} color={Theme.colors.primary} />
+            </View>
+            <View style={styles.recurringEmptyContent}>
+              <Text style={styles.recurringEmptyTitle}>Aún no hay gastos fijos activos</Text>
+              <Text style={styles.recurringEmptySubtitle}>
+                Añade alquiler, internet o suministros para que Roomies los reparta
+                automáticamente cada mes.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          mensualidadesActivas.map((gasto) => (
+            <View key={gasto.id} style={styles.recurringCard}>
+              <View style={styles.recurringIcon}>
+                <Ionicons name="repeat" size={18} color={Theme.colors.primary} />
+              </View>
+              <View style={styles.recurringBody}>
+                <Text style={styles.recurringTitle}>{gasto.concepto}</Text>
+                <Text style={styles.recurringMeta}>
+                  {formatearImporte(gasto.importe)} · Día {gasto.dia_del_mes}
+                </Text>
+              </View>
+              <View style={styles.recurringBadge}>
+                <Text style={styles.recurringBadgeText}>Activa</Text>
+              </View>
+            </View>
+          ))
+        )}
+
         <Text style={styles.seccionTitulo}>Habitaciones</Text>
 
         {[...vivienda.habitaciones]
@@ -278,8 +423,6 @@ export default function ResumenViviendaTab() {
               style={({ pressed }) => [styles.habCard, pressed && styles.habCardPressed]}
               onPress={() => handleEditarHabitacion(habitacion)}
             >
-
-              {/* Fila superior: icono+nombre / inquilino+avatar */}
               <View style={styles.habCardTop}>
                 <View style={styles.habLeft}>
                   <View style={styles.habIconBox}>
@@ -314,10 +457,9 @@ export default function ResumenViviendaTab() {
                 ) : null}
               </View>
 
-              {/* Código de invitación */}
               {habitacion.tipo === 'DORMITORIO' &&
-                habitacion.es_habitable &&
-                habitacion.codigo_invitacion ? (
+              habitacion.es_habitable &&
+              habitacion.codigo_invitacion ? (
                 <View style={styles.codigoContainer}>
                   <Text style={styles.codigoLabel}>Código de invitación</Text>
                   {codigosRevelados[habitacion.id] ? (
@@ -341,14 +483,17 @@ export default function ResumenViviendaTab() {
                       style={styles.codigoOcultoBtn}
                       onPress={() => revelarCodigo(habitacion.id)}
                     >
-                      <Ionicons name="lock-closed-outline" size={14} color={Theme.colors.textTertiary} />
+                      <Ionicons
+                        name="lock-closed-outline"
+                        size={14}
+                        color={Theme.colors.textTertiary}
+                      />
                       <Text style={styles.revelarTexto}>Toca para revelar código de invitación</Text>
                     </Pressable>
                   )}
                 </View>
               ) : null}
 
-              {/* Incidencias asociadas */}
               {habitacion.incidencias.length > 0 && (
                 <View style={styles.incidenciasHabitacion}>
                   {habitacion.incidencias.map((inc) => (
@@ -358,7 +503,10 @@ export default function ResumenViviendaTab() {
                       onPress={() => router.push(`/incidencia/${inc.id}?puedeGestionar=true`)}
                     >
                       <View
-                        style={[styles.incidenciaDot, { backgroundColor: COLORES_PRIORIDAD[inc.prioridad] }]}
+                        style={[
+                          styles.incidenciaDot,
+                          { backgroundColor: COLORES_PRIORIDAD[inc.prioridad] },
+                        ]}
                       />
                       <Text style={styles.incidenciaTitulo} numberOfLines={1}>
                         {inc.titulo}
@@ -367,19 +515,86 @@ export default function ResumenViviendaTab() {
                   ))}
                 </View>
               )}
-
             </Pressable>
           ))}
 
-        {/* Añadir habitación */}
         <CustomButton
           variant="outline"
           label="+ Añadir nueva habitación"
           onPress={() => router.push(`/casero/vivienda/${id}/nueva-habitacion`)}
           style={styles.botonAnadir}
         />
-
       </ScrollView>
+
+      <Modal
+        visible={mensualidadModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={cerrarModalMensualidad}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <Pressable style={{ flex: 1 }} onPress={cerrarModalMensualidad} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitulo}>Nuevo gasto fijo</Text>
+            <Text style={styles.modalSubtitulo}>
+              Configura un recibo recurrente para esta vivienda y Roomies se encargará del reparto.
+            </Text>
+
+            <View style={styles.infoBanner}>
+              <Ionicons name="time-outline" size={16} color={Theme.colors.primary} />
+              <Text style={styles.infoBannerTexto}>
+                Roomies generará el gasto de forma automática la madrugada del día elegido y
+                notificará a los inquilinos.
+              </Text>
+            </View>
+
+            <CustomInput
+              label="Concepto"
+              placeholder="Ej. Alquiler, internet, luz"
+              value={conceptoMensualidad}
+              onChangeText={setConceptoMensualidad}
+              maxLength={120}
+            />
+
+            <CustomInput
+              label="Importe (€)"
+              placeholder="800,00"
+              value={importeMensualidad}
+              onChangeText={setImporteMensualidad}
+              keyboardType="decimal-pad"
+            />
+
+            <CustomInput
+              label="Día del mes"
+              placeholder="1"
+              value={diaMensualidad}
+              onChangeText={setDiaMensualidad}
+              keyboardType="number-pad"
+              maxLength={2}
+            />
+
+            <View style={styles.modalAcciones}>
+              <CustomButton
+                label="Cancelar"
+                variant="secondary"
+                onPress={cerrarModalMensualidad}
+                style={styles.modalBoton}
+              />
+              <CustomButton
+                label="Crear"
+                onPress={handleGuardarMensualidad}
+                disabled={!puedeGuardarMensualidad}
+                loading={guardandoMensualidad}
+                style={styles.modalBoton}
+              />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }

@@ -51,16 +51,6 @@ type Gasto = {
   deudas: Omit<Deuda, 'deudor' | 'acreedor' | 'gasto'>[];
 };
 
-type GastoRecurrente = {
-  id: number;
-  concepto: string;
-  importe: number;
-  dia_del_mes: number;
-  activo: boolean;
-  pagador_id: number;
-  pagador: UsuarioBasico;
-};
-
 const AvatarInitials = ({
   nombre,
   apellidos,
@@ -102,7 +92,6 @@ export default function GastosInquilinoTab() {
   const [companerosPiso, setCompanerosPiso] = useState<UsuarioBasico[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [deudas, setDeudas] = useState<Deuda[]>([]);
-  const [gastosRecurrentes, setGastosRecurrentes] = useState<GastoRecurrente[]>([]);
   const [loading, setLoading] = useState(true);
   const [saldando, setSaldando] = useState<number | null>(null);
   const [deudaSeleccionada, setDeudaSeleccionada] = useState<Deuda | null>(null);
@@ -115,31 +104,18 @@ export default function GastosInquilinoTab() {
   const [importeFocused, setImporteFocused] = useState(false);
   const [implicadosSeleccionados, setImplicadosSeleccionados] = useState<number[]>([]);
 
-  const [mensualidadModalVisible, setMensualidadModalVisible] = useState(false);
-  const [conceptoMensualidad, setConceptoMensualidad] = useState('');
-  const [importeMensualidad, setImporteMensualidad] = useState('');
-  const [diaMensualidad, setDiaMensualidad] = useState('');
-  const [guardandoMensualidad, setGuardandoMensualidad] = useState(false);
-  const [conceptoMensualidadFocused, setConceptoMensualidadFocused] = useState(false);
-  const [importeMensualidadFocused, setImporteMensualidadFocused] = useState(false);
-  const [diaMensualidadFocused, setDiaMensualidadFocused] = useState(false);
-
   const cargarTodo = useCallback(async (vId: number) => {
     try {
-      const [{ data: gastosData }, { data: deudasData }, { data: recurrentesData }] =
-        await Promise.all([
-          api.get<Gasto[]>(`/viviendas/${vId}/gastos`),
-          api.get<Deuda[]>(`/viviendas/${vId}/deudas`),
-          api.get<GastoRecurrente[]>(`/viviendas/${vId}/gastos-recurrentes`),
-        ]);
+      const [{ data: gastosData }, { data: deudasData }] = await Promise.all([
+        api.get<Gasto[]>(`/viviendas/${vId}/gastos`),
+        api.get<Deuda[]>(`/viviendas/${vId}/deudas`),
+      ]);
 
       setGastos(gastosData);
       setDeudas(deudasData);
-      setGastosRecurrentes(recurrentesData);
     } catch {
       setGastos([]);
       setDeudas([]);
-      setGastosRecurrentes([]);
     }
   }, []);
 
@@ -182,7 +158,6 @@ export default function GastosInquilinoTab() {
           setImplicadosSeleccionados([]);
           setGastos([]);
           setDeudas([]);
-          setGastosRecurrentes([]);
         } finally {
           if (activo) setLoading(false);
         }
@@ -212,7 +187,6 @@ export default function GastosInquilinoTab() {
   const deudasPagadasConJustificante = deudas.filter(
     (deuda) => deuda.estado === 'PAGADA' && !!deuda.justificante_url,
   );
-  const mensualidadesActivas = gastosRecurrentes.filter((gasto) => gasto.activo);
 
   const abrirModalPago = (deuda: Deuda) => {
     setDeudaSeleccionada(deuda);
@@ -388,71 +362,10 @@ export default function GastosInquilinoTab() {
     );
   };
 
-  const cerrarModalMensualidad = () => {
-    setMensualidadModalVisible(false);
-    setConceptoMensualidad('');
-    setImporteMensualidad('');
-    setDiaMensualidad('');
-  };
-
-  const abrirModalMensualidad = () => {
-    setMensualidadModalVisible(true);
-  };
-
-  const handleGuardarMensualidad = async () => {
-    if (!viviendaId) return;
-
-    const importeNum = parseFloat(importeMensualidad.replace(',', '.'));
-    const diaNum = parseInt(diaMensualidad, 10);
-
-    if (!conceptoMensualidad.trim()) {
-      Toast.show({ type: 'error', text1: 'Indica un concepto para la mensualidad.' });
-      return;
-    }
-
-    if (isNaN(importeNum) || importeNum <= 0) {
-      Toast.show({ type: 'error', text1: 'Introduce un importe valido mayor que 0.' });
-      return;
-    }
-
-    if (!Number.isInteger(diaNum) || diaNum < 1 || diaNum > 31) {
-      Toast.show({ type: 'error', text1: 'El dia del mes debe estar entre 1 y 31.' });
-      return;
-    }
-
-    setGuardandoMensualidad(true);
-    try {
-      await api.post(`/viviendas/${viviendaId}/gastos-recurrentes`, {
-        concepto: conceptoMensualidad.trim(),
-        importe: importeNum,
-        dia_del_mes: diaNum,
-      });
-      await cargarTodo(viviendaId);
-      cerrarModalMensualidad();
-      Toast.show({
-        type: 'success',
-        text1: 'Mensualidad creada',
-        text2: `${conceptoMensualidad.trim()} · ${formatImporte(importeNum)} · Dia ${diaNum}`,
-      });
-    } catch (err: any) {
-      Toast.show({
-        type: 'error',
-        text1: err.response?.data?.error ?? 'No se pudo crear la mensualidad.',
-      });
-    } finally {
-      setGuardandoMensualidad(false);
-    }
-  };
-
   const puedeGuardar =
     concepto.trim().length > 0 &&
     importe.trim().length > 0 &&
     implicadosSeleccionados.length > 0;
-
-  const puedeGuardarMensualidad =
-    conceptoMensualidad.trim().length > 0 &&
-    importeMensualidad.trim().length > 0 &&
-    diaMensualidad.trim().length > 0;
 
   if (loading) {
     return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
@@ -612,56 +525,6 @@ export default function GastosInquilinoTab() {
               );
             })}
           </>
-        )}
-
-        <View style={styles.seccionHeaderRow}>
-          <View style={styles.seccionHeaderTextos}>
-            <Text style={styles.seccionTitulo}>Gastos Fijos / Mensualidades</Text>
-            <Text style={styles.seccionDescripcion}>
-              Suscripciones activas que el backend genera automaticamente cada mes.
-            </Text>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.botonSecundario, pressed && styles.botonPressed]}
-            onPress={abrirModalMensualidad}
-            accessibilityLabel="Crear nuevo gasto fijo o mensualidad"
-            accessibilityRole="button"
-          >
-            <Ionicons name="repeat-outline" size={16} color={Theme.colors.primary} />
-            <Text style={styles.botonSecundarioTexto}>Nueva</Text>
-          </Pressable>
-        </View>
-
-        {mensualidadesActivas.length === 0 ? (
-          <View style={styles.mensualidadEmptyCard}>
-            <View style={styles.mensualidadEmptyIcon}>
-              <Ionicons name="calendar-outline" size={22} color={Theme.colors.primary} />
-            </View>
-            <View style={styles.mensualidadEmptyTextos}>
-              <Text style={styles.mensualidadEmptyTitulo}>Aun no hay mensualidades activas</Text>
-              <Text style={styles.mensualidadEmptySubtitulo}>
-                Crea alquiler, internet o suministros para que el cron los convierta en gastos
-                normales.
-              </Text>
-            </View>
-          </View>
-        ) : (
-          mensualidadesActivas.map((gasto) => (
-            <View key={gasto.id} style={styles.mensualidadCard}>
-              <View style={styles.mensualidadIcono}>
-                <Ionicons name="repeat" size={18} color={Theme.colors.primary} />
-              </View>
-              <View style={styles.mensualidadInfo}>
-                <Text style={styles.mensualidadConcepto}>{gasto.concepto}</Text>
-                <Text style={styles.mensualidadMeta}>
-                  {formatImporte(gasto.importe)} · Dia {gasto.dia_del_mes}
-                </Text>
-              </View>
-              <View style={styles.mensualidadBadge}>
-                <Text style={styles.mensualidadBadgeTexto}>Activa</Text>
-              </View>
-            </View>
-          ))
         )}
 
         {gastos.length === 0 ? (
@@ -950,115 +813,6 @@ export default function GastosInquilinoTab() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Modal
-        visible={mensualidadModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={cerrarModalMensualidad}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <Pressable style={{ flex: 1 }} onPress={cerrarModalMensualidad} />
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitulo}>Nueva mensualidad</Text>
-
-            <View style={styles.infoBanner}>
-              <Ionicons name="time-outline" size={16} color={Theme.colors.primary} />
-              <Text style={styles.infoBannerTexto}>
-                El backend creara un gasto automatico cada mes a las 02:00 del dia elegido.
-              </Text>
-            </View>
-
-            <View>
-              <Text style={styles.inputLabel}>Concepto</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  conceptoMensualidadFocused && {
-                    borderColor: Theme.colors.primary,
-                    backgroundColor: Theme.colors.primaryLight,
-                  },
-                ]}
-                placeholder="Ej. Alquiler, internet, luz"
-                placeholderTextColor={Theme.colors.textMuted}
-                value={conceptoMensualidad}
-                onChangeText={setConceptoMensualidad}
-                onFocus={() => setConceptoMensualidadFocused(true)}
-                onBlur={() => setConceptoMensualidadFocused(false)}
-                maxLength={120}
-              />
-            </View>
-
-            <View>
-              <Text style={styles.inputLabel}>Importe (€)</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  importeMensualidadFocused && {
-                    borderColor: Theme.colors.primary,
-                    backgroundColor: Theme.colors.primaryLight,
-                  },
-                ]}
-                placeholder="800,00"
-                placeholderTextColor={Theme.colors.textMuted}
-                value={importeMensualidad}
-                onChangeText={setImporteMensualidad}
-                onFocus={() => setImporteMensualidadFocused(true)}
-                onBlur={() => setImporteMensualidadFocused(false)}
-                keyboardType="decimal-pad"
-              />
-            </View>
-
-            <View>
-              <Text style={styles.inputLabel}>Dia del mes</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  diaMensualidadFocused && {
-                    borderColor: Theme.colors.primary,
-                    backgroundColor: Theme.colors.primaryLight,
-                  },
-                ]}
-                placeholder="1"
-                placeholderTextColor={Theme.colors.textMuted}
-                value={diaMensualidad}
-                onChangeText={setDiaMensualidad}
-                onFocus={() => setDiaMensualidadFocused(true)}
-                onBlur={() => setDiaMensualidadFocused(false)}
-                keyboardType="number-pad"
-                maxLength={2}
-              />
-            </View>
-
-            <View style={styles.modalAcciones}>
-              <Pressable
-                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
-                onPress={cerrarModalMensualidad}
-              >
-                <Text style={styles.botonCancelarTexto}>Cancelar</Text>
-              </Pressable>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.botonGuardar,
-                  !puedeGuardarMensualidad && styles.botonGuardarDisabled,
-                  pressed && !guardandoMensualidad && styles.botonPressed,
-                ]}
-                onPress={handleGuardarMensualidad}
-                disabled={!puedeGuardarMensualidad || guardandoMensualidad}
-              >
-                {guardandoMensualidad ? (
-                  <ActivityIndicator color={Theme.colors.surface} />
-                ) : (
-                  <Text style={styles.botonGuardarTexto}>Crear</Text>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }

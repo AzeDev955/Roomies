@@ -330,6 +330,7 @@ export default function CaseroCobrosScreen() {
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }

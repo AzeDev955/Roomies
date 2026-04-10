@@ -1,21 +1,20 @@
-# Issue #195 — Motor de mensualidades y cronjobs
+# Issue #195 - Motor de mensualidades y cronjobs
 
 **Fecha:** 2026-04-10
 **Epica:** 12
 
 ## Cambios tecnicos
 
-- `backend/prisma/schema.prisma`: se anade el modelo `GastoRecurrente` con sus claves foraneas a `Vivienda` y `Usuario`, y se crean las relaciones inversas en `Usuario` y `Vivienda`.
-- `backend/src/services/gasto.service.ts`: se extrae la logica reutilizable para validar pertenencia a vivienda, obtener inquilinos activos y crear gastos con reparto equitativo de deudas.
-- `backend/src/controllers/gasto.controller.ts`: el alta de gastos puntuales pasa a reutilizar el nuevo servicio compartido.
-- `backend/src/controllers/gasto-recurrente.controller.ts`: se crean los endpoints para listar y registrar gastos recurrentes por vivienda.
-- `backend/src/routes/gasto-recurrente.routes.ts`: se registran las rutas `GET /:viviendaId/gastos-recurrentes` y `POST /:viviendaId/gastos-recurrentes`.
-- `backend/src/cron/mensualidades.cron.ts`: se crea el cron diario de las 02:00 que busca mensualidades activas del dia y las transforma en registros normales de `Gasto`.
-- `backend/src/index.ts`: se inicializa el nuevo cron de mensualidades y se monta el router de gastos recurrentes.
-- `frontend/app/inquilino/(tabs)/gastos.tsx`: se anade la carga de mensualidades activas, una seccion visible de "Gastos Fijos / Mensualidades" y un modal para crear nuevas suscripciones.
-- `frontend/styles/inquilino/gastos.styles.ts`: se incorporan estilos para la nueva seccion, tarjetas de mensualidades y banner informativo del modal.
+- `backend/prisma/schema.prisma`: se mantiene el modelo `GastoRecurrente` como base del flujo de mensualidades ligado a `Vivienda` y `Usuario`.
+- `backend/src/services/gasto.service.ts`: la logica compartida de reparto ahora permite que el casero actue como pagador y acreedor de mensualidades sin requerir habitacion asignada, manteniendo el reparto solo entre inquilinos activos.
+- `backend/src/controllers/gasto-recurrente.controller.ts`: los endpoints de listar y crear gastos recurrentes pasan a estar restringidos al casero propietario de la vivienda.
+- `backend/src/routes/gasto-recurrente.routes.ts`: se conserva la exposicion de `GET /:viviendaId/gastos-recurrentes` y `POST /:viviendaId/gastos-recurrentes` con la nueva validacion de permisos.
+- `backend/src/cron/mensualidades.cron.ts`: el cron diario sigue transformando mensualidades activas en gastos normales reutilizando la logica comun de reparto.
+- `frontend/app/inquilino/(tabs)/gastos.tsx`: se elimina la carga, la lista y el modal de mensualidades para que el inquilino no pueda ver ni crear gastos recurrentes desde su tab.
+- `frontend/app/casero/vivienda/[id]/(tabs)/index.tsx`: el alta y la consulta de mensualidades se recolocan en el resumen de cada vivienda del casero para operar con el identificador de casa correcto.
+- `frontend/styles/inquilino/gastos.styles.ts`: se limpian los estilos huertanos asociados a la antigua seccion de mensualidades del inquilino.
 
 ## Resultado tecnico observable
 
-- El backend puede persistir suscripciones mensuales y convertirlas automaticamente en gastos repartidos entre inquilinos activos cuando coincide el dia del mes.
-- La app de inquilino puede consultar mensualidades activas y crear nuevas sin salir de la pestaña de gastos.
+- El backend puede generar mensualidades cuyo acreedor es el casero y repartir automaticamente la deuda entre los inquilinos activos cuando llega el dia configurado.
+- Los inquilinos dejan de tener acceso visual y funcional al flujo de mensualidades dentro de la app.
