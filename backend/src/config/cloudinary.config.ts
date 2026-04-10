@@ -20,30 +20,32 @@ if (cloudinaryEstaConfigurado) {
   });
 }
 
-const storage = cloudinaryEstaConfigurado
-  ? new CloudinaryStorage({
-      cloudinary,
-      params: async () => ({
-        folder: 'roomies-inventario',
-        allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-        resource_type: 'image',
-      }),
-    })
-  : multer.memoryStorage();
+const crearUploaderImagen = (folder: string) =>
+  multer({
+    storage: cloudinaryEstaConfigurado
+      ? new CloudinaryStorage({
+          cloudinary,
+          params: async () => ({
+            folder,
+            allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+            resource_type: 'image',
+          }),
+        })
+      : multer.memoryStorage(),
+    limits: {
+      fileSize: 8 * 1024 * 1024,
+    },
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.startsWith('image/')) {
+        cb(new Error('Solo se permiten archivos de imagen.'));
+        return;
+      }
 
-export const uploadInventarioFoto = multer({
-  storage,
-  limits: {
-    fileSize: 8 * 1024 * 1024,
-  },
-  fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      cb(new Error('Solo se permiten archivos de imagen.'));
-      return;
-    }
+      cb(null, true);
+    },
+  });
 
-    cb(null, true);
-  },
-});
+export const uploadInventarioFoto = crearUploaderImagen('roomies-inventario');
+export const uploadJustificanteFoto = crearUploaderImagen('roomies-justificantes');
 
 export { cloudinary };

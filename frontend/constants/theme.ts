@@ -8,6 +8,8 @@ export const Theme = {
     success:          '#06D6A0',  // Teal-verde vibrante
     successLight:     '#E8FBF5',
     successDisabled:  '#A3E8DA',
+    info:             '#4F8CFF',
+    infoLight:        '#EDF4FF',
     danger:           '#FF4757',
     dangerLight:      '#FFF0F2',
     warning:          '#FFA726',
