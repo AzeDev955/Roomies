@@ -1061,6 +1061,68 @@ Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos ac
 
 ---
 
+### PATCH `/viviendas/:viviendaId/gastos/:gastoId`
+
+Edita una factura mensual o gasto ya generado.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede editar facturas de la vivienda.
+- `concepto` y `fecha` pueden modificarse aunque existan pagos registrados.
+- `importe` solo puede modificarse si ninguna deuda hija esta `PAGADA`.
+- Cuando cambia `importe`, el backend recalcula el `importe` de cada `Deuda` hija repartiendo el nuevo total de forma equitativa.
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | No | Nuevo concepto, no puede quedar vacio |
+| `importe` | number | No | Nuevo importe total, mayor que `0` |
+| `fecha` | string | No | Fecha ISO para actualizar `fecha_creacion` |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Gasto actualizado con `pagador` y `deudas[]`. |
+| `400` | IDs invalidos, body vacio, campos invalidos o intento de cambiar `importe` con deudas `PAGADA`. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto no encontrado en esa vivienda. |
+
+---
+
+### POST `/viviendas/:viviendaId/gastos/:gastoId/factura`
+
+Sube o reemplaza la imagen de factura adjunta a un gasto.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Content-Type:** `multipart/form-data`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede subir la foto de la factura.
+- Requiere Cloudinary configurado en el servidor.
+- El archivo debe ser una imagen (`jpg`, `jpeg`, `png` o `webp`) en el campo `factura`.
+
+**Body multipart:**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `factura` | file | Si | Imagen de la factura |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Gasto actualizado con `factura_url`, `pagador` y `deudas[]`. |
+| `400` | IDs invalidos o falta el archivo `factura`. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto no encontrado en esa vivienda. |
+| `500` | Cloudinary no esta configurado o no devuelve URL de subida. |
+
+---
+
 ### GET `/viviendas/:viviendaId/deudas`
 
 Lista las deudas de la vivienda donde el usuario autenticado participa como deudor o acreedor.
@@ -1165,7 +1227,7 @@ Devuelve el dashboard financiero mensual del casero para una vivienda.
 **Comportamiento:**
 - Filtra deudas del mes actual donde el usuario autenticado es el acreedor.
 - Calcula `total_pagado_mes`, `total_pendiente` y `total_deudas`.
-- Devuelve detalle por deuda con `deudor`, `gasto` y `justificante_url`.
+- Devuelve detalle por deuda con `deudor`, `gasto` (`id`, `concepto`, `importe`, `factura_url`, `fecha_creacion`) y `justificante_url`.
 
 **Respuestas:**
 
@@ -1202,6 +1264,8 @@ Devuelve el dashboard financiero mensual del casero para una vivienda.
       "gasto": {
         "id": 8,
         "concepto": "Alquiler abril",
+        "importe": 930,
+        "factura_url": "https://res.cloudinary.com/.../roomies-facturas/factura-8.jpg",
         "fecha_creacion": "2026-04-01T00:00:00.000Z"
       },
       "deudor": {

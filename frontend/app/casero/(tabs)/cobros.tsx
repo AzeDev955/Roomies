@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { CustomButton } from '@/components/common/CustomButton';
+import { CustomInput } from '@/components/common/CustomInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { Theme } from '@/constants/theme';
 import api from '@/services/api';
@@ -29,6 +31,8 @@ type DeudaCobro = {
   gasto: {
     id: number;
     concepto: string;
+    importe: number;
+    factura_url: string | null;
     fecha_creacion: string;
   };
   deudor: {
@@ -53,6 +57,28 @@ type CobrosResponse = {
   deudas: DeudaCobro[];
 };
 
+type FacturaEmitida = {
+  id: number;
+  concepto: string;
+  importe: number;
+  factura_url: string | null;
+  fecha_creacion: string;
+  deudas: DeudaCobro[];
+};
+
+type GastoActualizadoResponse = {
+  id: number;
+  concepto: string;
+  importe: number;
+  factura_url: string | null;
+  fecha_creacion: string;
+  deudas: {
+    id: number;
+    importe: number;
+    estado: 'PENDIENTE' | 'PAGADA';
+  }[];
+};
+
 const formatearImporte = (importe: number) =>
   importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -66,6 +92,16 @@ const formatearFecha = (fechaIso: string) =>
 const obtenerIniciales = (nombre: string, apellidos: string | null) =>
   `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
 
+const recalcularResumenCobros = (deudas: DeudaCobro[]) => ({
+  total_pagado_mes: deudas
+    .filter((deuda) => deuda.estado === 'PAGADA')
+    .reduce((acumulado, deuda) => acumulado + deuda.importe, 0),
+  total_pendiente: deudas
+    .filter((deuda) => deuda.estado === 'PENDIENTE')
+    .reduce((acumulado, deuda) => acumulado + deuda.importe, 0),
+  total_deudas: deudas.length,
+});
+
 export default function CaseroCobrosScreen() {
   const router = useRouter();
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
@@ -74,6 +110,12 @@ export default function CaseroCobrosScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingCobros, setLoadingCobros] = useState(false);
   const [justificanteSeleccionado, setJustificanteSeleccionado] = useState<DeudaCobro | null>(null);
+  const [facturaEditando, setFacturaEditando] = useState<FacturaEmitida | null>(null);
+  const [facturaVisualizando, setFacturaVisualizando] = useState<FacturaEmitida | null>(null);
+  const [conceptoEditado, setConceptoEditado] = useState('');
+  const [importeEditado, setImporteEditado] = useState('');
+  const [guardandoFactura, setGuardandoFactura] = useState(false);
+  const [subiendoFactura, setSubiendoFactura] = useState(false);
 
   const deudasPendientes = useMemo(
     () => resumen?.deudas.filter((deuda) => deuda.estado === 'PENDIENTE') ?? [],
@@ -83,6 +125,37 @@ export default function CaseroCobrosScreen() {
     () => resumen?.deudas.filter((deuda) => deuda.estado === 'PAGADA') ?? [],
     [resumen],
   );
+  const facturasEmitidas = useMemo(() => {
+    if (!resumen) {
+      return [];
+    }
+
+    const facturas = new Map<number, FacturaEmitida>();
+
+    resumen.deudas.forEach((deuda) => {
+      const facturaExistente = facturas.get(deuda.gasto.id);
+
+      if (facturaExistente) {
+        facturaExistente.deudas.push(deuda);
+        return;
+      }
+
+      facturas.set(deuda.gasto.id, {
+        id: deuda.gasto.id,
+        concepto: deuda.gasto.concepto,
+        importe: deuda.gasto.importe,
+        factura_url: deuda.gasto.factura_url,
+        fecha_creacion: deuda.gasto.fecha_creacion,
+        deudas: [deuda],
+      });
+    });
+
+    return Array.from(facturas.values()).sort(
+      (a, b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime(),
+    );
+  }, [resumen]);
+
+  const facturaTienePagos = facturaEditando?.deudas.some((deuda) => deuda.estado === 'PAGADA') ?? false;
 
   const cargarCobros = useCallback(async (viviendaId: number) => {
     setLoadingCobros(true);
@@ -136,6 +209,175 @@ export default function CaseroCobrosScreen() {
   const cambiarVivienda = async (viviendaId: number) => {
     setViviendaSeleccionadaId(viviendaId);
     await cargarCobros(viviendaId);
+  };
+
+  const abrirEditorFactura = (factura: FacturaEmitida) => {
+    setFacturaEditando(factura);
+    setConceptoEditado(factura.concepto);
+    setImporteEditado(String(factura.importe).replace('.', ','));
+  };
+
+  const cerrarEditorFactura = () => {
+    if (guardandoFactura) {
+      return;
+    }
+
+    setFacturaEditando(null);
+    setConceptoEditado('');
+    setImporteEditado('');
+  };
+
+  const guardarFactura = async () => {
+    if (!facturaEditando || !viviendaSeleccionadaId) {
+      return;
+    }
+
+    const conceptoNormalizado = conceptoEditado.trim();
+    const importeNormalizado = Number(importeEditado.replace(',', '.'));
+
+    if (!conceptoNormalizado) {
+      Toast.show({ type: 'error', text1: 'El concepto no puede estar vacio.' });
+      return;
+    }
+
+    if (!facturaTienePagos && (!Number.isFinite(importeNormalizado) || importeNormalizado <= 0)) {
+      Toast.show({ type: 'error', text1: 'Introduce un importe valido mayor que 0.' });
+      return;
+    }
+
+    setGuardandoFactura(true);
+    try {
+      const payload: { concepto: string; importe?: number } = {
+        concepto: conceptoNormalizado,
+      };
+
+      if (!facturaTienePagos) {
+        payload.importe = importeNormalizado;
+      }
+
+      const { data } = await api.patch<GastoActualizadoResponse>(
+        `/viviendas/${viviendaSeleccionadaId}/gastos/${facturaEditando.id}`,
+        payload,
+      );
+
+      aplicarGastoEnCobros(data);
+
+      setFacturaEditando(null);
+      setConceptoEditado('');
+      setImporteEditado('');
+      Toast.show({ type: 'success', text1: 'Factura actualizada.' });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: error.response?.data?.error ?? 'No se pudo actualizar la factura.',
+      });
+    } finally {
+      setGuardandoFactura(false);
+    }
+  };
+
+  const aplicarGastoEnCobros = (gasto: GastoActualizadoResponse) => {
+    setResumen((resumenActual) => {
+      if (!resumenActual) {
+        return resumenActual;
+      }
+
+      const deudasActualizadas = resumenActual.deudas.map((deuda) => {
+        if (deuda.gasto.id !== gasto.id) {
+          return deuda;
+        }
+
+        const deudaActualizada = gasto.deudas.find((item) => item.id === deuda.id);
+
+        return {
+          ...deuda,
+          importe: deudaActualizada?.importe ?? deuda.importe,
+          estado: deudaActualizada?.estado ?? deuda.estado,
+          gasto: {
+            ...deuda.gasto,
+            concepto: gasto.concepto,
+            importe: gasto.importe,
+            factura_url: gasto.factura_url,
+            fecha_creacion: gasto.fecha_creacion,
+          },
+        };
+      });
+
+      return {
+        ...resumenActual,
+        resumen: recalcularResumenCobros(deudasActualizadas),
+        deudas: deudasActualizadas,
+      };
+    });
+  };
+
+  const subirFotoFactura = async () => {
+    if (!facturaEditando || !viviendaSeleccionadaId) {
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permiso.granted) {
+        Toast.show({
+          type: 'info',
+          text1: 'Permiso necesario',
+          text2: 'Necesitamos acceso a tu galeria para adjuntar la factura.',
+        });
+        return;
+      }
+    }
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.82,
+    });
+
+    if (resultado.canceled || !resultado.assets[0]) {
+      return;
+    }
+
+    const asset = resultado.assets[0];
+    const formData = new FormData();
+
+    if (Platform.OS === 'web' && asset.file) {
+      formData.append('factura', asset.file);
+    } else {
+      formData.append('factura', {
+        uri: asset.uri,
+        name: asset.fileName ?? `factura-${facturaEditando.id}.jpg`,
+        type: asset.mimeType ?? 'image/jpeg',
+      } as never);
+    }
+
+    setSubiendoFactura(true);
+    try {
+      const { data } = await api.post<GastoActualizadoResponse>(
+        `/viviendas/${viviendaSeleccionadaId}/gastos/${facturaEditando.id}/factura`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      );
+
+      aplicarGastoEnCobros(data);
+      setFacturaEditando((facturaActual) =>
+        facturaActual
+          ? {
+              ...facturaActual,
+              factura_url: data.factura_url,
+            }
+          : facturaActual,
+      );
+      Toast.show({ type: 'success', text1: 'Foto de factura subida.' });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: error.response?.data?.error ?? 'No se pudo subir la foto de la factura.',
+      });
+    } finally {
+      setSubiendoFactura(false);
+    }
   };
 
   if (loading) {
@@ -235,6 +477,40 @@ export default function CaseroCobrosScreen() {
           </View>
         )}
 
+        {resumen && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Facturas emitidas</Text>
+              <Text style={styles.sectionSubtitle}>
+                Ajusta el concepto o el importe de los recibos mensuales generados.
+              </Text>
+            </View>
+
+            {facturasEmitidas.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <View style={styles.emptyIconBox}>
+                  <Ionicons name="receipt-outline" size={40} color={Theme.colors.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>Sin facturas emitidas</Text>
+                <Text style={styles.emptySubtitle}>
+                  Las mensualidades generadas apareceran aqui para poder revisarlas.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.invoiceList}>
+                {facturasEmitidas.map((factura) => (
+                  <FacturaCard
+                    key={factura.id}
+                    factura={factura}
+                    onEditar={abrirEditorFactura}
+                    onVerFactura={setFacturaVisualizando}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Pendientes de cobro</Text>
@@ -331,6 +607,200 @@ export default function CaseroCobrosScreen() {
         </View>
       </Modal>
 
+      <Modal
+        visible={!!facturaEditando}
+        transparent
+        animationType="slide"
+        onRequestClose={cerrarEditorFactura}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={{ flex: 1 }} onPress={cerrarEditorFactura} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Editar factura</Text>
+            <Text style={styles.modalSubtitle}>
+              Actualiza los datos del recibo y se reflejara en los cobros abiertos.
+            </Text>
+
+            {facturaTienePagos && (
+              <View style={styles.warningBanner}>
+                <Ionicons name="alert-circle-outline" size={18} color={Theme.colors.warning} />
+                <Text style={styles.warningBannerText}>
+                  El importe no puede modificarse porque ya existen pagos parciales. Cancela los cobros primero.
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.editForm}>
+              <CustomInput
+                label="Concepto"
+                value={conceptoEditado}
+                onChangeText={setConceptoEditado}
+                placeholder="Mensualidad abril"
+                autoCapitalize="sentences"
+              />
+              <CustomInput
+                label="Importe"
+                value={importeEditado}
+                onChangeText={setImporteEditado}
+                placeholder="850"
+                keyboardType="decimal-pad"
+                editable={!facturaTienePagos}
+              />
+            </View>
+
+            <View style={styles.invoicePhotoBlock}>
+              <View style={styles.invoicePhotoHeader}>
+                <View style={styles.invoicePhotoIcon}>
+                  <Ionicons name="image-outline" size={18} color={Theme.colors.info} />
+                </View>
+                <View style={styles.invoicePhotoCopy}>
+                  <Text style={styles.invoicePhotoTitle}>Foto de la factura</Text>
+                  <Text style={styles.invoicePhotoSubtitle}>
+                    {facturaEditando?.factura_url
+                      ? 'Factura adjunta disponible.'
+                      : 'Adjunta una imagen para conservar el recibo original.'}
+                  </Text>
+                </View>
+              </View>
+
+              {facturaEditando?.factura_url && (
+                <Pressable
+                  style={styles.invoicePhotoPreview}
+                  onPress={() => setFacturaVisualizando(facturaEditando)}
+                >
+                  <Image
+                    source={{ uri: facturaEditando.factura_url }}
+                    contentFit="cover"
+                    style={styles.invoicePhotoImage}
+                  />
+                </Pressable>
+              )}
+
+              <CustomButton
+                label={
+                  subiendoFactura
+                    ? 'Subiendo...'
+                    : facturaEditando?.factura_url
+                      ? 'Reemplazar foto'
+                      : 'Subir foto'
+                }
+                variant="outline"
+                onPress={subirFotoFactura}
+                disabled={subiendoFactura}
+              />
+            </View>
+
+            <View style={styles.modalActions}>
+              <CustomButton
+                label="Cancelar"
+                variant="secondary"
+                onPress={cerrarEditorFactura}
+                disabled={guardandoFactura}
+                style={styles.modalAction}
+              />
+              <CustomButton
+                label={guardandoFactura ? 'Guardando...' : 'Guardar'}
+                onPress={guardarFactura}
+                disabled={guardandoFactura}
+                style={styles.modalAction}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!facturaVisualizando}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFacturaVisualizando(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={{ flex: 1 }} onPress={() => setFacturaVisualizando(null)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Factura adjunta</Text>
+            <Text style={styles.modalSubtitle}>
+              {facturaVisualizando?.concepto ?? ''}
+            </Text>
+
+            {facturaVisualizando?.factura_url && (
+              <View style={styles.modalImageWrap}>
+                <Image
+                  source={{ uri: facturaVisualizando.factura_url }}
+                  contentFit="contain"
+                  style={styles.modalImage}
+                />
+              </View>
+            )}
+
+            <View style={styles.modalActions}>
+              <CustomButton
+                label="Cerrar"
+                variant="secondary"
+                onPress={() => setFacturaVisualizando(null)}
+                style={styles.modalAction}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+    </View>
+  );
+}
+
+function FacturaCard({
+  factura,
+  onEditar,
+  onVerFactura,
+}: {
+  factura: FacturaEmitida;
+  onEditar: (factura: FacturaEmitida) => void;
+  onVerFactura: (factura: FacturaEmitida) => void;
+}) {
+  const pagosRegistrados = factura.deudas.some((deuda) => deuda.estado === 'PAGADA');
+  const pendientes = factura.deudas.filter((deuda) => deuda.estado === 'PENDIENTE').length;
+
+  return (
+    <View style={styles.invoiceCard}>
+      <View style={styles.invoiceHeader}>
+        <View style={styles.invoiceIcon}>
+          <Ionicons name="receipt-outline" size={22} color={Theme.colors.primary} />
+        </View>
+        <View style={styles.invoiceBody}>
+          <Text style={styles.invoiceConcept} numberOfLines={2}>
+            {factura.concepto}
+          </Text>
+          <Text style={styles.invoiceMeta}>
+            {formatearFecha(factura.fecha_creacion)} - {factura.deudas.length} cobros
+          </Text>
+        </View>
+        <Pressable
+          style={styles.invoiceEditButton}
+          onPress={() => onEditar(factura)}
+          accessibilityRole="button"
+          accessibilityLabel={`Editar factura ${factura.concepto}`}
+        >
+          <Ionicons name="create-outline" size={18} color={Theme.colors.primary} />
+          <Text style={styles.invoiceEditText}>Editar</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.invoiceFooter}>
+        <Text style={styles.invoiceAmount}>{formatearImporte(factura.importe)}</Text>
+        <Text style={styles.invoiceStatus}>
+          {pagosRegistrados ? 'Con pagos registrados' : `${pendientes} pendientes`}
+        </Text>
+      </View>
+
+      {factura.factura_url && (
+        <Pressable style={styles.receiptLink} onPress={() => onVerFactura(factura)}>
+          <Ionicons name="image-outline" size={15} color={Theme.colors.info} />
+          <Text style={styles.receiptLinkText}>Ver factura</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
