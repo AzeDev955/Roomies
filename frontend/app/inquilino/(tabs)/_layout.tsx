@@ -1,8 +1,50 @@
-import { Tabs } from "expo-router";
+import { useCallback, useState } from "react";
+import { Tabs, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Theme } from "@/constants/theme";
+import api from "@/services/api";
+
+type ViviendaModulos = {
+  mod_limpieza: boolean;
+  mod_gastos: boolean;
+  mod_inventario: boolean;
+};
 
 export default function InquilinoTabsLayout() {
+  const [modulos, setModulos] = useState({
+    limpieza: false,
+    gastos: false,
+    inventario: false,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
+
+      const cargarModulos = async () => {
+        try {
+          const { data } = await api.get<{ vivienda: ViviendaModulos }>("/inquilino/vivienda");
+          if (!activo) return;
+
+          setModulos({
+            limpieza: data.vivienda.mod_limpieza,
+            gastos: data.vivienda.mod_gastos,
+            inventario: data.vivienda.mod_inventario,
+          });
+        } catch {
+          if (activo) {
+            setModulos({ limpieza: false, gastos: false, inventario: false });
+          }
+        }
+      };
+
+      cargarModulos();
+      return () => {
+        activo = false;
+      };
+    }, []),
+  );
+
   return (
     <Tabs
       screenOptions={{
@@ -46,6 +88,7 @@ export default function InquilinoTabsLayout() {
         name="limpieza"
         options={{
           title: "Limpieza",
+          href: modulos.limpieza ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
           ),
@@ -55,6 +98,7 @@ export default function InquilinoTabsLayout() {
         name="gastos"
         options={{
           title: "Gastos",
+          href: modulos.gastos ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet-outline" size={size} color={color} />
           ),
@@ -64,6 +108,7 @@ export default function InquilinoTabsLayout() {
         name="inventario"
         options={{
           title: "Inventario",
+          href: modulos.inventario ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="images-outline" size={size} color={color} />
           ),
