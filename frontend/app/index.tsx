@@ -1,6 +1,6 @@
 import { View, Text, Pressable } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
@@ -36,21 +36,12 @@ export default function LoginScreen() {
     scopes: ['openid', 'email', 'profile'],
   });
 
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const idToken =
-        googleResponse.authentication?.idToken ??
-        (googleResponse.params as Record<string, string>)?.['id_token'];
-      if (idToken) handleGoogleLogin(idToken);
-    }
-  }, [googleResponse]);
-
-  const irAlDashboard = (rol: string) => {
+  const irAlDashboard = useCallback((rol: string) => {
     const destino = rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
     router.replace(destino);
-  };
+  }, [router]);
 
-  const handleGoogleLogin = async (idToken: string) => {
+  const handleGoogleLogin = useCallback(async (idToken: string) => {
     setLoading(true);
     try {
       const { data } = await api.post<{ token: string; usuario: { rol: string }; esNuevo: boolean }>(
@@ -58,7 +49,7 @@ export default function LoginScreen() {
         { idToken }
       );
       await guardarToken(data.token);
-      syncPushToken();
+      void syncPushToken();
       if (data.esNuevo) {
         router.replace('/rol');
       } else {
@@ -69,7 +60,16 @@ export default function LoginScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [irAlDashboard, router]);
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const idToken =
+        googleResponse.authentication?.idToken ??
+        (googleResponse.params as Record<string, string>)?.['id_token'];
+      if (idToken) void handleGoogleLogin(idToken);
+    }
+  }, [googleResponse, handleGoogleLogin]);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -79,7 +79,7 @@ export default function LoginScreen() {
         { email, password }
       );
       await guardarToken(data.token);
-      syncPushToken();
+      void syncPushToken();
       irAlDashboard(data.usuario.rol);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'Credenciales inválidas o sin conexión al servidor.';

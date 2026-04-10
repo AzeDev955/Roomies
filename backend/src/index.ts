@@ -14,6 +14,7 @@ import userRoutes from './routes/user.routes';
 import inventarioRoutes from './routes/inventario.routes';
 import './services/cron.service';
 import { iniciarCronMensualidades } from './cron/mensualidades.cron';
+import { iniciarCronRecordatoriosMorosos } from './cron/recordatorios.cron';
 
 const app = express();
 const PORT = 3000;
@@ -35,9 +36,11 @@ app.use('/api/viviendas', gastoRoutes);
 app.use('/api/viviendas', gastoRecurrenteRoutes);
 app.use('/api', deudaRoutes);
 app.use('/api', inventarioRoutes);
+app.use('/api/usuarios', userRoutes);
 app.use('/api/users', userRoutes);
 
 iniciarCronMensualidades();
+iniciarCronRecordatoriosMorosos();
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

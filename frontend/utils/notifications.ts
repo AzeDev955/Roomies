@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from '@/services/api';
+import { obtenerToken } from '@/services/auth.service';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -39,7 +40,9 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   }
 
   const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ?? 'e4004191-4922-49cd-9f17-6cacd52578d1';
+    Constants.easConfig?.projectId ??
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    'e4004191-4922-49cd-9f17-6cacd52578d1';
 
   let token: Awaited<ReturnType<typeof Notifications.getExpoPushTokenAsync>>;
   try {
@@ -62,9 +65,15 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
 export async function syncPushToken(): Promise<void> {
   try {
+    const authToken = await obtenerToken();
+
+    if (!authToken) {
+      return;
+    }
+
     const token = await registerForPushNotificationsAsync();
     if (token) {
-      await api.put('/users/push-token', { token });
+      await api.patch('/usuarios/me/push-token', { token });
     }
   } catch (err) {
     console.warn('[push] No se pudo sincronizar el push token:', err);
