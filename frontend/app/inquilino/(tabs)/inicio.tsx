@@ -7,7 +7,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { Card } from '@/components/common/Card';
-import { styles, COLORES_PRIORIDAD, ETIQUETAS_ESTADO, ETIQUETAS_TIPO } from '@/styles/inquilino/inicio.styles';
+import { styles, ETIQUETAS_ESTADO } from '@/styles/inquilino/inicio.styles';
 
 // ── Helpers UI ────────────────────────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ type HabitacionResumen = {
   id: number;
   nombre: string;
   tipo: string;
+  precio: number | null;
   inquilino: InquilinoResumen | null;
 };
 
@@ -280,6 +281,10 @@ export default function InquilinoInicioScreen() {
 
   const miNombre = (datosCasa?.habitaciones ?? [])
     .find((h) => h.id === datosCasa?.miHabitacionId)?.inquilino?.nombre ?? '';
+  const miHabitacion = (datosCasa?.habitaciones ?? []).find((h) => h.id === datosCasa?.miHabitacionId);
+
+  const formatearPrecio = (precio: number) =>
+    precio.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
   const irAReportarIncidencia = () =>
     router.push({
@@ -356,6 +361,13 @@ export default function InquilinoInicioScreen() {
             <View style={styles.greetingViviendaPill}>
               <Ionicons name="home-outline" size={12} color={Theme.colors.primary} />
               <Text style={styles.greetingViviendaPillTexto}>{datosCasa.nombreVivienda}</Text>
+            </View>
+          )}
+          {miHabitacion?.precio !== null && miHabitacion?.precio !== undefined && (
+            <View style={styles.precioHabitacionPill}>
+              <Ionicons name="card-outline" size={14} color={Theme.colors.success} />
+              <Text style={styles.precioHabitacionLabel}>Precio mensual</Text>
+              <Text style={styles.precioHabitacionValor}>{formatearPrecio(miHabitacion.precio)}</Text>
             </View>
           )}
         </View>

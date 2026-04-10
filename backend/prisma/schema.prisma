@@ -113,6 +113,7 @@ model Habitacion {
   tipo              TipoHabitacion   @default(DORMITORIO)
   es_habitable      Boolean          @default(true)
   metros_cuadrados  Float?
+  precio            Float?
   codigo_invitacion String?          @unique
   incidencias       Incidencia[]
   items_inventario  ItemInventario[]

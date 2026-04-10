@@ -47,6 +47,7 @@ type Habitacion = {
   tipo: string;
   es_habitable: boolean;
   metros_cuadrados: number | null;
+  precio: number | null;
   codigo_invitacion: string | null;
   inquilino: Inquilino | null;
   incidencias: IncidenciaResumen[];
@@ -283,6 +284,7 @@ export default function ResumenViviendaTab() {
         tipo: hab.tipo,
         esHabitable: String(hab.es_habitable),
         metrosCuadrados: String(hab.metros_cuadrados ?? ''),
+        precio: String(hab.precio ?? ''),
         inquilinoId: String(hab.inquilino?.id ?? ''),
       },
     });
@@ -564,6 +566,13 @@ export default function ResumenViviendaTab() {
                   <Text style={styles.sinInquilino}>Vacía</Text>
                 ) : null}
               </View>
+
+              {habitacion.es_habitable && habitacion.precio !== null ? (
+                <View style={styles.habPrecioRow}>
+                  <Text style={styles.habPrecioLabel}>Precio mensual</Text>
+                  <Text style={styles.habPrecioValor}>{formatearImporte(habitacion.precio)}</Text>
+                </View>
+              ) : null}
 
               {habitacion.tipo === 'DORMITORIO' &&
               habitacion.es_habitable &&

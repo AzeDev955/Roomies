@@ -36,6 +36,7 @@ type HabitacionLocal = {
   tipo: TipoHabitacion;
   esHabitable: boolean;
   metrosCuadrados: string;
+  precio: string;
 };
 
 export default function NuevaViviendaScreen() {
@@ -60,6 +61,7 @@ export default function NuevaViviendaScreen() {
   const [habTipo, setHabTipo] = useState<TipoHabitacion>('DORMITORIO');
   const [habEsHabitable, setHabEsHabitable] = useState(true);
   const [habMetros, setHabMetros] = useState('');
+  const [habPrecio, setHabPrecio] = useState('');
 
   const puedeGuardar = aliasNombre.trim() && direccion.trim() && codigoPostal.trim() && ciudad.trim() && provincia.trim();
 
@@ -114,12 +116,14 @@ export default function NuevaViviendaScreen() {
         tipo: habTipo,
         esHabitable: habTipo === 'DORMITORIO' ? habEsHabitable : false,
         metrosCuadrados: habMetros,
+        precio: habTipo === 'DORMITORIO' && habEsHabitable ? habPrecio : '',
       },
     ]);
     setHabNombre('');
     setHabTipo('DORMITORIO');
     setHabEsHabitable(true);
     setHabMetros('');
+    setHabPrecio('');
   };
 
   const eliminarHabitacionLocal = (index: number) => {
@@ -141,6 +145,7 @@ export default function NuevaViviendaScreen() {
           tipo: h.tipo,
           es_habitable: h.esHabitable,
           metros_cuadrados: h.metrosCuadrados ? parseFloat(h.metrosCuadrados) : undefined,
+          precio: h.esHabitable && h.precio ? parseFloat(h.precio.replace(',', '.')) : null,
         })),
       });
       router.replace('/casero/viviendas');
@@ -297,6 +302,20 @@ export default function NuevaViviendaScreen() {
           </>
         )}
 
+        {habTipo === 'DORMITORIO' && habEsHabitable && (
+          <>
+            <Text style={styles.label}>Precio mensual (€)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 450"
+              placeholderTextColor={Theme.colors.textMuted}
+              value={habPrecio}
+              onChangeText={setHabPrecio}
+              keyboardType="decimal-pad"
+            />
+          </>
+        )}
+
         <Text style={styles.label}>Metros cuadrados (opcional)</Text>
         <TextInput
           style={styles.input}
@@ -319,7 +338,10 @@ export default function NuevaViviendaScreen() {
           <View key={i} style={styles.habitacionItem}>
             <View style={styles.habitacionItemWrapper}>
               <Text style={styles.habitacionItemTexto}>{h.nombre}</Text>
-              <Text style={styles.habitacionItemBadgeTexto}>{ETIQUETAS_TIPO[h.tipo]}{h.esHabitable ? ' · habitable' : ''}</Text>
+              <Text style={styles.habitacionItemBadgeTexto}>
+                {ETIQUETAS_TIPO[h.tipo]}{h.esHabitable ? ' · habitable' : ''}
+                {h.esHabitable && h.precio ? ` · ${h.precio} €` : ''}
+              </Text>
             </View>
             <Pressable style={styles.habitacionItemEliminar} onPress={() => eliminarHabitacionLocal(i)}>
               <Text style={styles.habitacionItemEliminarTexto}>×</Text>
