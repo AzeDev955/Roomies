@@ -1,6 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
-import { usuarioPerteneceAVivienda } from '../services/gasto.service';
+import { usuarioEsCaseroDeVivienda } from '../services/gasto.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -21,9 +21,9 @@ export const listarGastosRecurrentes: express.RequestHandler = async (req, res) 
     return;
   }
 
-  const pertenece = await usuarioPerteneceAVivienda(viviendaId, usuarioId);
-  if (!pertenece) {
-    res.status(403).json({ error: 'No perteneces a esta vivienda.' });
+  const esCasero = await usuarioEsCaseroDeVivienda(viviendaId, usuarioId);
+  if (!esCasero) {
+    res.status(403).json({ error: 'Solo el casero puede ver los gastos fijos de esta vivienda.' });
     return;
   }
 
@@ -62,9 +62,9 @@ export const crearGastoRecurrente: express.RequestHandler = async (req, res) => 
     return;
   }
 
-  const pertenece = await usuarioPerteneceAVivienda(viviendaId, pagadorId);
-  if (!pertenece) {
-    res.status(403).json({ error: 'No perteneces a esta vivienda.' });
+  const esCasero = await usuarioEsCaseroDeVivienda(viviendaId, pagadorId);
+  if (!esCasero) {
+    res.status(403).json({ error: 'Solo el casero puede crear gastos fijos en esta vivienda.' });
     return;
   }
 

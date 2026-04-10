@@ -15,6 +15,13 @@ export const usuarioPerteneceAVivienda = async (viviendaId: number, usuarioId: n
   });
 };
 
+export const usuarioEsCaseroDeVivienda = async (viviendaId: number, usuarioId: number) => {
+  return prisma.vivienda.findFirst({
+    where: { id: viviendaId, casero_id: usuarioId },
+    select: { id: true, casero_id: true },
+  });
+};
+
 export const obtenerInquilinosActivosIds = async (viviendaId: number) => {
   const habitaciones = await prisma.habitacion.findMany({
     where: {
@@ -38,6 +45,15 @@ export const crearGastoDividido = async ({
   pagadorId,
   implicadosIds,
 }: CrearGastoDivididoInput) => {
+  const vivienda = await prisma.vivienda.findUnique({
+    where: { id: viviendaId },
+    select: { casero_id: true },
+  });
+
+  if (!vivienda) {
+    throw new Error('La vivienda indicada no existe.');
+  }
+
   const inquilinosActivosIds = await obtenerInquilinosActivosIds(viviendaId);
   const inquilinosActivosSet = new Set(inquilinosActivosIds);
   const implicadosNormalizados = Array.isArray(implicadosIds)
@@ -51,8 +67,11 @@ export const crearGastoDividido = async ({
     }
   }
 
-  if (!inquilinosActivosSet.has(pagadorId)) {
-    throw new Error('El pagador debe pertenecer a la vivienda como inquilino activo.');
+  const pagadorEsInquilinoActivo = inquilinosActivosSet.has(pagadorId);
+  const pagadorEsCasero = vivienda.casero_id === pagadorId;
+
+  if (!pagadorEsInquilinoActivo && !pagadorEsCasero) {
+    throw new Error('El pagador debe ser el casero o un inquilino activo de la vivienda.');
   }
 
   const participantesIds =
