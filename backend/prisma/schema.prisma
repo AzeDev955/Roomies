@@ -150,6 +150,7 @@ model Gasto {
   id             Int      @id @default(autoincrement())
   concepto       String
   importe        Float
+  factura_url    String?
   fecha_creacion DateTime @default(now())
   pagador_id     Int
   pagador        Usuario  @relation(fields: [pagador_id], references: [id])

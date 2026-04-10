@@ -1,6 +1,10 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
-import { crearGastoDividido, usuarioPerteneceAVivienda } from '../services/gasto.service';
+import {
+  crearGastoDividido,
+  usuarioEsCaseroDeVivienda,
+  usuarioPerteneceAVivienda,
+} from '../services/gasto.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -12,6 +16,53 @@ const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   return parseInt(normalizado, 10);
 };
 
+const normalizarNumero = (valor: unknown) => {
+  if (typeof valor === 'number') {
+    return valor;
+  }
+
+  if (typeof valor === 'string') {
+    return parseFloat(valor.replace(',', '.'));
+  }
+
+  return NaN;
+};
+
+const normalizarRepartoManual = (valor: unknown) => {
+  if (valor == null || valor === '') {
+    return undefined;
+  }
+
+  const reparto = typeof valor === 'string' ? JSON.parse(valor) : valor;
+
+  if (!Array.isArray(reparto)) {
+    throw new Error('repartoManual debe ser un array.');
+  }
+
+  return reparto.map((linea) => ({
+    usuario_id: normalizarNumero(linea.usuario_id),
+    importe: normalizarNumero(linea.importe),
+  }));
+};
+
+const obtenerUrlArchivo = (file: Express.Multer.File | undefined) => {
+  if (!file) {
+    return null;
+  }
+
+  const posibleCloudinary = file as Express.Multer.File & { path?: string; secure_url?: string };
+  return posibleCloudinary.path ?? posibleCloudinary.secure_url ?? null;
+};
+
+const usuarioPuedeAccederAVivienda = async (viviendaId: number, usuarioId: number) => {
+  const [habitacion, vivienda] = await Promise.all([
+    usuarioPerteneceAVivienda(viviendaId, usuarioId),
+    usuarioEsCaseroDeVivienda(viviendaId, usuarioId),
+  ]);
+
+  return Boolean(habitacion || vivienda);
+};
+
 export const listarGastos: express.RequestHandler = async (req, res) => {
   const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const usuarioId = req.usuario!.id;
@@ -21,7 +72,7 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const pertenece = await usuarioPerteneceAVivienda(viviendaId, usuarioId);
+  const pertenece = await usuarioPuedeAccederAVivienda(viviendaId, usuarioId);
 
   if (!pertenece) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -49,7 +100,7 @@ export const listarDeudas: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const pertenece = await usuarioPerteneceAVivienda(viviendaId, usuarioId);
+  const pertenece = await usuarioPuedeAccederAVivienda(viviendaId, usuarioId);
 
   if (!pertenece) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -64,7 +115,7 @@ export const listarDeudas: express.RequestHandler = async (req, res) => {
     include: {
       deudor:   { select: { id: true, nombre: true, apellidos: true } },
       acreedor: { select: { id: true, nombre: true, apellidos: true } },
-      gasto:    { select: { concepto: true } },
+      gasto:    { select: { concepto: true, factura_url: true } },
     },
     orderBy: { id: 'desc' },
   });
@@ -87,7 +138,7 @@ export const saldarDeuda: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const pertenece = await usuarioPerteneceAVivienda(viviendaId, usuarioId);
+  const pertenece = await usuarioPuedeAccederAVivienda(viviendaId, usuarioId);
 
   if (!pertenece) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -130,14 +181,38 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const { concepto, importe, implicadosIds } = req.body as {
+  const { concepto, importe, implicadosIds, fecha } = req.body as {
     concepto: string;
-    importe: number;
+    importe: number | string;
     implicadosIds?: number[];
+    fecha?: string;
   };
+  const importeNormalizado = normalizarNumero(importe);
 
-  if (!concepto || importe == null || importe <= 0) {
+  if (!concepto || importe == null || !Number.isFinite(importeNormalizado) || importeNormalizado <= 0) {
     res.status(400).json({ error: 'concepto e importe (> 0) son obligatorios.' });
+    return;
+  }
+
+  let repartoManual: { usuario_id: number; importe: number }[] | undefined;
+  try {
+    repartoManual = normalizarRepartoManual(req.body.repartoManual);
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : 'repartoManual no es valido.';
+    res.status(400).json({ error: mensaje });
+    return;
+  }
+
+  if (
+    repartoManual &&
+    repartoManual.some(
+      (linea) =>
+        !Number.isInteger(linea.usuario_id) ||
+        linea.usuario_id <= 0 ||
+        !Number.isFinite(linea.importe),
+    )
+  ) {
+    res.status(400).json({ error: 'repartoManual debe incluir usuario_id numerico e importe valido.' });
     return;
   }
 
@@ -149,8 +224,14 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
+  const fechaGasto = fecha ? new Date(fecha) : undefined;
+  if (fecha && Number.isNaN(fechaGasto?.getTime())) {
+    res.status(400).json({ error: 'fecha debe ser una fecha valida.' });
+    return;
+  }
+
   // Verificar que el pagador pertenece a la vivienda (es inquilino de alguna habitación)
-  const habitacionPagador = await usuarioPerteneceAVivienda(viviendaId, pagadorId);
+  const habitacionPagador = await usuarioPuedeAccederAVivienda(viviendaId, pagadorId);
 
   if (!habitacionPagador) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -158,12 +239,22 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
   }
 
   try {
+    const facturaUrl = obtenerUrlArchivo(req.file);
+
+    if (req.file && !facturaUrl) {
+      res.status(500).json({ error: 'No se pudo obtener la URL de la factura subida.' });
+      return;
+    }
+
     const gasto = await crearGastoDividido({
       concepto,
-      importe,
+      importe: importeNormalizado,
       viviendaId,
       pagadorId,
       implicadosIds,
+      repartoManual,
+      facturaUrl,
+      fecha: fechaGasto,
     });
 
     res.status(201).json(gasto);
