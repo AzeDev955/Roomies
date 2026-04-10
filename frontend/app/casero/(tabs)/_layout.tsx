@@ -34,6 +34,15 @@ export default function CaseroTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="cobros"
+        options={{
+          title: 'Cobros',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="inventario"
         options={{
           title: 'Inventario',
