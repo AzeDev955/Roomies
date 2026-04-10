@@ -6,6 +6,12 @@ type CrearGastoDivididoInput = {
   viviendaId: number;
   pagadorId: number;
   implicadosIds?: number[];
+  facturaUrl?: string | null;
+  fecha?: Date;
+  repartoManual?: {
+    usuario_id: number;
+    importe: number;
+  }[];
 };
 
 export const usuarioPerteneceAVivienda = async (viviendaId: number, usuarioId: number) => {
@@ -44,6 +50,9 @@ export const crearGastoDividido = async ({
   viviendaId,
   pagadorId,
   implicadosIds,
+  facturaUrl,
+  fecha,
+  repartoManual,
 }: CrearGastoDivididoInput) => {
   const vivienda = await prisma.vivienda.findUnique({
     where: { id: viviendaId },
@@ -74,6 +83,59 @@ export const crearGastoDividido = async ({
     throw new Error('El pagador debe ser el casero o un inquilino activo de la vivienda.');
   }
 
+  if (repartoManual && repartoManual.length > 0) {
+    const usuariosReparto = repartoManual.map((linea) => linea.usuario_id);
+    const usuariosUnicos = new Set(usuariosReparto);
+
+    if (usuariosUnicos.size !== usuariosReparto.length) {
+      throw new Error('repartoManual no puede contener inquilinos duplicados.');
+    }
+
+    const hayUsuariosInvalidos = usuariosReparto.some((id) => !inquilinosActivosSet.has(id));
+    if (hayUsuariosInvalidos) {
+      throw new Error('Todos los usuarios de repartoManual deben ser inquilinos activos de la vivienda.');
+    }
+
+    const hayImportesInvalidos = repartoManual.some((linea) => linea.importe <= 0);
+    if (hayImportesInvalidos) {
+      throw new Error('Todos los importes de repartoManual deben ser mayores que 0.');
+    }
+
+    const totalCentimos = Math.round(importe * 100);
+    const sumaCentimos = repartoManual.reduce(
+      (total, linea) => total + Math.round(linea.importe * 100),
+      0,
+    );
+
+    if (sumaCentimos !== totalCentimos) {
+      const descuadre = (sumaCentimos - totalCentimos) / 100;
+      throw new Error(
+        `El reparto manual suma ${(sumaCentimos / 100).toFixed(2)} EUR y el gasto total es ${(totalCentimos / 100).toFixed(2)} EUR. Descuadre: ${descuadre.toFixed(2)} EUR.`,
+      );
+    }
+
+    return prisma.gasto.create({
+      data: {
+        concepto,
+        importe,
+        factura_url: facturaUrl ?? null,
+        fecha_creacion: fecha,
+        pagador_id: pagadorId,
+        vivienda_id: viviendaId,
+        deudas: {
+          create: repartoManual
+            .filter((linea) => linea.usuario_id !== pagadorId)
+            .map((linea) => ({
+              deudor_id: linea.usuario_id,
+              acreedor_id: pagadorId,
+              importe: parseFloat(linea.importe.toFixed(2)),
+            })),
+        },
+      },
+      include: { deudas: true },
+    });
+  }
+
   const participantesIds =
     implicadosNormalizados.length > 0 ? implicadosNormalizados : inquilinosActivosIds;
 
@@ -88,6 +150,8 @@ export const crearGastoDividido = async ({
     data: {
       concepto,
       importe,
+      factura_url: facturaUrl ?? null,
+      fecha_creacion: fecha,
       pagador_id: pagadorId,
       vivienda_id: viviendaId,
       deudas: {

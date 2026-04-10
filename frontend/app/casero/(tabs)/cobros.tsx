@@ -1,6 +1,18 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -21,6 +33,27 @@ type Vivienda = {
   id: number;
   alias_nombre: string;
   direccion: string;
+};
+
+type InquilinoActivo = {
+  id: number;
+  nombre: string;
+  apellidos: string | null;
+  avatar: string | null;
+};
+
+type ViviendaDetalle = Vivienda & {
+  habitaciones: {
+    id: number;
+    tipo: string;
+    es_habitable: boolean;
+    inquilino: {
+      id: number;
+      nombre: string;
+      apellidos: string | null;
+      email?: string;
+    } | null;
+  }[];
 };
 
 type DeudaCobro = {
@@ -92,6 +125,13 @@ const formatearFecha = (fechaIso: string) =>
 const obtenerIniciales = (nombre: string, apellidos: string | null) =>
   `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
 
+const parsearImporte = (valor: string) => {
+  const numero = parseFloat(valor.replace(',', '.'));
+  return Number.isFinite(numero) ? numero : 0;
+};
+
+const aCentimos = (importe: number) => Math.round(importe * 100);
+
 const recalcularResumenCobros = (deudas: DeudaCobro[]) => ({
   total_pagado_mes: deudas
     .filter((deuda) => deuda.estado === 'PAGADA')
@@ -116,6 +156,15 @@ export default function CaseroCobrosScreen() {
   const [importeEditado, setImporteEditado] = useState('');
   const [guardandoFactura, setGuardandoFactura] = useState(false);
   const [subiendoFactura, setSubiendoFactura] = useState(false);
+  const [inquilinosActivos, setInquilinosActivos] = useState<InquilinoActivo[]>([]);
+  const [modalFacturaPuntualVisible, setModalFacturaPuntualVisible] = useState(false);
+  const [conceptoFacturaPuntual, setConceptoFacturaPuntual] = useState('');
+  const [fechaFacturaPuntual, setFechaFacturaPuntual] = useState(new Date().toISOString().slice(0, 10));
+  const [importeFacturaPuntual, setImporteFacturaPuntual] = useState('');
+  const [repartoFacturaPuntual, setRepartoFacturaPuntual] = useState<Record<number, string>>({});
+  const [facturaAdjuntaPuntual, setFacturaAdjuntaPuntual] =
+    useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [guardandoFacturaPuntual, setGuardandoFacturaPuntual] = useState(false);
 
   const deudasPendientes = useMemo(
     () => resumen?.deudas.filter((deuda) => deuda.estado === 'PENDIENTE') ?? [],
@@ -125,6 +174,27 @@ export default function CaseroCobrosScreen() {
     () => resumen?.deudas.filter((deuda) => deuda.estado === 'PAGADA') ?? [],
     [resumen],
   );
+  const importeFacturaPuntualNumero = useMemo(
+    () => parsearImporte(importeFacturaPuntual),
+    [importeFacturaPuntual],
+  );
+  const totalAsignadoFacturaPuntual = useMemo(
+    () =>
+      Object.values(repartoFacturaPuntual).reduce(
+        (total, valor) => total + parsearImporte(valor),
+        0,
+      ),
+    [repartoFacturaPuntual],
+  );
+  const repartoPuntualCuadra =
+    importeFacturaPuntualNumero > 0 &&
+    aCentimos(totalAsignadoFacturaPuntual) === aCentimos(importeFacturaPuntualNumero);
+  const puedeGuardarFacturaPuntual =
+    conceptoFacturaPuntual.trim().length > 0 &&
+    fechaFacturaPuntual.trim().length > 0 &&
+    inquilinosActivos.length > 0 &&
+    repartoPuntualCuadra &&
+    !guardandoFacturaPuntual;
   const facturasEmitidas = useMemo(() => {
     if (!resumen) {
       return [];
@@ -156,6 +226,33 @@ export default function CaseroCobrosScreen() {
   }, [resumen]);
 
   const facturaTienePagos = facturaEditando?.deudas.some((deuda) => deuda.estado === 'PAGADA') ?? false;
+
+  const cargarInquilinosActivos = useCallback(async (viviendaId: number) => {
+    try {
+      const { data } = await api.get<ViviendaDetalle>(`/viviendas/${viviendaId}`);
+      const activos = data.habitaciones
+        .filter((habitacion) => habitacion.es_habitable && habitacion.inquilino)
+        .map((habitacion) => ({
+          id: habitacion.inquilino!.id,
+          nombre: habitacion.inquilino!.nombre,
+          apellidos: habitacion.inquilino!.apellidos,
+          avatar: null,
+        }));
+
+      setInquilinosActivos(activos);
+      setRepartoFacturaPuntual((actual) => {
+        const siguiente: Record<number, string> = {};
+        activos.forEach((inquilino) => {
+          siguiente[inquilino.id] = actual[inquilino.id] ?? '';
+        });
+        return siguiente;
+      });
+    } catch {
+      setInquilinosActivos([]);
+      setRepartoFacturaPuntual({});
+      Toast.show({ type: 'error', text1: 'No se pudieron cargar los inquilinos activos.' });
+    }
+  }, []);
 
   const cargarCobros = useCallback(async (viviendaId: number) => {
     setLoadingCobros(true);
@@ -189,7 +286,7 @@ export default function CaseroCobrosScreen() {
         data.find((vivienda) => vivienda.id === viviendaSeleccionadaId) ?? data[0];
 
       setViviendaSeleccionadaId(viviendaInicial.id);
-      await cargarCobros(viviendaInicial.id);
+      await Promise.all([cargarCobros(viviendaInicial.id), cargarInquilinosActivos(viviendaInicial.id)]);
     } catch {
       setViviendas([]);
       setViviendaSeleccionadaId(null);
@@ -198,7 +295,7 @@ export default function CaseroCobrosScreen() {
     } finally {
       setLoading(false);
     }
-  }, [cargarCobros, viviendaSeleccionadaId]);
+  }, [cargarCobros, cargarInquilinosActivos, viviendaSeleccionadaId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -208,7 +305,124 @@ export default function CaseroCobrosScreen() {
 
   const cambiarVivienda = async (viviendaId: number) => {
     setViviendaSeleccionadaId(viviendaId);
-    await cargarCobros(viviendaId);
+    await Promise.all([cargarCobros(viviendaId), cargarInquilinosActivos(viviendaId)]);
+  };
+
+  const limpiarModalFacturaPuntual = () => {
+    setConceptoFacturaPuntual('');
+    setFechaFacturaPuntual(new Date().toISOString().slice(0, 10));
+    setImporteFacturaPuntual('');
+    setFacturaAdjuntaPuntual(null);
+    setRepartoFacturaPuntual(
+      inquilinosActivos.reduce<Record<number, string>>((total, inquilino) => {
+        total[inquilino.id] = '';
+        return total;
+      }, {}),
+    );
+  };
+
+  const cerrarModalFacturaPuntual = () => {
+    if (guardandoFacturaPuntual) {
+      return;
+    }
+
+    setModalFacturaPuntualVisible(false);
+    limpiarModalFacturaPuntual();
+  };
+
+  const seleccionarFacturaPuntual = async () => {
+    const resultado = await DocumentPicker.getDocumentAsync({
+      type: ['image/*', 'application/pdf'],
+      multiple: false,
+      copyToCacheDirectory: true,
+    });
+
+    if (resultado.canceled || !resultado.assets[0]) {
+      return;
+    }
+
+    setFacturaAdjuntaPuntual(resultado.assets[0]);
+  };
+
+  const actualizarRepartoPuntual = (usuarioId: number, valor: string) => {
+    setRepartoFacturaPuntual((actual) => ({ ...actual, [usuarioId]: valor }));
+  };
+
+  const guardarFacturaPuntual = async () => {
+    if (!viviendaSeleccionadaId || !puedeGuardarFacturaPuntual) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('concepto', conceptoFacturaPuntual.trim());
+    formData.append('fecha', fechaFacturaPuntual.trim());
+    formData.append('importe', importeFacturaPuntualNumero.toFixed(2));
+    formData.append(
+      'repartoManual',
+      JSON.stringify(
+        inquilinosActivos.map((inquilino) => ({
+          usuario_id: inquilino.id,
+          importe: parseFloat(
+            parsearImporte(repartoFacturaPuntual[inquilino.id] ?? '').toFixed(2),
+          ),
+        })),
+      ),
+    );
+
+    if (facturaAdjuntaPuntual) {
+      if (Platform.OS === 'web' && facturaAdjuntaPuntual.file) {
+        formData.append('factura', facturaAdjuntaPuntual.file);
+      } else {
+        formData.append('factura', {
+          uri: facturaAdjuntaPuntual.uri,
+          name: facturaAdjuntaPuntual.name ?? `factura-${Date.now()}`,
+          type: facturaAdjuntaPuntual.mimeType ?? 'application/octet-stream',
+        } as never);
+      }
+    }
+
+    setGuardandoFacturaPuntual(true);
+    try {
+      await api.post(`/viviendas/${viviendaSeleccionadaId}/gastos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      await cargarCobros(viviendaSeleccionadaId);
+      setModalFacturaPuntualVisible(false);
+      limpiarModalFacturaPuntual();
+      Toast.show({
+        type: 'success',
+        text1: 'Factura registrada',
+        text2: `${conceptoFacturaPuntual.trim()} queda repartida entre los inquilinos.`,
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: error.response?.data?.error ?? 'No se pudo registrar la factura puntual.',
+      });
+    } finally {
+      setGuardandoFacturaPuntual(false);
+    }
+  };
+
+  const abrirUrlFactura = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Toast.show({ type: 'error', text1: 'No se pudo abrir la factura.' });
+    }
+  };
+
+  const abrirFacturaEmitida = (factura: FacturaEmitida) => {
+    if (!factura.factura_url) {
+      return;
+    }
+
+    if (factura.factura_url.toLowerCase().includes('.pdf')) {
+      abrirUrlFactura(factura.factura_url);
+      return;
+    }
+
+    setFacturaVisualizando(factura);
   };
 
   const abrirEditorFactura = (factura: FacturaEmitida) => {
@@ -477,6 +691,13 @@ export default function CaseroCobrosScreen() {
           </View>
         )}
 
+        <CustomButton
+          label="Nueva Factura Puntual (Luz, Agua...)"
+          variant="secondary"
+          onPress={() => setModalFacturaPuntualVisible(true)}
+          style={styles.invoiceButton}
+        />
+
         {resumen && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -503,7 +724,7 @@ export default function CaseroCobrosScreen() {
                     key={factura.id}
                     factura={factura}
                     onEditar={abrirEditorFactura}
-                    onVerFactura={setFacturaVisualizando}
+                    onVerFactura={abrirFacturaEmitida}
                   />
                 ))}
               </View>
@@ -534,7 +755,12 @@ export default function CaseroCobrosScreen() {
           ) : (
             <View style={styles.debtList}>
               {deudasPendientes.map((deuda) => (
-                <DeudaCard key={deuda.id} deuda={deuda} onVerJustificante={setJustificanteSeleccionado} />
+                <DeudaCard
+                  key={deuda.id}
+                  deuda={deuda}
+                  onVerJustificante={setJustificanteSeleccionado}
+                  onVerFactura={abrirUrlFactura}
+                />
               ))}
             </View>
           )}
@@ -561,7 +787,12 @@ export default function CaseroCobrosScreen() {
           ) : (
             <View style={styles.debtList}>
               {deudasPagadas.map((deuda) => (
-                <DeudaCard key={deuda.id} deuda={deuda} onVerJustificante={setJustificanteSeleccionado} />
+                <DeudaCard
+                  key={deuda.id}
+                  deuda={deuda}
+                  onVerJustificante={setJustificanteSeleccionado}
+                  onVerFactura={abrirUrlFactura}
+                />
               ))}
             </View>
           )}
@@ -605,6 +836,139 @@ export default function CaseroCobrosScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal
+        visible={modalFacturaPuntualVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={cerrarModalFacturaPuntual}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <Pressable style={{ flex: 1 }} onPress={cerrarModalFacturaPuntual} />
+          <View style={styles.invoiceSheet}>
+            <View style={styles.modalHandle} />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.invoiceContent}>
+              <Text style={styles.modalTitle}>Nueva factura puntual</Text>
+              <Text style={styles.modalSubtitle}>
+                Luz, agua, gas o cualquier recibo con una parte distinta para cada inquilino.
+              </Text>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.inputLabel}>Concepto</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Ej. Factura de luz marzo"
+                  placeholderTextColor={Theme.colors.textMuted}
+                  value={conceptoFacturaPuntual}
+                  onChangeText={setConceptoFacturaPuntual}
+                  maxLength={120}
+                />
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={styles.formRowItem}>
+                  <Text style={styles.inputLabel}>Periodo / fecha</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="2026-04-11"
+                    placeholderTextColor={Theme.colors.textMuted}
+                    value={fechaFacturaPuntual}
+                    onChangeText={setFechaFacturaPuntual}
+                  />
+                </View>
+                <View style={styles.formRowItem}>
+                  <Text style={styles.inputLabel}>Importe total</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="0,00"
+                    placeholderTextColor={Theme.colors.textMuted}
+                    value={importeFacturaPuntual}
+                    onChangeText={setImporteFacturaPuntual}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
+
+              <Pressable style={styles.attachmentButton} onPress={seleccionarFacturaPuntual}>
+                <View style={styles.attachmentIcon}>
+                  <Ionicons name="document-attach-outline" size={20} color={Theme.colors.info} />
+                </View>
+                <View style={styles.attachmentTextBox}>
+                  <Text style={styles.attachmentTitle}>
+                    {facturaAdjuntaPuntual
+                      ? facturaAdjuntaPuntual.name
+                      : 'Adjuntar foto o PDF (opcional)'}
+                  </Text>
+                  <Text style={styles.attachmentSubtitle}>
+                    {facturaAdjuntaPuntual
+                      ? 'Archivo preparado para subir'
+                      : 'Puedes guardar la factura sin adjuntar archivo'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={Theme.colors.textSecondary} />
+              </Pressable>
+
+              <View style={styles.splitHeader}>
+                <Text style={styles.sectionTitle}>Reparto desigual</Text>
+                <Text style={styles.sectionSubtitle}>Introduce la parte exacta de cada inquilino.</Text>
+              </View>
+
+              <View style={styles.tenantList}>
+                {inquilinosActivos.map((inquilino) => (
+                  <View key={inquilino.id} style={styles.tenantRow}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {obtenerIniciales(inquilino.nombre, inquilino.apellidos)}
+                      </Text>
+                    </View>
+                    <View style={styles.tenantInfo}>
+                      <Text style={styles.debtName} numberOfLines={1}>
+                        {nombreCompleto(inquilino.nombre, inquilino.apellidos)}
+                      </Text>
+                      <Text style={styles.debtDate}>Parte asignada</Text>
+                    </View>
+                    <TextInput
+                      style={styles.splitInput}
+                      placeholder="0,00"
+                      placeholderTextColor={Theme.colors.textMuted}
+                      value={repartoFacturaPuntual[inquilino.id] ?? ''}
+                      onChangeText={(valor) => actualizarRepartoPuntual(inquilino.id, valor)}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                ))}
+              </View>
+
+              <View style={[styles.totalCounter, repartoPuntualCuadra && styles.totalCounterOk]}>
+                <Text style={[styles.totalCounterText, repartoPuntualCuadra && styles.totalCounterTextOk]}>
+                  Total asignado: {formatearImporte(totalAsignadoFacturaPuntual)} /{' '}
+                  {formatearImporte(importeFacturaPuntualNumero)}
+                </Text>
+              </View>
+
+              <View style={styles.modalActions}>
+                <CustomButton
+                  label="Cancelar"
+                  variant="secondary"
+                  onPress={cerrarModalFacturaPuntual}
+                  disabled={guardandoFacturaPuntual}
+                  style={styles.modalAction}
+                />
+                <CustomButton
+                  label={guardandoFacturaPuntual ? 'Guardando...' : 'Guardar'}
+                  onPress={guardarFacturaPuntual}
+                  disabled={!puedeGuardarFacturaPuntual}
+                  style={styles.modalAction}
+                />
+              </View>
+              {guardandoFacturaPuntual && <ActivityIndicator color={Theme.colors.primary} />}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal
@@ -808,9 +1172,11 @@ function FacturaCard({
 function DeudaCard({
   deuda,
   onVerJustificante,
+  onVerFactura,
 }: {
   deuda: DeudaCobro;
   onVerJustificante: (deuda: DeudaCobro) => void;
+  onVerFactura: (url: string) => void;
 }) {
   return (
     <View style={styles.debtCard}>
@@ -858,6 +1224,13 @@ function DeudaCard({
         <Pressable style={styles.receiptLink} onPress={() => onVerJustificante(deuda)}>
           <Ionicons name="image-outline" size={15} color={Theme.colors.info} />
           <Text style={styles.receiptLinkText}>Ver justificante</Text>
+        </Pressable>
+      )}
+
+      {deuda.gasto.factura_url && (
+        <Pressable style={styles.invoiceLink} onPress={() => onVerFactura(deuda.gasto.factura_url!)}>
+          <Ionicons name="document-text-outline" size={15} color={Theme.colors.primary} />
+          <Text style={styles.invoiceLinkText}>Ver factura original</Text>
         </Pressable>
       )}
     </View>

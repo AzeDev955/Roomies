@@ -38,7 +38,7 @@ type Deuda = {
   justificante_url: string | null;
   deudor: UsuarioBasico;
   acreedor: UsuarioBasico;
-  gasto: { concepto: string };
+  gasto: { concepto: string; factura_url: string | null };
 };
 
 type Gasto = {
@@ -320,6 +320,17 @@ export default function GastosInquilinoTab() {
     }
   };
 
+  const abrirFacturaOriginal = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: 'No se pudo abrir la factura original.',
+      });
+    }
+  };
+
   const handleGuardar = async () => {
     if (!concepto.trim() || !importe.trim() || !viviendaId) return;
 
@@ -554,6 +565,20 @@ export default function GastosInquilinoTab() {
                       </View>
                     )}
                   </View>
+                  {deuda.gasto.factura_url && (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.botonFacturaOriginal,
+                        pressed && styles.botonPressed,
+                      ]}
+                      onPress={() => abrirFacturaOriginal(deuda.gasto.factura_url!)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver factura original de ${deuda.gasto.concepto}`}
+                    >
+                      <Ionicons name="document-text-outline" size={16} color={Theme.colors.primary} />
+                      <Text style={styles.botonFacturaOriginalTexto}>Ver factura original</Text>
+                    </Pressable>
+                  )}
                 </View>
               );
             })}
@@ -618,6 +643,20 @@ export default function GastosInquilinoTab() {
                       </View>
                     )}
                   </View>
+                  {deuda.gasto.factura_url && (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.botonFacturaOriginal,
+                        pressed && styles.botonPressed,
+                      ]}
+                      onPress={() => abrirFacturaOriginal(deuda.gasto.factura_url!)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver factura original de ${deuda.gasto.concepto}`}
+                    >
+                      <Ionicons name="document-text-outline" size={16} color={Theme.colors.primary} />
+                      <Text style={styles.botonFacturaOriginalTexto}>Ver factura original</Text>
+                    </Pressable>
+                  )}
                 </View>
               );
             })}
@@ -667,6 +706,20 @@ export default function GastosInquilinoTab() {
                     <Ionicons name="image-outline" size={16} color={Theme.colors.info} />
                     <Text style={styles.botonJustificanteTexto}>Ver justificante</Text>
                   </Pressable>
+                  {deuda.gasto.factura_url && (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.botonFacturaOriginal,
+                        pressed && styles.botonPressed,
+                      ]}
+                      onPress={() => abrirFacturaOriginal(deuda.gasto.factura_url!)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver factura original de ${deuda.gasto.concepto}`}
+                    >
+                      <Ionicons name="document-text-outline" size={16} color={Theme.colors.primary} />
+                      <Text style={styles.botonFacturaOriginalTexto}>Ver factura original</Text>
+                    </Pressable>
+                  )}
                 </View>
               );
             })}

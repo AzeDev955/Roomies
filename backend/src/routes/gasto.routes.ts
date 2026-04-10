@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadFacturaFoto } from '../config/cloudinary.config';
+import { uploadFacturaFoto, uploadFacturaGasto } from '../config/cloudinary.config';
 import { listarCobrosVivienda } from '../controllers/cobros.controller';
 import { verificarToken } from '../middlewares/auth.middleware';
 import { protegerModuloVivienda } from '../middlewares/module.guard';
@@ -16,7 +16,7 @@ const router = express.Router();
 const gastosActivos = protegerModuloVivienda('gastos');
 
 router.get('/:viviendaId/gastos', verificarToken, gastosActivos, listarGastos);
-router.post('/:viviendaId/gastos', verificarToken, gastosActivos, crearGasto);
+router.post('/:viviendaId/gastos', verificarToken, gastosActivos, uploadFacturaGasto.single('factura'), crearGasto);
 router.patch('/:viviendaId/gastos/:gastoId', verificarToken, gastosActivos, actualizarGasto);
 router.post(
   '/:viviendaId/gastos/:gastoId/factura',

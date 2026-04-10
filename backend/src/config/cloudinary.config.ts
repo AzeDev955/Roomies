@@ -45,8 +45,34 @@ const crearUploaderImagen = (folder: string) =>
     },
   });
 
+const crearUploaderDocumento = (folder: string) =>
+  multer({
+    storage: cloudinaryEstaConfigurado
+      ? new CloudinaryStorage({
+          cloudinary,
+          params: async () => ({
+            folder,
+            allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+            resource_type: 'auto',
+          }),
+        })
+      : multer.memoryStorage(),
+    limits: {
+      fileSize: 8 * 1024 * 1024,
+    },
+    fileFilter: (_req, file, cb) => {
+      if (!file.mimetype.startsWith('image/') && file.mimetype !== 'application/pdf') {
+        cb(new Error('Solo se permiten imagenes o archivos PDF.'));
+        return;
+      }
+
+      cb(null, true);
+    },
+  });
+
 export const uploadInventarioFoto = crearUploaderImagen('roomies-inventario');
 export const uploadJustificanteFoto = crearUploaderImagen('roomies-justificantes');
+export const uploadFacturaGasto = crearUploaderDocumento('roomies-facturas');
 export const uploadFacturaFoto = crearUploaderImagen('roomies-facturas');
 
 export { cloudinary };
