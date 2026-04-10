@@ -146,6 +146,50 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     color: Theme.colors.primary,
   },
+  modulosSection: {
+    marginBottom: Theme.spacing.lg,
+    gap: Theme.spacing.md,
+  },
+  modulosList: {
+    gap: Theme.spacing.sm,
+  },
+  moduloCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.base,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.base,
+    ...Theme.shadows.sm,
+  },
+  moduloIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: Theme.radius.lg,
+    backgroundColor: Theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  moduloBody: {
+    flex: 1,
+    gap: Theme.spacing.xs,
+  },
+  moduloTitulo: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.text,
+  },
+  moduloDescripcion: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  moduloUpdatingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: Theme.radius.lg,
+    backgroundColor: Theme.colors.surface + '66',
+  },
   recurringCard: {
     flexDirection: 'row',
     alignItems: 'center',

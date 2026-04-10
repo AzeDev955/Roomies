@@ -91,6 +91,9 @@ model Vivienda {
   codigo_postal    String
   ciudad           String
   provincia        String
+  mod_limpieza     Boolean          @default(true)
+  mod_gastos       Boolean          @default(true)
+  mod_inventario   Boolean          @default(true)
   habitaciones     Habitacion[]
   incidencias      Incidencia[]
   anuncios         Anuncio[]

@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Share,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -55,8 +56,13 @@ type Vivienda = {
   id: number;
   alias_nombre: string;
   direccion: string;
+  mod_limpieza: boolean;
+  mod_gastos: boolean;
+  mod_inventario: boolean;
   habitaciones: Habitacion[];
 };
+
+type ModuloViviendaKey = 'mod_limpieza' | 'mod_gastos' | 'mod_inventario';
 
 type GastoRecurrente = {
   id: number;
@@ -84,6 +90,32 @@ const HAB_ICONS: Record<string, any> = {
 
 const formatearImporte = (importe: number) =>
   importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+
+const MODULOS_VIVIENDA: {
+  key: ModuloViviendaKey;
+  titulo: string;
+  descripcion: string;
+  icono: keyof typeof Ionicons.glyphMap;
+}[] = [
+  {
+    key: 'mod_limpieza',
+    titulo: 'Limpieza y Tareas',
+    descripcion: 'Turnos, zonas y asignaciones de limpieza.',
+    icono: 'sparkles-outline',
+  },
+  {
+    key: 'mod_gastos',
+    titulo: 'Gastos y Finanzas',
+    descripcion: 'Gastos compartidos, deudas, cobros y mensualidades.',
+    icono: 'wallet-outline',
+  },
+  {
+    key: 'mod_inventario',
+    titulo: 'Inventario y Assets',
+    descripcion: 'Items, fotos y conformidad del inventario.',
+    icono: 'albums-outline',
+  },
+];
 
 const AvatarInitials = ({
   nombre,
@@ -126,13 +158,16 @@ export default function ResumenViviendaTab() {
   const [importeMensualidad, setImporteMensualidad] = useState('');
   const [diaMensualidad, setDiaMensualidad] = useState('');
   const [guardandoMensualidad, setGuardandoMensualidad] = useState(false);
+  const [actualizandoModulo, setActualizandoModulo] = useState<ModuloViviendaKey | null>(null);
 
   const cargarVivienda = useCallback(async () => {
     try {
       const { data } = await api.get<Vivienda>(`/viviendas/${id}`);
       setVivienda(data);
+      return data;
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudo cargar la vivienda.' });
+      return null;
     }
   }, [id]);
 
@@ -153,7 +188,12 @@ export default function ResumenViviendaTab() {
     useCallback(() => {
       const cargarTodo = async () => {
         setLoading(true);
-        await Promise.all([cargarVivienda(), cargarGastosRecurrentes()]);
+        const viviendaActual = await cargarVivienda();
+        if (viviendaActual?.mod_gastos) {
+          await cargarGastosRecurrentes();
+        } else {
+          setGastosRecurrentes([]);
+        }
         setLoading(false);
       };
 
@@ -298,6 +338,33 @@ export default function ResumenViviendaTab() {
     }
   };
 
+  const actualizarModulo = async (key: ModuloViviendaKey, value: boolean) => {
+    if (!vivienda || actualizandoModulo) return;
+
+    const anterior = vivienda;
+    setVivienda({ ...vivienda, [key]: value });
+    setActualizandoModulo(key);
+
+    try {
+      const { data } = await api.patch<Vivienda>(`/viviendas/${id}`, { [key]: value });
+      setVivienda(data);
+      if (key === 'mod_gastos' && !value) {
+        setGastosRecurrentes([]);
+      } else if (key === 'mod_gastos' && value) {
+        await cargarGastosRecurrentes();
+      }
+      Toast.show({ type: 'success', text1: 'Configuracion actualizada.' });
+    } catch (err: any) {
+      setVivienda(anterior);
+      Toast.show({
+        type: 'error',
+        text1: err.response?.data?.error ?? 'No se pudo actualizar el modulo.',
+      });
+    } finally {
+      setActualizandoModulo(null);
+    }
+  };
+
   const puedeGuardarMensualidad =
     conceptoMensualidad.trim().length > 0 &&
     importeMensualidad.trim().length > 0 &&
@@ -363,6 +430,45 @@ export default function ResumenViviendaTab() {
           </Pressable>
         </View>
 
+        <View style={styles.modulosSection}>
+          <View style={styles.sectionHeaderTextGroup}>
+            <Text style={styles.seccionTitulo}>Configuracion de Modulos</Text>
+            <Text style={styles.sectionDescription}>
+              Activa solo las herramientas que quieres usar en esta vivienda.
+            </Text>
+          </View>
+
+          <View style={styles.modulosList}>
+            {MODULOS_VIVIENDA.map((modulo) => {
+              const activo = vivienda[modulo.key];
+              const actualizando = actualizandoModulo === modulo.key;
+
+              return (
+                <View key={modulo.key} style={styles.moduloCard}>
+                  <View style={styles.moduloIconBox}>
+                    <Ionicons name={modulo.icono} size={20} color={Theme.colors.primary} />
+                  </View>
+                  <View style={styles.moduloBody}>
+                    <Text style={styles.moduloTitulo}>{modulo.titulo}</Text>
+                    <Text style={styles.moduloDescripcion}>{modulo.descripcion}</Text>
+                  </View>
+                  <Switch
+                    value={activo}
+                    disabled={actualizandoModulo !== null}
+                    onValueChange={(value) => actualizarModulo(modulo.key, value)}
+                    trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
+                    thumbColor={Theme.colors.surface}
+                    accessibilityLabel={`${activo ? 'Desactivar' : 'Activar'} ${modulo.titulo}`}
+                  />
+                  {actualizando && <View style={styles.moduloUpdatingOverlay} />}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {vivienda.mod_gastos && (
+          <>
         <View style={styles.sectionHeaderRow}>
           <View style={styles.sectionHeaderTextGroup}>
             <Text style={styles.seccionTitulo}>Gastos fijos / Mensualidades</Text>
@@ -411,6 +517,8 @@ export default function ResumenViviendaTab() {
               </View>
             </View>
           ))
+        )}
+          </>
         )}
 
         <Text style={styles.seccionTitulo}>Habitaciones</Text>

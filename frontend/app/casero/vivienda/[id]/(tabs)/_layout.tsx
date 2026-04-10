@@ -1,10 +1,42 @@
-import { Tabs, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Tabs, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 import { Theme } from '@/constants/theme';
+import api from '@/services/api';
+
+type ViviendaModulos = {
+  mod_limpieza: boolean;
+};
 
 export default function ViviendaTabsLayout() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [modulos, setModulos] = useState({ limpieza: true });
+
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
+
+      const cargarModulos = async () => {
+        try {
+          const { data } = await api.get<ViviendaModulos>(`/viviendas/${id}`);
+          if (activo) {
+            setModulos({ limpieza: data.mod_limpieza });
+          }
+        } catch {
+          if (activo) {
+            setModulos({ limpieza: true });
+          }
+        }
+      };
+
+      cargarModulos();
+      return () => {
+        activo = false;
+      };
+    }, [id]),
+  );
 
   return (
     <Tabs
@@ -70,6 +102,7 @@ export default function ViviendaTabsLayout() {
         name="limpieza"
         options={{
           title: 'Limpieza',
+          href: modulos.limpieza ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
           ),

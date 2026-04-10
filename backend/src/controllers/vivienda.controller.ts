@@ -98,6 +98,86 @@ export const obtenerVivienda: express.RequestHandler = async (req, res) => {
   res.status(200).json(vivienda);
 };
 
+export const actualizarVivienda: express.RequestHandler = async (req, res) => {
+  const id = parseInt(req.params['id'] as string, 10);
+  const { mod_limpieza, mod_gastos, mod_inventario } = req.body as {
+    mod_limpieza?: unknown;
+    mod_gastos?: unknown;
+    mod_inventario?: unknown;
+  };
+
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ error: 'ID de vivienda invalido.' });
+    return;
+  }
+
+  if (req.usuario!.rol !== RolUsuario.CASERO) {
+    res.status(403).json({ error: 'Solo el casero puede configurar los modulos de una vivienda.' });
+    return;
+  }
+
+  const vivienda = await prisma.vivienda.findUnique({ where: { id } });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(404).json({ error: 'Vivienda no encontrada.' });
+    return;
+  }
+
+  const data: {
+    mod_limpieza?: boolean;
+    mod_gastos?: boolean;
+    mod_inventario?: boolean;
+  } = {};
+
+  if (mod_limpieza !== undefined) {
+    if (typeof mod_limpieza !== 'boolean') {
+      res.status(400).json({ error: 'mod_limpieza debe ser booleano.' });
+      return;
+    }
+    data.mod_limpieza = mod_limpieza;
+  }
+
+  if (mod_gastos !== undefined) {
+    if (typeof mod_gastos !== 'boolean') {
+      res.status(400).json({ error: 'mod_gastos debe ser booleano.' });
+      return;
+    }
+    data.mod_gastos = mod_gastos;
+  }
+
+  if (mod_inventario !== undefined) {
+    if (typeof mod_inventario !== 'boolean') {
+      res.status(400).json({ error: 'mod_inventario debe ser booleano.' });
+      return;
+    }
+    data.mod_inventario = mod_inventario;
+  }
+
+  if (Object.keys(data).length === 0) {
+    res.status(400).json({ error: 'No hay modulos para actualizar.' });
+    return;
+  }
+
+  const viviendaActualizada = await prisma.vivienda.update({
+    where: { id },
+    data,
+    include: {
+      habitaciones: {
+        include: {
+          inquilino: {
+            select: { id: true, nombre: true, apellidos: true, email: true },
+          },
+          incidencias: {
+            where: { estado: { in: [EstadoIncidencia.PENDIENTE, EstadoIncidencia.EN_PROCESO] } },
+            select: { id: true, titulo: true, prioridad: true, estado: true },
+          },
+        },
+      },
+    },
+  });
+
+  res.status(200).json(viviendaActualizada);
+};
+
 export const crearHabitacion: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params['id'] as string, 10);
 
