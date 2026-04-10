@@ -178,6 +178,54 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.caption,
     fontWeight: '800',
   },
+  botonJustificante: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+    alignSelf: 'flex-start',
+    backgroundColor: Theme.colors.infoLight,
+    borderRadius: Theme.radius.full,
+    paddingVertical: 10,
+    paddingHorizontal: Theme.spacing.base,
+  },
+  botonJustificanteTexto: {
+    color: Theme.colors.info,
+    fontSize: Theme.typography.label,
+    fontWeight: '800',
+  },
+  deudaPagadaCard: {
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.sm,
+    gap: Theme.spacing.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    ...Theme.shadows.sm,
+  },
+  deudaPagadaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.md,
+  },
+  deudaPagadaInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  deudaPagadaEstado: {
+    alignSelf: 'flex-start',
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.successLight,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: 8,
+  },
+  deudaPagadaEstadoTexto: {
+    color: Theme.colors.success,
+    fontSize: Theme.typography.caption,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
 
   mensualidadCard: {
     flexDirection: 'row',
@@ -490,6 +538,115 @@ export const styles = StyleSheet.create({
   botonPressed: {
     opacity: 0.75,
     transform: [{ scale: 0.97 }],
+  },
+  pagoSheet: {
+    backgroundColor: Theme.colors.surface,
+    borderTopLeftRadius: Theme.radius.xl,
+    borderTopRightRadius: Theme.radius.xl,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingTop: Theme.spacing.xl,
+    paddingBottom: Theme.spacing.xl,
+    gap: Theme.spacing.base,
+  },
+  pagoSheetHero: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.base,
+    backgroundColor: Theme.colors.surface2,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.lg,
+  },
+  pagoSheetIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: Theme.radius.lg,
+    backgroundColor: Theme.colors.successLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pagoSheetHeroTextos: {
+    flex: 1,
+    gap: Theme.spacing.xs,
+  },
+  pagoSheetTitulo: {
+    fontSize: Theme.typography.title,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    letterSpacing: -0.3,
+  },
+  pagoSheetSubtitulo: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textSecondary,
+    lineHeight: 22,
+  },
+  pagoSheetAmount: {
+    fontSize: Theme.typography.subtitle,
+    fontWeight: '900',
+    color: Theme.colors.success,
+  },
+  pagoSheetOption: {
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.lg,
+    gap: Theme.spacing.sm,
+    borderWidth: 1,
+  },
+  pagoSheetOptionSecundaria: {
+    backgroundColor: Theme.colors.surface2,
+    borderColor: Theme.colors.border,
+  },
+  pagoSheetOptionPrimaria: {
+    backgroundColor: Theme.colors.primaryLight,
+    borderColor: Theme.colors.primary + '24',
+  },
+  pagoSheetOptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Theme.spacing.base,
+  },
+  pagoSheetOptionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.sm,
+    flex: 1,
+  },
+  pagoSheetOptionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: Theme.radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pagoSheetOptionIconSecundaria: {
+    backgroundColor: Theme.colors.surface,
+  },
+  pagoSheetOptionIconPrimaria: {
+    backgroundColor: Theme.colors.primary + '18',
+  },
+  pagoSheetOptionTitle: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.text,
+  },
+  pagoSheetOptionDescription: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  pagoSheetFooter: {
+    marginTop: Theme.spacing.xs,
+  },
+  pagoSheetCancel: {
+    borderRadius: Theme.radius.lg,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Theme.colors.surface2,
+  },
+  pagoSheetCancelText: {
+    color: Theme.colors.textMedium,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
   },
 
   fab: {

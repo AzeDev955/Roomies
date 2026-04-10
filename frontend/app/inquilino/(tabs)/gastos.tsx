@@ -8,9 +8,10 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
@@ -34,6 +35,7 @@ type Deuda = {
   acreedor_id: number;
   importe: number;
   estado: 'PENDIENTE' | 'PAGADA';
+  justificante_url: string | null;
   deudor: UsuarioBasico;
   acreedor: UsuarioBasico;
   gasto: { concepto: string };
@@ -103,6 +105,7 @@ export default function GastosInquilinoTab() {
   const [gastosRecurrentes, setGastosRecurrentes] = useState<GastoRecurrente[]>([]);
   const [loading, setLoading] = useState(true);
   const [saldando, setSaldando] = useState<number | null>(null);
+  const [deudaSeleccionada, setDeudaSeleccionada] = useState<Deuda | null>(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [concepto, setConcepto] = useState('');
@@ -206,40 +209,125 @@ export default function GastosInquilinoTab() {
   };
 
   const deudasPendientes = deudas.filter((deuda) => deuda.estado === 'PENDIENTE');
+  const deudasPagadasConJustificante = deudas.filter(
+    (deuda) => deuda.estado === 'PAGADA' && !!deuda.justificante_url,
+  );
   const mensualidadesActivas = gastosRecurrentes.filter((gasto) => gasto.activo);
 
-  const handleSaldar = (deuda: Deuda) => {
-    Alert.alert(
-      'Confirmar pago',
-      `Has hecho ya el Bizum o transferencia de ${formatImporte(deuda.importe)} a ${deuda.acreedor.nombre}?`,
-      [
-        { text: 'Aun no', style: 'cancel' },
-        {
-          text: 'Si, ya lo hice',
-          onPress: async () => {
-            if (!viviendaId) return;
+  const abrirModalPago = (deuda: Deuda) => {
+    setDeudaSeleccionada(deuda);
+  };
 
-            setSaldando(deuda.id);
-            try {
-              await api.patch(`/viviendas/${viviendaId}/deudas/${deuda.id}/saldar`);
-              await cargarTodo(viviendaId);
-              Toast.show({
-                type: 'success',
-                text1: 'Deuda saldada',
-                text2: `${formatImporte(deuda.importe)} marcados como pagados.`,
-              });
-            } catch (err: any) {
-              Toast.show({
-                type: 'error',
-                text1: err.response?.data?.error ?? 'No se pudo saldar la deuda.',
-              });
-            } finally {
-              setSaldando(null);
-            }
-          },
-        },
-      ],
+  const cerrarModalPago = () => {
+    if (saldando) return;
+    setDeudaSeleccionada(null);
+  };
+
+  const saldarDeuda = async (deuda: Deuda, mensajeExito: string) => {
+    if (!viviendaId) return;
+
+    setSaldando(deuda.id);
+    try {
+      await api.patch(`/viviendas/${viviendaId}/deudas/${deuda.id}/saldar`);
+      await cargarTodo(viviendaId);
+      setDeudaSeleccionada(null);
+      Toast.show({
+        type: 'success',
+        text1: 'Deuda saldada',
+        text2: mensajeExito,
+      });
+    } catch (err: any) {
+      Toast.show({
+        type: 'error',
+        text1: err.response?.data?.error ?? 'No se pudo saldar la deuda.',
+      });
+    } finally {
+      setSaldando(null);
+    }
+  };
+
+  const subirJustificante = async (deuda: Deuda, asset: ImagePicker.ImagePickerAsset) => {
+    const formData = new FormData();
+
+    if (Platform.OS === 'web' && asset.file) {
+      formData.append('justificante', asset.file);
+    } else {
+      formData.append('justificante', {
+        uri: asset.uri,
+        name: asset.fileName ?? `justificante-deuda-${deuda.id}.jpg`,
+        type: asset.mimeType ?? 'image/jpeg',
+      } as never);
+    }
+
+    await api.post(`/deudas/${deuda.id}/justificante`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  };
+
+  const handleSaldarSinJustificante = async () => {
+    if (!deudaSeleccionada) return;
+
+    await saldarDeuda(
+      deudaSeleccionada,
+      `${formatImporte(deudaSeleccionada.importe)} marcados como pagados.`,
     );
+  };
+
+  const handleSubirJustificanteYSaldar = async () => {
+    if (!deudaSeleccionada || !viviendaId) return;
+
+    if (Platform.OS !== 'web') {
+      const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permiso.granted) {
+        Toast.show({
+          type: 'info',
+          text1: 'Permiso necesario',
+          text2: 'Necesitamos acceso a tu galería para adjuntar el justificante.',
+        });
+        return;
+      }
+    }
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.82,
+    });
+
+    if (resultado.canceled || !resultado.assets[0]) {
+      return;
+    }
+
+    setSaldando(deudaSeleccionada.id);
+    try {
+      await subirJustificante(deudaSeleccionada, resultado.assets[0]);
+      await api.patch(`/viviendas/${viviendaId}/deudas/${deudaSeleccionada.id}/saldar`);
+      await cargarTodo(viviendaId);
+      setDeudaSeleccionada(null);
+      Toast.show({
+        type: 'success',
+        text1: 'Pago registrado',
+        text2: 'Se ha subido el justificante y la deuda ya figura como pagada.',
+      });
+    } catch (err: any) {
+      Toast.show({
+        type: 'error',
+        text1: err.response?.data?.error ?? 'No se pudo subir el justificante y saldar la deuda.',
+      });
+    } finally {
+      setSaldando(null);
+    }
+  };
+
+  const abrirJustificante = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: 'No se pudo abrir el justificante.',
+      });
+    }
   };
 
   const handleGuardar = async () => {
@@ -450,7 +538,7 @@ export default function GastosInquilinoTab() {
                           pressed && styles.botonSaldarPressed,
                           saldando === deuda.id && { opacity: 0.6 },
                         ]}
-                        onPress={() => handleSaldar(deuda)}
+                        onPress={() => abrirModalPago(deuda)}
                         disabled={saldando === deuda.id}
                         accessibilityLabel={`Saldar deuda de ${formatImporte(deuda.importe)} con ${companero.nombre}`}
                         accessibilityRole="button"
@@ -470,6 +558,56 @@ export default function GastosInquilinoTab() {
                       </View>
                     )}
                   </View>
+                </View>
+              );
+            })}
+          </>
+        )}
+
+        {deudasPagadasConJustificante.length > 0 && (
+          <>
+            <Text style={styles.seccionTitulo}>Pagadas con justificante</Text>
+            {deudasPagadasConJustificante.map((deuda) => {
+              const yoPague = deuda.deudor_id === miId;
+              const companero = yoPague ? deuda.acreedor : deuda.deudor;
+
+              return (
+                <View key={deuda.id} style={styles.deudaPagadaCard}>
+                  <View style={styles.deudaPagadaHeader}>
+                    <AvatarInitials
+                      nombre={companero.nombre}
+                      apellidos={companero.apellidos}
+                      size={48}
+                    />
+                    <View style={styles.deudaPagadaInfo}>
+                      <Text style={styles.deudaNombre} numberOfLines={1}>
+                        {companero.nombre}
+                        {companero.apellidos ? ` ${companero.apellidos}` : ''}
+                      </Text>
+                      <Text style={styles.deudaConcepto} numberOfLines={2}>
+                        {deuda.gasto.concepto}
+                      </Text>
+                      <Text style={[styles.deudaImporte, { color: Theme.colors.success }]}>
+                        {formatImporte(deuda.importe)}
+                      </Text>
+                    </View>
+                    <View style={styles.deudaPagadaEstado}>
+                      <Text style={styles.deudaPagadaEstadoTexto}>Pagada</Text>
+                    </View>
+                  </View>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.botonJustificante,
+                      pressed && styles.botonPressed,
+                    ]}
+                    onPress={() => abrirJustificante(deuda.justificante_url!)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver justificante de ${deuda.gasto.concepto}`}
+                  >
+                    <Ionicons name="image-outline" size={16} color={Theme.colors.info} />
+                    <Text style={styles.botonJustificanteTexto}>Ver justificante</Text>
+                  </Pressable>
                 </View>
               );
             })}
@@ -566,6 +704,117 @@ export default function GastosInquilinoTab() {
       >
         <Ionicons name="add" size={28} color={Theme.colors.surface} />
       </Pressable>
+
+      <Modal
+        visible={!!deudaSeleccionada}
+        animationType="slide"
+        transparent
+        onRequestClose={cerrarModalPago}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable style={{ flex: 1 }} onPress={cerrarModalPago} />
+          <View style={styles.pagoSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.pagoSheetHero}>
+              <View style={styles.pagoSheetIcon}>
+                <Ionicons name="wallet-outline" size={22} color={Theme.colors.success} />
+              </View>
+              <View style={styles.pagoSheetHeroTextos}>
+                <Text style={styles.pagoSheetTitulo}>Confirmar pago</Text>
+                <Text style={styles.pagoSheetSubtitulo}>
+                  {deudaSeleccionada
+                    ? `¿Ya has enviado ${formatImporte(deudaSeleccionada.importe)} a ${deudaSeleccionada.acreedor.nombre}?`
+                    : ''}
+                </Text>
+                {deudaSeleccionada && (
+                  <Text style={styles.pagoSheetAmount}>
+                    {deudaSeleccionada.gasto.concepto} ·{' '}
+                    {formatImporte(deudaSeleccionada.importe)}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.pagoSheetOption,
+                styles.pagoSheetOptionSecundaria,
+                pressed && !saldando && styles.botonPressed,
+                !!saldando && { opacity: 0.7 },
+              ]}
+              onPress={handleSaldarSinJustificante}
+              disabled={!!saldando}
+            >
+              <View style={styles.pagoSheetOptionHeader}>
+                <View style={styles.pagoSheetOptionHeaderLeft}>
+                  <View
+                    style={[styles.pagoSheetOptionIcon, styles.pagoSheetOptionIconSecundaria]}
+                  >
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={20}
+                      color={Theme.colors.textMedium}
+                    />
+                  </View>
+                  <Text style={styles.pagoSheetOptionTitle}>Saldar sin justificante</Text>
+                </View>
+                {deudaSeleccionada && saldando === deudaSeleccionada.id ? (
+                  <ActivityIndicator color={Theme.colors.textMedium} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={Theme.colors.textSecondary} />
+                )}
+              </View>
+              <Text style={styles.pagoSheetOptionDescription}>
+                Marca la deuda como pagada inmediatamente y cierra este pendiente.
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.pagoSheetOption,
+                styles.pagoSheetOptionPrimaria,
+                pressed && !saldando && styles.botonPressed,
+                !!saldando && { opacity: 0.7 },
+              ]}
+              onPress={handleSubirJustificanteYSaldar}
+              disabled={!!saldando}
+            >
+              <View style={styles.pagoSheetOptionHeader}>
+                <View style={styles.pagoSheetOptionHeaderLeft}>
+                  <View
+                    style={[styles.pagoSheetOptionIcon, styles.pagoSheetOptionIconPrimaria]}
+                  >
+                    <Ionicons name="image-outline" size={20} color={Theme.colors.primary} />
+                  </View>
+                  <Text style={styles.pagoSheetOptionTitle}>Subir captura y saldar</Text>
+                </View>
+                {deudaSeleccionada && saldando === deudaSeleccionada.id ? (
+                  <ActivityIndicator color={Theme.colors.primary} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={Theme.colors.primary} />
+                )}
+              </View>
+              <Text style={styles.pagoSheetOptionDescription}>
+                Adjunta una captura de Bizum o transferencia, la guardamos y después marcamos la
+                deuda como pagada.
+              </Text>
+            </Pressable>
+
+            <View style={styles.pagoSheetFooter}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.pagoSheetCancel,
+                  pressed && !saldando && styles.botonPressed,
+                ]}
+                onPress={cerrarModalPago}
+                disabled={!!saldando}
+              >
+                <Text style={styles.pagoSheetCancelText}>Cancelar</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={cerrarModal}>
         <KeyboardAvoidingView

@@ -177,6 +177,7 @@ model Deuda {
   acreedor    Usuario     @relation("AcreedorDeuda", fields: [acreedor_id], references: [id])
   importe     Float
   estado      EstadoDeuda @default(PENDIENTE)
+  justificante_url String?
 }
 
 model ItemInventario {

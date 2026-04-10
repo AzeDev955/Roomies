@@ -9,6 +9,7 @@ import anuncioRoutes from './routes/anuncio.routes';
 import limpiezaRoutes from './routes/limpieza.routes';
 import gastoRoutes from './routes/gasto.routes';
 import gastoRecurrenteRoutes from './routes/gasto-recurrente.routes';
+import deudaRoutes from './routes/deuda.routes';
 import userRoutes from './routes/user.routes';
 import inventarioRoutes from './routes/inventario.routes';
 import './services/cron.service';
@@ -32,6 +33,7 @@ app.use('/api/anuncios', anuncioRoutes);
 app.use('/api/viviendas', limpiezaRoutes);
 app.use('/api/viviendas', gastoRoutes);
 app.use('/api/viviendas', gastoRecurrenteRoutes);
+app.use('/api', deudaRoutes);
 app.use('/api', inventarioRoutes);
 app.use('/api/users', userRoutes);
 
