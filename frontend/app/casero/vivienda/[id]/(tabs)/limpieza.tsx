@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useEffect } from 'react';
-import { useGlobalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
@@ -122,7 +122,7 @@ type Turno = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LimpiezaCaseroTab() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   // — Vista activa —
   const [vistaActual, setVistaActual] = useState<'CONFIG' | 'CALENDARIO'>('CONFIG');
