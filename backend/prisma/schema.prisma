@@ -77,6 +77,7 @@ model Usuario {
   turnos_limpieza    TurnoLimpieza[]
   asignaciones_fijas AsignacionLimpiezaFija[]
   gastos_pagados     Gasto[]
+  gastos_recurrentes_pagados GastoRecurrente[]
   deudas_a_pagar     Deuda[]                  @relation("DeudorDeuda")
   deudas_a_cobrar    Deuda[]                  @relation("AcreedorDeuda")
 }
@@ -95,6 +96,7 @@ model Vivienda {
   anuncios         Anuncio[]
   zonas_limpieza   ZonaLimpieza[]
   gastos           Gasto[]
+  gastos_recurrentes GastoRecurrente[]
   items_inventario ItemInventario[]
 }
 
@@ -151,6 +153,18 @@ model Gasto {
   vivienda_id    Int
   vivienda       Vivienda @relation(fields: [vivienda_id], references: [id])
   deudas         Deuda[]
+}
+
+model GastoRecurrente {
+  id          Int      @id @default(autoincrement())
+  concepto    String
+  importe     Float
+  dia_del_mes Int
+  vivienda_id Int
+  vivienda    Vivienda @relation(fields: [vivienda_id], references: [id])
+  pagador_id  Int
+  pagador     Usuario  @relation(fields: [pagador_id], references: [id])
+  activo      Boolean  @default(true)
 }
 
 model Deuda {

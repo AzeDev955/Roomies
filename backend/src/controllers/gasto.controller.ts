@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
+import { crearGastoDividido, usuarioPerteneceAVivienda } from '../services/gasto.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -20,9 +21,7 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const pertenece = await prisma.habitacion.findFirst({
-    where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
-  });
+  const pertenece = await usuarioPerteneceAVivienda(viviendaId, usuarioId);
 
   if (!pertenece) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -50,9 +49,7 @@ export const listarDeudas: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const pertenece = await prisma.habitacion.findFirst({
-    where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
-  });
+  const pertenece = await usuarioPerteneceAVivienda(viviendaId, usuarioId);
 
   if (!pertenece) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -90,9 +87,7 @@ export const saldarDeuda: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const pertenece = await prisma.habitacion.findFirst({
-    where: { vivienda_id: viviendaId, inquilino_id: usuarioId },
-  });
+  const pertenece = await usuarioPerteneceAVivienda(viviendaId, usuarioId);
 
   if (!pertenece) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -155,71 +150,25 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
   }
 
   // Verificar que el pagador pertenece a la vivienda (es inquilino de alguna habitación)
-  const habitacionPagador = await prisma.habitacion.findFirst({
-    where: { vivienda_id: viviendaId, inquilino_id: pagadorId },
-  });
+  const habitacionPagador = await usuarioPerteneceAVivienda(viviendaId, pagadorId);
 
   if (!habitacionPagador) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
     return;
   }
 
-  // Obtener todos los inquilinos activos de la vivienda
-  const habitaciones = await prisma.habitacion.findMany({
-    where: {
-      vivienda_id: viviendaId,
-      inquilino_id: { not: null },
-      es_habitable: true,
-    },
-    select: {
-      inquilino_id: true,
-    },
-  });
+  try {
+    const gasto = await crearGastoDividido({
+      concepto,
+      importe,
+      viviendaId,
+      pagadorId,
+      implicadosIds,
+    });
 
-  const inquilinosActivosIds = habitaciones.map((h) => h.inquilino_id!);
-  const inquilinosActivosSet = new Set(inquilinosActivosIds);
-  const implicadosNormalizados = Array.isArray(implicadosIds)
-    ? [...new Set(implicadosIds)]
-    : [];
-
-  if (implicadosNormalizados.length > 0) {
-    const hayInvalidos = implicadosNormalizados.some((id) => !inquilinosActivosSet.has(id));
-    if (hayInvalidos) {
-      res.status(400).json({ error: 'Todos los implicados deben pertenecer a la vivienda.' });
-      return;
-    }
+    res.status(201).json(gasto);
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : 'No se pudo registrar el gasto.';
+    res.status(400).json({ error: mensaje });
   }
-
-  const participantesIds =
-    implicadosNormalizados.length > 0 ? implicadosNormalizados : inquilinosActivosIds;
-
-  const totalParticipantes = participantesIds.length;
-  if (totalParticipantes === 0) {
-    res.status(400).json({ error: 'No hay inquilinos activos para repartir este gasto.' });
-    return;
-  }
-
-  const deudoresIds = participantesIds.filter((id) => id !== pagadorId);
-  const importePorPersona = parseFloat((importe / totalParticipantes).toFixed(2));
-
-  const [gasto] = await prisma.$transaction([
-    prisma.gasto.create({
-      data: {
-        concepto,
-        importe,
-        pagador_id: pagadorId,
-        vivienda_id: viviendaId,
-        deudas: {
-          create: deudoresIds.map((deudorId) => ({
-            deudor_id: deudorId,
-            acreedor_id: pagadorId,
-            importe: importePorPersona,
-          })),
-        },
-      },
-      include: { deudas: true },
-    }),
-  ]);
-
-  res.status(201).json(gasto);
 };

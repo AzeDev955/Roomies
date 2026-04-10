@@ -8,9 +8,11 @@ import incidenciaRoutes from './routes/incidencia.routes';
 import anuncioRoutes from './routes/anuncio.routes';
 import limpiezaRoutes from './routes/limpieza.routes';
 import gastoRoutes from './routes/gasto.routes';
+import gastoRecurrenteRoutes from './routes/gasto-recurrente.routes';
 import userRoutes from './routes/user.routes';
 import inventarioRoutes from './routes/inventario.routes';
 import './services/cron.service';
+import { iniciarCronMensualidades } from './cron/mensualidades.cron';
 
 const app = express();
 const PORT = 3000;
@@ -29,8 +31,11 @@ app.use('/api/incidencias', incidenciaRoutes);
 app.use('/api/anuncios', anuncioRoutes);
 app.use('/api/viviendas', limpiezaRoutes);
 app.use('/api/viviendas', gastoRoutes);
+app.use('/api/viviendas', gastoRecurrenteRoutes);
 app.use('/api', inventarioRoutes);
 app.use('/api/users', userRoutes);
+
+iniciarCronMensualidades();
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

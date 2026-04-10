@@ -18,8 +18,6 @@ import { useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles } from '@/styles/inquilino/gastos.styles';
 
-// ── Tipos ─────────────────────────────────────────────────────────────────────
-
 type UsuarioBasico = { id: number; nombre: string; apellidos: string | null };
 
 type HabitacionVivienda = {
@@ -51,7 +49,15 @@ type Gasto = {
   deudas: Omit<Deuda, 'deudor' | 'acreedor' | 'gasto'>[];
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+type GastoRecurrente = {
+  id: number;
+  concepto: string;
+  importe: number;
+  dia_del_mes: number;
+  activo: boolean;
+  pagador_id: number;
+  pagador: UsuarioBasico;
+};
 
 const AvatarInitials = ({
   nombre,
@@ -88,18 +94,16 @@ const formatFecha = (iso: string) =>
 const formatImporte = (n: number) =>
   n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 export default function GastosInquilinoTab() {
   const [viviendaId, setViviendaId] = useState<number | null>(null);
   const [miId, setMiId] = useState<number | null>(null);
   const [companerosPiso, setCompanerosPiso] = useState<UsuarioBasico[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [deudas, setDeudas] = useState<Deuda[]>([]);
+  const [gastosRecurrentes, setGastosRecurrentes] = useState<GastoRecurrente[]>([]);
   const [loading, setLoading] = useState(true);
   const [saldando, setSaldando] = useState<number | null>(null);
 
-  // Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [concepto, setConcepto] = useState('');
   const [importe, setImporte] = useState('');
@@ -108,18 +112,31 @@ export default function GastosInquilinoTab() {
   const [importeFocused, setImporteFocused] = useState(false);
   const [implicadosSeleccionados, setImplicadosSeleccionados] = useState<number[]>([]);
 
-  // ── Carga de datos ────────────────────────────────────────────────────────
+  const [mensualidadModalVisible, setMensualidadModalVisible] = useState(false);
+  const [conceptoMensualidad, setConceptoMensualidad] = useState('');
+  const [importeMensualidad, setImporteMensualidad] = useState('');
+  const [diaMensualidad, setDiaMensualidad] = useState('');
+  const [guardandoMensualidad, setGuardandoMensualidad] = useState(false);
+  const [conceptoMensualidadFocused, setConceptoMensualidadFocused] = useState(false);
+  const [importeMensualidadFocused, setImporteMensualidadFocused] = useState(false);
+  const [diaMensualidadFocused, setDiaMensualidadFocused] = useState(false);
 
   const cargarTodo = useCallback(async (vId: number) => {
     try {
-      const [{ data: gastosData }, { data: deudasData }] = await Promise.all([
-        api.get<Gasto[]>(`/viviendas/${vId}/gastos`),
-        api.get<Deuda[]>(`/viviendas/${vId}/deudas`),
-      ]);
+      const [{ data: gastosData }, { data: deudasData }, { data: recurrentesData }] =
+        await Promise.all([
+          api.get<Gasto[]>(`/viviendas/${vId}/gastos`),
+          api.get<Deuda[]>(`/viviendas/${vId}/deudas`),
+          api.get<GastoRecurrente[]>(`/viviendas/${vId}/gastos-recurrentes`),
+        ]);
+
       setGastos(gastosData);
       setDeudas(deudasData);
+      setGastosRecurrentes(recurrentesData);
     } catch {
-      // Feed vacío — se muestra empty state
+      setGastos([]);
+      setDeudas([]);
+      setGastosRecurrentes([]);
     }
   }, []);
 
@@ -132,70 +149,83 @@ export default function GastosInquilinoTab() {
         try {
           const { data: viviendaData } = await api.get<{
             miHabitacionId: number;
-            vivienda: any;
+            vivienda: {
+              id: number;
+              habitaciones: HabitacionVivienda[];
+            };
           }>('/inquilino/vivienda');
 
-          const vId: number = viviendaData.vivienda.id;
+          const vId = viviendaData.vivienda.id;
           const miHab = viviendaData.vivienda.habitaciones.find(
-            (h: any) => h.id === viviendaData.miHabitacionId
+            (habitacion) => habitacion.id === viviendaData.miHabitacionId,
           );
-          const uId: number = miHab?.inquilino?.id ?? 0;
-          const participantes = (viviendaData.vivienda.habitaciones as HabitacionVivienda[])
-            .filter((h) => h.tipo === 'DORMITORIO' && h.inquilino !== null)
-            .map((h) => h.inquilino!);
+          const uId = miHab?.inquilino?.id ?? 0;
+          const participantes = viviendaData.vivienda.habitaciones
+            .filter((habitacion) => habitacion.tipo === 'DORMITORIO' && habitacion.inquilino !== null)
+            .map((habitacion) => habitacion.inquilino!);
 
           if (!activo) return;
+
           setViviendaId(vId);
           setMiId(uId);
           setCompanerosPiso(participantes);
           setImplicadosSeleccionados(participantes.map((inquilino) => inquilino.id));
           await cargarTodo(vId);
         } catch {
-          // Sin vivienda
+          if (!activo) return;
+          setViviendaId(null);
+          setMiId(null);
+          setCompanerosPiso([]);
+          setImplicadosSeleccionados([]);
+          setGastos([]);
+          setDeudas([]);
+          setGastosRecurrentes([]);
         } finally {
           if (activo) setLoading(false);
         }
       };
 
       inicializar();
-      return () => { activo = false; };
-    }, [cargarTodo])
+      return () => {
+        activo = false;
+      };
+    }, [cargarTodo]),
   );
-
-  // ── Balance desde deudas PENDIENTE ───────────────────────────────────────
 
   const calcularBalance = (): number => {
     if (!miId) return 0;
-    let bal = 0;
-    for (const d of deudas) {
-      if (d.estado === 'PAGADA') continue;
-      if (d.acreedor_id === miId) bal += d.importe;
-      if (d.deudor_id === miId)   bal -= d.importe;
+
+    let balance = 0;
+    for (const deuda of deudas) {
+      if (deuda.estado === 'PAGADA') continue;
+      if (deuda.acreedor_id === miId) balance += deuda.importe;
+      if (deuda.deudor_id === miId) balance -= deuda.importe;
     }
-    return bal;
+
+    return balance;
   };
 
-  const deudoasPendientes = deudas.filter((d) => d.estado === 'PENDIENTE');
-
-  // ── Saldar deuda ──────────────────────────────────────────────────────────
+  const deudasPendientes = deudas.filter((deuda) => deuda.estado === 'PENDIENTE');
+  const mensualidadesActivas = gastosRecurrentes.filter((gasto) => gasto.activo);
 
   const handleSaldar = (deuda: Deuda) => {
     Alert.alert(
-      '¿Confirmar pago?',
-      `¿Has hecho ya el Bizum o transferencia de ${formatImporte(deuda.importe)} a ${deuda.acreedor.nombre}?`,
+      'Confirmar pago',
+      `Has hecho ya el Bizum o transferencia de ${formatImporte(deuda.importe)} a ${deuda.acreedor.nombre}?`,
       [
-        { text: 'Aún no', style: 'cancel' },
+        { text: 'Aun no', style: 'cancel' },
         {
-          text: 'Sí, ya lo hice',
+          text: 'Si, ya lo hice',
           onPress: async () => {
             if (!viviendaId) return;
+
             setSaldando(deuda.id);
             try {
               await api.patch(`/viviendas/${viviendaId}/deudas/${deuda.id}/saldar`);
               await cargarTodo(viviendaId);
               Toast.show({
                 type: 'success',
-                text1: '¡Deuda saldada!',
+                text1: 'Deuda saldada',
                 text2: `${formatImporte(deuda.importe)} marcados como pagados.`,
               });
             } catch (err: any) {
@@ -208,23 +238,24 @@ export default function GastosInquilinoTab() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
-  // ── Guardar nuevo gasto ───────────────────────────────────────────────────
-
   const handleGuardar = async () => {
     if (!concepto.trim() || !importe.trim() || !viviendaId) return;
+
     if (implicadosSeleccionados.length === 0) {
       Toast.show({ type: 'error', text1: 'Selecciona al menos un participante para el gasto.' });
       return;
     }
+
     const importeNum = parseFloat(importe.replace(',', '.'));
     if (isNaN(importeNum) || importeNum <= 0) {
-      Toast.show({ type: 'error', text1: 'Introduce un importe válido mayor que 0.' });
+      Toast.show({ type: 'error', text1: 'Introduce un importe valido mayor que 0.' });
       return;
     }
+
     setGuardando(true);
     try {
       await api.post(`/viviendas/${viviendaId}/gastos`, {
@@ -236,7 +267,7 @@ export default function GastosInquilinoTab() {
       cerrarModal();
       Toast.show({
         type: 'success',
-        text1: '¡Gasto registrado!',
+        text1: 'Gasto registrado',
         text2: `${concepto.trim()} · ${formatImporte(importeNum)}`,
       });
     } catch (err: any) {
@@ -265,8 +296,64 @@ export default function GastosInquilinoTab() {
     setImplicadosSeleccionados((actuales) =>
       actuales.includes(inquilinoId)
         ? actuales.filter((id) => id !== inquilinoId)
-        : [...actuales, inquilinoId]
+        : [...actuales, inquilinoId],
     );
+  };
+
+  const cerrarModalMensualidad = () => {
+    setMensualidadModalVisible(false);
+    setConceptoMensualidad('');
+    setImporteMensualidad('');
+    setDiaMensualidad('');
+  };
+
+  const abrirModalMensualidad = () => {
+    setMensualidadModalVisible(true);
+  };
+
+  const handleGuardarMensualidad = async () => {
+    if (!viviendaId) return;
+
+    const importeNum = parseFloat(importeMensualidad.replace(',', '.'));
+    const diaNum = parseInt(diaMensualidad, 10);
+
+    if (!conceptoMensualidad.trim()) {
+      Toast.show({ type: 'error', text1: 'Indica un concepto para la mensualidad.' });
+      return;
+    }
+
+    if (isNaN(importeNum) || importeNum <= 0) {
+      Toast.show({ type: 'error', text1: 'Introduce un importe valido mayor que 0.' });
+      return;
+    }
+
+    if (!Number.isInteger(diaNum) || diaNum < 1 || diaNum > 31) {
+      Toast.show({ type: 'error', text1: 'El dia del mes debe estar entre 1 y 31.' });
+      return;
+    }
+
+    setGuardandoMensualidad(true);
+    try {
+      await api.post(`/viviendas/${viviendaId}/gastos-recurrentes`, {
+        concepto: conceptoMensualidad.trim(),
+        importe: importeNum,
+        dia_del_mes: diaNum,
+      });
+      await cargarTodo(viviendaId);
+      cerrarModalMensualidad();
+      Toast.show({
+        type: 'success',
+        text1: 'Mensualidad creada',
+        text2: `${conceptoMensualidad.trim()} · ${formatImporte(importeNum)} · Dia ${diaNum}`,
+      });
+    } catch (err: any) {
+      Toast.show({
+        type: 'error',
+        text1: err.response?.data?.error ?? 'No se pudo crear la mensualidad.',
+      });
+    } finally {
+      setGuardandoMensualidad(false);
+    }
   };
 
   const puedeGuardar =
@@ -274,7 +361,10 @@ export default function GastosInquilinoTab() {
     importe.trim().length > 0 &&
     implicadosSeleccionados.length > 0;
 
-  // ── Loading ───────────────────────────────────────────────────────────────
+  const puedeGuardarMensualidad =
+    conceptoMensualidad.trim().length > 0 &&
+    importeMensualidad.trim().length > 0 &&
+    diaMensualidad.trim().length > 0;
 
   if (loading) {
     return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
@@ -282,22 +372,19 @@ export default function GastosInquilinoTab() {
 
   const balance = calcularBalance();
   const debeMas = balance < 0;
-  const heroColor      = debeMas ? Theme.colors.danger : Theme.colors.success;
+  const heroColor = debeMas ? Theme.colors.danger : Theme.colors.success;
   const heroBackground = balance === 0 ? Theme.colors.surface2 : Theme.colors.surface;
-  const heroBadgeBackground = balance === 0
-    ? Theme.colors.surface2
-    : debeMas
-    ? Theme.colors.dangerLight
-    : Theme.colors.successLight;
-  const heroLabel      = debeMas ? 'Debes al grupo' : balance === 0 ? 'Estás al día' : 'Te deben';
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  const heroBadgeBackground =
+    balance === 0
+      ? Theme.colors.surface2
+      : debeMas
+        ? Theme.colors.dangerLight
+        : Theme.colors.successLight;
+  const heroLabel = debeMas ? 'Debes al grupo' : balance === 0 ? 'Estas al dia' : 'Te deben';
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        {/* ── Cabecera ── */}
         <View style={styles.header}>
           <Text style={styles.headerEtiqueta}>Gastos comunes</Text>
           <Text style={styles.headerTitulo}>Balance del piso</Text>
@@ -306,51 +393,53 @@ export default function GastosInquilinoTab() {
           </Text>
         </View>
 
-        {/* ── Hero Card Balance ── */}
-        <View style={[styles.heroCard, { backgroundColor: heroBackground }]}> 
+        <View style={[styles.heroCard, { backgroundColor: heroBackground }]}>
           <View style={[styles.heroEtiquetaBadge, { backgroundColor: heroBadgeBackground }]}>
-            <Text style={[styles.heroEtiqueta, { color: heroColor }]}>
-              {heroLabel.toUpperCase()}
-            </Text>
+            <Text style={[styles.heroEtiqueta, { color: heroColor }]}>{heroLabel.toUpperCase()}</Text>
           </View>
           <Text style={[styles.heroImporte, { color: heroColor }]}>
             {formatImporte(Math.abs(balance))}
           </Text>
           <Text style={styles.heroDescripcion}>
             {debeMas
-              ? 'Tienes deudas pendientes con tus compañeros'
+              ? 'Tienes deudas pendientes con tus companeros'
               : balance === 0
-              ? 'No tienes deudas pendientes'
-              : 'Tus compañeros te deben dinero'}
+                ? 'No tienes deudas pendientes'
+                : 'Tus companeros te deben dinero'}
           </Text>
         </View>
 
-        {/* ── Sección Deudas Pendientes ── */}
-        {deudoasPendientes.length > 0 && (
+        {deudasPendientes.length > 0 && (
           <>
             <Text style={styles.seccionTitulo}>Deudas pendientes</Text>
-            {deudoasPendientes.map((d) => {
-              const yoDebo = d.deudor_id === miId;
-              const companero = yoDebo ? d.acreedor : d.deudor;
+            {deudasPendientes.map((deuda) => {
+              const yoDebo = deuda.deudor_id === miId;
+              const companero = yoDebo ? deuda.acreedor : deuda.deudor;
               const amountColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
-              const statusBackground = yoDebo ? Theme.colors.dangerLight : Theme.colors.successLight;
+              const statusBackground = yoDebo
+                ? Theme.colors.dangerLight
+                : Theme.colors.successLight;
               const statusText = yoDebo ? Theme.colors.danger : Theme.colors.success;
 
               return (
-                <View key={d.id} style={styles.deudaCard}>
-                  <AvatarInitials nombre={companero.nombre} apellidos={companero.apellidos} size={52} />
+                <View key={deuda.id} style={styles.deudaCard}>
+                  <AvatarInitials
+                    nombre={companero.nombre}
+                    apellidos={companero.apellidos}
+                    size={52}
+                  />
                   <View style={styles.deudaInfo}>
                     <Text style={styles.deudaNombre} numberOfLines={1}>
                       {companero.nombre}
                       {companero.apellidos ? ` ${companero.apellidos}` : ''}
                     </Text>
                     <Text style={styles.deudaConcepto} numberOfLines={2}>
-                      {d.gasto.concepto}
+                      {deuda.gasto.concepto}
                     </Text>
                   </View>
                   <View style={styles.deudaMeta}>
                     <Text style={[styles.deudaImporte, { color: amountColor }]}>
-                      {formatImporte(d.importe)}
+                      {formatImporte(deuda.importe)}
                     </Text>
 
                     {yoDebo ? (
@@ -359,14 +448,14 @@ export default function GastosInquilinoTab() {
                           styles.botonSaldar,
                           { backgroundColor: statusBackground },
                           pressed && styles.botonSaldarPressed,
-                          saldando === d.id && { opacity: 0.6 },
+                          saldando === deuda.id && { opacity: 0.6 },
                         ]}
-                        onPress={() => handleSaldar(d)}
-                        disabled={saldando === d.id}
-                        accessibilityLabel={`Saldar deuda de ${formatImporte(d.importe)} con ${companero.nombre}`}
+                        onPress={() => handleSaldar(deuda)}
+                        disabled={saldando === deuda.id}
+                        accessibilityLabel={`Saldar deuda de ${formatImporte(deuda.importe)} con ${companero.nombre}`}
                         accessibilityRole="button"
                       >
-                        {saldando === d.id ? (
+                        {saldando === deuda.id ? (
                           <ActivityIndicator size="small" color={statusText} />
                         ) : (
                           <Text style={[styles.botonSaldarTexto, { color: statusText }]}>Saldar</Text>
@@ -375,7 +464,9 @@ export default function GastosInquilinoTab() {
                     ) : (
                       <View style={[styles.badgeEsperando, { backgroundColor: statusBackground }]}>
                         <Ionicons name="time-outline" size={13} color={statusText} />
-                        <Text style={[styles.badgeEsperandoTexto, { color: statusText }]}>Esperando</Text>
+                        <Text style={[styles.badgeEsperandoTexto, { color: statusText }]}>
+                          Esperando
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -385,30 +476,80 @@ export default function GastosInquilinoTab() {
           </>
         )}
 
-        {/* ── Feed de movimientos ── */}
+        <View style={styles.seccionHeaderRow}>
+          <View style={styles.seccionHeaderTextos}>
+            <Text style={styles.seccionTitulo}>Gastos Fijos / Mensualidades</Text>
+            <Text style={styles.seccionDescripcion}>
+              Suscripciones activas que el backend genera automaticamente cada mes.
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [styles.botonSecundario, pressed && styles.botonPressed]}
+            onPress={abrirModalMensualidad}
+            accessibilityLabel="Crear nuevo gasto fijo o mensualidad"
+            accessibilityRole="button"
+          >
+            <Ionicons name="repeat-outline" size={16} color={Theme.colors.primary} />
+            <Text style={styles.botonSecundarioTexto}>Nueva</Text>
+          </Pressable>
+        </View>
+
+        {mensualidadesActivas.length === 0 ? (
+          <View style={styles.mensualidadEmptyCard}>
+            <View style={styles.mensualidadEmptyIcon}>
+              <Ionicons name="calendar-outline" size={22} color={Theme.colors.primary} />
+            </View>
+            <View style={styles.mensualidadEmptyTextos}>
+              <Text style={styles.mensualidadEmptyTitulo}>Aun no hay mensualidades activas</Text>
+              <Text style={styles.mensualidadEmptySubtitulo}>
+                Crea alquiler, internet o suministros para que el cron los convierta en gastos
+                normales.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          mensualidadesActivas.map((gasto) => (
+            <View key={gasto.id} style={styles.mensualidadCard}>
+              <View style={styles.mensualidadIcono}>
+                <Ionicons name="repeat" size={18} color={Theme.colors.primary} />
+              </View>
+              <View style={styles.mensualidadInfo}>
+                <Text style={styles.mensualidadConcepto}>{gasto.concepto}</Text>
+                <Text style={styles.mensualidadMeta}>
+                  {formatImporte(gasto.importe)} · Dia {gasto.dia_del_mes}
+                </Text>
+              </View>
+              <View style={styles.mensualidadBadge}>
+                <Text style={styles.mensualidadBadgeTexto}>Activa</Text>
+              </View>
+            </View>
+          ))
+        )}
+
         {gastos.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
               <Ionicons name="wallet-outline" size={40} color={Theme.colors.primary} />
             </View>
-            <Text style={styles.emptyTitulo}>Sin gastos todavía</Text>
+            <Text style={styles.emptyTitulo}>Sin gastos todavia</Text>
             <Text style={styles.emptySubtitulo}>
-              Cuando alguien pague algo por la casa, aparecerá aquí para que todos contribuyan su parte.
+              Cuando alguien pague algo por la casa, aparecera aqui para que todos contribuyan su
+              parte.
             </Text>
           </View>
         ) : (
           <>
             <Text style={styles.seccionTitulo}>Movimientos</Text>
-            {gastos.map((g) => (
-              <View key={g.id} style={styles.gastoCard}>
-                <AvatarInitials nombre={g.pagador.nombre} apellidos={g.pagador.apellidos} size={46} />
+            {gastos.map((gasto) => (
+              <View key={gasto.id} style={styles.gastoCard}>
+                <AvatarInitials nombre={gasto.pagador.nombre} apellidos={gasto.pagador.apellidos} size={46} />
                 <View style={styles.gastoInfo}>
-                  <Text style={styles.gastoConcepto}>{g.concepto}</Text>
-                  <Text style={styles.gastoPagador}>Pagado por {g.pagador.nombre}</Text>
-                  <Text style={styles.gastoFecha}>{formatFecha(g.fecha_creacion)}</Text>
+                  <Text style={styles.gastoConcepto}>{gasto.concepto}</Text>
+                  <Text style={styles.gastoPagador}>Pagado por {gasto.pagador.nombre}</Text>
+                  <Text style={styles.gastoFecha}>{formatFecha(gasto.fecha_creacion)}</Text>
                 </View>
                 <View style={styles.gastoImporteBox}>
-                  <Text style={styles.gastoImporte}>{formatImporte(g.importe)}</Text>
+                  <Text style={styles.gastoImporte}>{formatImporte(gasto.importe)}</Text>
                   <Text style={styles.gastoImporteSub}>total</Text>
                 </View>
               </View>
@@ -417,17 +558,15 @@ export default function GastosInquilinoTab() {
         )}
       </ScrollView>
 
-      {/* ── FAB ── */}
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={abrirModal}
-        accessibilityLabel="Añadir nuevo gasto"
+        accessibilityLabel="Anadir nuevo gasto"
         accessibilityRole="button"
       >
         <Ionicons name="add" size={28} color={Theme.colors.surface} />
       </Pressable>
 
-      {/* ── Modal Nuevo Gasto ── */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={cerrarModal}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -443,9 +582,12 @@ export default function GastosInquilinoTab() {
               <TextInput
                 style={[
                   styles.input,
-                  conceptoFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                  conceptoFocused && {
+                    borderColor: Theme.colors.primary,
+                    backgroundColor: Theme.colors.primaryLight,
+                  },
                 ]}
-                placeholder="Ej. Papel higiénico, gas, pizza…"
+                placeholder="Ej. Papel higienico, gas, pizza..."
                 placeholderTextColor={Theme.colors.textMuted}
                 value={concepto}
                 onChangeText={setConcepto}
@@ -461,7 +603,10 @@ export default function GastosInquilinoTab() {
               <TextInput
                 style={[
                   styles.input,
-                  importeFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                  importeFocused && {
+                    borderColor: Theme.colors.primary,
+                    backgroundColor: Theme.colors.primaryLight,
+                  },
                 ]}
                 placeholder="0,00"
                 placeholderTextColor={Theme.colors.textMuted}
@@ -555,7 +700,116 @@ export default function GastosInquilinoTab() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <Modal
+        visible={mensualidadModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={cerrarModalMensualidad}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <Pressable style={{ flex: 1 }} onPress={cerrarModalMensualidad} />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitulo}>Nueva mensualidad</Text>
+
+            <View style={styles.infoBanner}>
+              <Ionicons name="time-outline" size={16} color={Theme.colors.primary} />
+              <Text style={styles.infoBannerTexto}>
+                El backend creara un gasto automatico cada mes a las 02:00 del dia elegido.
+              </Text>
+            </View>
+
+            <View>
+              <Text style={styles.inputLabel}>Concepto</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  conceptoMensualidadFocused && {
+                    borderColor: Theme.colors.primary,
+                    backgroundColor: Theme.colors.primaryLight,
+                  },
+                ]}
+                placeholder="Ej. Alquiler, internet, luz"
+                placeholderTextColor={Theme.colors.textMuted}
+                value={conceptoMensualidad}
+                onChangeText={setConceptoMensualidad}
+                onFocus={() => setConceptoMensualidadFocused(true)}
+                onBlur={() => setConceptoMensualidadFocused(false)}
+                maxLength={120}
+              />
+            </View>
+
+            <View>
+              <Text style={styles.inputLabel}>Importe (€)</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  importeMensualidadFocused && {
+                    borderColor: Theme.colors.primary,
+                    backgroundColor: Theme.colors.primaryLight,
+                  },
+                ]}
+                placeholder="800,00"
+                placeholderTextColor={Theme.colors.textMuted}
+                value={importeMensualidad}
+                onChangeText={setImporteMensualidad}
+                onFocus={() => setImporteMensualidadFocused(true)}
+                onBlur={() => setImporteMensualidadFocused(false)}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View>
+              <Text style={styles.inputLabel}>Dia del mes</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  diaMensualidadFocused && {
+                    borderColor: Theme.colors.primary,
+                    backgroundColor: Theme.colors.primaryLight,
+                  },
+                ]}
+                placeholder="1"
+                placeholderTextColor={Theme.colors.textMuted}
+                value={diaMensualidad}
+                onChangeText={setDiaMensualidad}
+                onFocus={() => setDiaMensualidadFocused(true)}
+                onBlur={() => setDiaMensualidadFocused(false)}
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+            </View>
+
+            <View style={styles.modalAcciones}>
+              <Pressable
+                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
+                onPress={cerrarModalMensualidad}
+              >
+                <Text style={styles.botonCancelarTexto}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.botonGuardar,
+                  !puedeGuardarMensualidad && styles.botonGuardarDisabled,
+                  pressed && !guardandoMensualidad && styles.botonPressed,
+                ]}
+                onPress={handleGuardarMensualidad}
+                disabled={!puedeGuardarMensualidad || guardandoMensualidad}
+              >
+                {guardandoMensualidad ? (
+                  <ActivityIndicator color={Theme.colors.surface} />
+                ) : (
+                  <Text style={styles.botonGuardarTexto}>Crear</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
-

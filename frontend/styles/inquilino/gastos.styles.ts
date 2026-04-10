@@ -6,10 +6,9 @@ export const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Theme.spacing.lg,
     paddingTop: Theme.spacing.lg,
-    paddingBottom: 100, // espacio para el FAB
+    paddingBottom: 100,
   },
 
-  // — Cabecera —
   header: {
     marginBottom: Theme.spacing.lg,
   },
@@ -35,7 +34,6 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // — Hero Card Balance —
   heroCard: {
     borderRadius: Theme.radius.xl,
     padding: Theme.spacing.xl,
@@ -72,15 +70,44 @@ export const styles = StyleSheet.create({
     lineHeight: 21,
   },
 
-  // — Sección —
   seccionTitulo: {
     fontSize: Theme.typography.subtitle,
     fontWeight: '700',
     color: Theme.colors.text,
     marginBottom: Theme.spacing.md,
   },
+  seccionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Theme.spacing.base,
+    marginTop: Theme.spacing.sm,
+    marginBottom: Theme.spacing.md,
+  },
+  seccionHeaderTextos: {
+    flex: 1,
+  },
+  seccionDescripcion: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  botonSecundario: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+    backgroundColor: Theme.colors.primaryLight,
+    borderRadius: Theme.radius.full,
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: 10,
+    minHeight: 42,
+  },
+  botonSecundarioTexto: {
+    color: Theme.colors.primary,
+    fontSize: Theme.typography.label,
+    fontWeight: '800',
+  },
 
-  // — Tarjetas de Deuda —
   deudaCard: {
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.radius.lg,
@@ -152,7 +179,86 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  // — Card de Gasto —
+  mensualidadCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.base,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    ...Theme.shadows.sm,
+  },
+  mensualidadIcono: {
+    width: 46,
+    height: 46,
+    borderRadius: Theme.radius.md,
+    backgroundColor: Theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mensualidadInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  mensualidadConcepto: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.text,
+  },
+  mensualidadMeta: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+  },
+  mensualidadBadge: {
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.successLight,
+    paddingHorizontal: Theme.spacing.sm,
+    paddingVertical: 8,
+  },
+  mensualidadBadgeTexto: {
+    color: Theme.colors.success,
+    fontSize: Theme.typography.caption,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  mensualidadEmptyCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.base,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.xl,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  mensualidadEmptyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mensualidadEmptyTextos: {
+    flex: 1,
+    gap: 4,
+  },
+  mensualidadEmptyTitulo: {
+    color: Theme.colors.text,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+  },
+  mensualidadEmptySubtitulo: {
+    color: Theme.colors.textSecondary,
+    fontSize: Theme.typography.label,
+    lineHeight: 20,
+  },
+
   gastoCard: {
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.radius.lg,
@@ -205,7 +311,6 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // — Empty State —
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: Theme.spacing.xxl,
@@ -235,7 +340,6 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // — Modal (bottom sheet) —
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -263,6 +367,21 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     color: Theme.colors.text,
     letterSpacing: -0.3,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.sm,
+    backgroundColor: Theme.colors.primaryLight,
+    borderRadius: Theme.radius.md,
+    padding: Theme.spacing.base,
+  },
+  infoBannerTexto: {
+    flex: 1,
+    color: Theme.colors.primary,
+    fontSize: Theme.typography.label,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   inputLabel: {
     fontSize: Theme.typography.label,
@@ -373,7 +492,6 @@ export const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
   },
 
-  // — FAB —
   fab: {
     position: 'absolute',
     bottom: Theme.spacing.xl,
