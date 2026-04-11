@@ -44,45 +44,15 @@ export const styles = StyleSheet.create({
     borderColor: Theme.colors.border,
     ...Theme.shadows.sm,
   },
-  heroHeader: {
-    alignItems: 'flex-start',
-  },
-  heroEtiquetaBadge: {
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: 7,
-    marginBottom: Theme.spacing.md,
-  },
-  heroEtiqueta: {
-    fontSize: Theme.typography.caption,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.4,
-  },
   heroImporte: {
     fontSize: Theme.typography.hero,
     fontWeight: '900',
     letterSpacing: -1,
     lineHeight: 40,
   },
-  heroDescripcion: {
-    fontSize: Theme.typography.label,
-    fontWeight: '600',
-    marginTop: Theme.spacing.sm,
-    color: Theme.colors.textSecondary,
-    lineHeight: 21,
-  },
-  heroTitulo: {
-    fontSize: Theme.typography.heading,
-    fontWeight: '800',
-    color: Theme.colors.text,
-    letterSpacing: -0.4,
-    lineHeight: 30,
-  },
   heroResumenGrid: {
     flexDirection: 'row',
     gap: Theme.spacing.md,
-    marginTop: Theme.spacing.lg,
   },
   heroResumenCard: {
     flex: 1,
@@ -115,22 +85,6 @@ export const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     lineHeight: 20,
   },
-  heroFootnote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.sm,
-    marginTop: Theme.spacing.base,
-    paddingTop: Theme.spacing.base,
-    borderTopWidth: 1,
-    borderTopColor: Theme.colors.border,
-  },
-  heroFootnoteText: {
-    flex: 1,
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
-    lineHeight: 20,
-  },
-
   caseroCard: {
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.radius.xl,
@@ -164,11 +118,6 @@ export const styles = StyleSheet.create({
     color: Theme.colors.text,
     letterSpacing: -0.2,
   },
-  caseroDescripcion: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
-    lineHeight: 20,
-  },
   caseroResumenGrid: {
     flexDirection: 'row',
     gap: Theme.spacing.md,
@@ -189,6 +138,39 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.subtitle,
     fontWeight: '900',
     letterSpacing: -0.3,
+  },
+  pendientesEmptyCard: {
+    backgroundColor: Theme.colors.successLight,
+    borderRadius: Theme.radius.lg,
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.base,
+    borderWidth: 1,
+    borderColor: Theme.colors.success + '22',
+  },
+  pendientesEmptyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendientesEmptyTextos: {
+    flex: 1,
+    gap: Theme.spacing.xs,
+  },
+  pendientesEmptyTitulo: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.text,
+  },
+  pendientesEmptySubtitulo: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
   },
 
   seccionTitulo: {

@@ -203,6 +203,9 @@ export default function GastosInquilinoTab() {
   const totalMeDebenCasero = sumarImportes(
     deudasPendientesCasero.filter((deuda) => deuda.acreedor_id === miId),
   );
+  const noHayPendientes = deudasPendientes.length === 0;
+  const mostrarPendientesVacios =
+    noHayPendientes && (deudasRelacionadas.length > 0 || gastos.length > 0);
 
   const abrirModalPago = (deuda: Deuda) => {
     setDeudaSeleccionada(deuda);
@@ -410,19 +413,6 @@ export default function GastosInquilinoTab() {
         </View>
 
         <View style={styles.heroCard}>
-          <View style={styles.heroHeader}>
-            <View style={[styles.heroEtiquetaBadge, { backgroundColor: Theme.colors.primaryLight }]}>
-              <Text style={[styles.heroEtiqueta, { color: Theme.colors.primary }]}>
-                RESUMEN ENTRE COMPAÑEROS
-              </Text>
-            </View>
-            <Text style={styles.heroTitulo}>Lo que debes y lo que te deben van por separado</Text>
-            <Text style={styles.heroDescripcion}>
-              Ya no compensamos un pendiente con otro. Así ves con claridad lo que debes y lo que
-              te deben dentro del piso.
-            </Text>
-          </View>
-
           <View style={styles.heroResumenGrid}>
             <View
               style={[
@@ -463,12 +453,6 @@ export default function GastosInquilinoTab() {
             </View>
           </View>
 
-          <View style={styles.heroFootnote}>
-            <Ionicons name="swap-horizontal-outline" size={16} color={Theme.colors.textSecondary} />
-            <Text style={styles.heroFootnoteText}>
-              Solo se cruzan importes cuando la otra persona es la misma.
-            </Text>
-          </View>
         </View>
 
         {(totalDeboCasero > 0 || totalMeDebenCasero > 0) && (
@@ -479,9 +463,6 @@ export default function GastosInquilinoTab() {
               </View>
               <View style={styles.caseroHeaderTextos}>
                 <Text style={styles.caseroTitulo}>Relación con el casero</Text>
-                <Text style={styles.caseroDescripcion}>
-                  Este bloque va aparte y no se mezcla con los compañeros del piso.
-                </Text>
               </View>
             </View>
 
@@ -501,6 +482,21 @@ export default function GastosInquilinoTab() {
                   {formatImporte(totalMeDebenCasero)}
                 </Text>
               </View>
+            </View>
+          </View>
+        )}
+
+        {mostrarPendientesVacios && (
+          <View style={styles.pendientesEmptyCard}>
+            <View style={styles.pendientesEmptyIcon}>
+              <Ionicons name="checkmark-circle-outline" size={22} color={Theme.colors.success} />
+            </View>
+            <View style={styles.pendientesEmptyTextos}>
+              <Text style={styles.pendientesEmptyTitulo}>Sin pagos pendientes</Text>
+              <Text style={styles.pendientesEmptySubtitulo}>
+                Cuando haya una deuda real con un compañero o con el casero, aparecerá en esta
+                zona.
+              </Text>
             </View>
           </View>
         )}
