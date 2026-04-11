@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useGlobalSearchParams, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles } from '@/styles/tablon/tablon.styles';
 
@@ -28,7 +28,8 @@ type Anuncio = {
 };
 
 export default function CaseroTablonTab() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useGlobalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -39,6 +40,8 @@ export default function CaseroTablonTab() {
   const [contenidoFocused, setContenidoFocused] = useState(false);
 
   const cargarAnuncios = async () => {
+    if (!id) return;
+
     setLoading(true);
     try {
       const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${id}`);
@@ -53,7 +56,7 @@ export default function CaseroTablonTab() {
   useFocusEffect(useCallback(() => { cargarAnuncios(); }, [id]));
 
   const handlePublicar = async () => {
-    if (!titulo.trim() || !contenido.trim()) return;
+    if (!id || !titulo.trim() || !contenido.trim()) return;
     setPublicando(true);
     try {
       const { data } = await api.post<Anuncio>('/anuncios', {

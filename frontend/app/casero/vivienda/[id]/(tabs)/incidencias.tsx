@@ -4,7 +4,7 @@ import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useGlobalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import {
   styles,
@@ -34,13 +34,16 @@ type Incidencia = {
 const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
 
 export default function IncidenciasCaseroTab() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useGlobalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loading, setLoading] = useState(true);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
   const cargarIncidencias = async () => {
+    if (!id) return;
+
     setLoading(true);
     try {
       const { data } = await api.get<Incidencia[]>(`/incidencias?viviendaId=${id}`);

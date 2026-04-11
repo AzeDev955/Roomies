@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useGlobalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
@@ -119,7 +119,8 @@ const AvatarInitials = ({
 };
 
 export default function ResumenViviendaTab() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useGlobalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
   const [gastosRecurrentes, setGastosRecurrentes] = useState<GastoRecurrente[]>([]);
@@ -132,6 +133,8 @@ export default function ResumenViviendaTab() {
   const [guardandoMensualidad, setGuardandoMensualidad] = useState(false);
 
   const cargarVivienda = useCallback(async () => {
+    if (!id) return null;
+
     try {
       const { data } = await api.get<Vivienda>(`/viviendas/${id}`);
       setVivienda(data);
@@ -143,6 +146,8 @@ export default function ResumenViviendaTab() {
   }, [id]);
 
   const cargarGastosRecurrentes = useCallback(async () => {
+    if (!id) return;
+
     try {
       const { data } = await api.get<GastoRecurrente[]>(`/viviendas/${id}/gastos-recurrentes`);
       setGastosRecurrentes(data);
@@ -245,6 +250,8 @@ export default function ResumenViviendaTab() {
   };
 
   const handleEditarHabitacion = (hab: Habitacion) => {
+    if (!id) return;
+
     router.push({
       pathname: '/casero/vivienda/[id]/editar-habitacion',
       params: {
@@ -268,6 +275,8 @@ export default function ResumenViviendaTab() {
   };
 
   const handleGuardarMensualidad = async () => {
+    if (!id) return;
+
     const importeNum = parseFloat(importeMensualidad.replace(',', '.'));
     const diaNum = parseInt(diaMensualidad, 10);
 
