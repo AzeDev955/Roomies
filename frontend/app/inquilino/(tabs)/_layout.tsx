@@ -72,7 +72,7 @@ export default function InquilinoTabsLayout() {
       <Tabs.Screen
         name="inicio"
         options={{
-          title: "Mi vivienda",
+          title: "Vivienda",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -111,7 +111,7 @@ export default function InquilinoTabsLayout() {
       <Tabs.Screen
         name="inventario"
         options={{
-          title: "Inventario",
+          title: "Invent.",
           href: modulos.inventario ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="images-outline" size={size} color={color} />

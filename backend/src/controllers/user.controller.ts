@@ -5,7 +5,7 @@ export const actualizarPushToken: express.RequestHandler = async (req, res) => {
   const { token } = req.body as { token?: unknown };
 
   if (token !== null && (typeof token !== 'string' || token.trim().length === 0)) {
-    res.status(400).json({ error: 'Debes enviar un token valido.' });
+    res.status(400).json({ error: 'Debes enviar un token válido.' });
     return;
   }
 
