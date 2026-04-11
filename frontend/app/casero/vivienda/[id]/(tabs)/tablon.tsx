@@ -14,9 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { Redirect, useGlobalSearchParams, useFocusEffect } from 'expo-router';
+import { Redirect, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles } from '@/styles/tablon/tablon.styles';
+import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
 
 type Anuncio = {
   id: number;
@@ -28,8 +29,7 @@ type Anuncio = {
 };
 
 export default function CaseroTablonTab() {
-  const params = useGlobalSearchParams<{ id?: string | string[] }>();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = useViviendaIdParam();
   const viviendaId = Number(id);
   const viviendaIdValido = !!id && !Number.isNaN(viviendaId);
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);

@@ -4,8 +4,9 @@ import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { useGlobalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
+import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
 import {
   styles,
   PRIORIDAD_BG,
@@ -34,8 +35,7 @@ type Incidencia = {
 const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
 
 export default function IncidenciasCaseroTab() {
-  const params = useGlobalSearchParams<{ id?: string | string[] }>();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = useViviendaIdParam();
   const router = useRouter();
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loading, setLoading] = useState(true);
