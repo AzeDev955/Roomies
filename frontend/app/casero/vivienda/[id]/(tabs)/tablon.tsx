@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { Redirect, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles } from '@/styles/tablon/tablon.styles';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
@@ -30,6 +30,8 @@ type Anuncio = {
 
 export default function CaseroTablonTab() {
   const id = useViviendaIdParam();
+  const viviendaId = Number(id);
+  const viviendaIdValido = !!id && !Number.isNaN(viviendaId);
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -39,30 +41,30 @@ export default function CaseroTablonTab() {
   const [tituloFocused, setTituloFocused] = useState(false);
   const [contenidoFocused, setContenidoFocused] = useState(false);
 
-  const cargarAnuncios = async () => {
-    if (!id) return;
+  const cargarAnuncios = useCallback(async () => {
+    if (!viviendaIdValido) return;
 
     setLoading(true);
     try {
-      const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${id}`);
+      const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${viviendaId}`);
       setAnuncios(data);
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudieron cargar los anuncios.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [viviendaId, viviendaIdValido]);
 
-  useFocusEffect(useCallback(() => { cargarAnuncios(); }, [id]));
+  useFocusEffect(useCallback(() => { cargarAnuncios(); }, [cargarAnuncios]));
 
   const handlePublicar = async () => {
-    if (!id || !titulo.trim() || !contenido.trim()) return;
+    if (!viviendaIdValido || !titulo.trim() || !contenido.trim()) return;
     setPublicando(true);
     try {
       const { data } = await api.post<Anuncio>('/anuncios', {
         titulo: titulo.trim(),
         contenido: contenido.trim(),
-        vivienda_id: Number(id),
+        vivienda_id: viviendaId,
       });
       setAnuncios((prev) => [data, ...prev]);
       setTitulo('');
@@ -99,6 +101,10 @@ export default function CaseroTablonTab() {
     new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const puedePublicar = titulo.trim().length > 0 && contenido.trim().length > 0;
+
+  if (!viviendaIdValido) {
+    return <Redirect href="/casero/viviendas" />;
+  }
 
   const renderAnuncio = ({ item }: { item: Anuncio }) => (
     <View style={styles.card}>

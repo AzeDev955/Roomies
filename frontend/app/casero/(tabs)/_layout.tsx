@@ -112,6 +112,7 @@ export default function CaseroTabsLayout() {
         name="tablon"
         options={{
           title: 'Tablón',
+          href: null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="newspaper-outline" size={size} color={color} />
           ),

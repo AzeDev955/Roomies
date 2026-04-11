@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { Redirect, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles } from '@/styles/tablon/tablon.styles';
 
@@ -72,7 +72,7 @@ export default function InquilinoTablonScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { cargarContexto(); }, []));
-  useFocusEffect(useCallback(() => { if (contexto) cargarAnuncios(contexto.viviendaId); }, [contexto]));
+  useFocusEffect(useCallback(() => { if (contexto) cargarAnuncios(contexto.viviendaId); }, [cargarAnuncios, contexto]));
 
   const handlePublicar = async () => {
     if (!titulo.trim() || !contenido.trim() || !contexto) return;
@@ -124,19 +124,7 @@ export default function InquilinoTablonScreen() {
   }
 
   if (!contexto) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconBox}>
-            <Ionicons name="key-outline" size={44} color={Theme.colors.primary} />
-          </View>
-          <Text style={styles.emptyTitulo}>Únete a una vivienda</Text>
-          <Text style={styles.emptySubtitulo}>
-            El tablón de anuncios aparecerá aquí en cuanto te unas a tu vivienda con el código de invitación.
-          </Text>
-        </View>
-      </View>
-    );
+    return <Redirect href="/inquilino/inicio" />;
   }
 
   const puedeEliminar = (anuncio: Anuncio) => anuncio.autor_id === contexto.usuarioId;

@@ -16,6 +16,7 @@ export default function InquilinoTabsLayout() {
     gastos: false,
     inventario: false,
   });
+  const [tieneVivienda, setTieneVivienda] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -26,6 +27,7 @@ export default function InquilinoTabsLayout() {
           const { data } = await api.get<{ vivienda: ViviendaModulos }>("/inquilino/vivienda");
           if (!activo) return;
 
+          setTieneVivienda(true);
           setModulos({
             limpieza: data.vivienda.mod_limpieza,
             gastos: data.vivienda.mod_gastos,
@@ -33,6 +35,7 @@ export default function InquilinoTabsLayout() {
           });
         } catch {
           if (activo) {
+            setTieneVivienda(false);
             setModulos({ limpieza: false, gastos: false, inventario: false });
           }
         }
@@ -79,6 +82,7 @@ export default function InquilinoTabsLayout() {
         name="tablon"
         options={{
           title: "Tablón",
+          href: tieneVivienda ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="newspaper-outline" size={size} color={color} />
           ),
