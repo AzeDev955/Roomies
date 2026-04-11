@@ -406,13 +406,25 @@ export default function GastosInquilinoTab() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerEtiqueta}>Gastos comunes</Text>
-          <Text style={styles.headerTitulo}>Balance del piso</Text>
+          <Text style={styles.headerTitulo}>Gastos del piso</Text>
           <Text style={styles.headerSubtitulo}>
-            Divide los gastos de forma justa y transparente.
+            Separa lo que os debéis entre compañeros de cualquier pendiente con el casero.
           </Text>
         </View>
 
         <View style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroIconBox}>
+              <Ionicons name="people-outline" size={18} color={Theme.colors.primary} />
+            </View>
+            <View style={styles.heroHeaderTextos}>
+              <Text style={styles.heroTitulo}>Entre compañeros</Text>
+              <Text style={styles.heroSubtitulo}>
+                Solo recoge gastos compartidos por quienes viven en el piso.
+              </Text>
+            </View>
+          </View>
+
           <View style={styles.heroResumenGrid}>
             <View
               style={[
@@ -424,12 +436,14 @@ export default function GastosInquilinoTab() {
               ]}
             >
               <View style={[styles.heroResumenBadge, { backgroundColor: Theme.colors.dangerLight }]}>
-                <Text style={[styles.heroResumenBadgeText, { color: Theme.colors.danger }]}>Debes</Text>
+                <Text style={[styles.heroResumenBadgeText, { color: Theme.colors.danger }]}>
+                  Tú debes
+                </Text>
               </View>
               <Text style={[styles.heroResumenImporte, { color: Theme.colors.danger }]}>
                 {formatImporte(totalDeboCompaneros)}
               </Text>
-              <Text style={styles.heroResumenTexto}>Pendiente con compañeros</Text>
+              <Text style={styles.heroResumenTexto}>A compañeros por gastos comunes</Text>
             </View>
 
             <View
@@ -449,7 +463,7 @@ export default function GastosInquilinoTab() {
               <Text style={[styles.heroResumenImporte, { color: Theme.colors.success }]}>
                 {formatImporte(totalMeDebenCompaneros)}
               </Text>
-              <Text style={styles.heroResumenTexto}>Pendiente de cobrar</Text>
+              <Text style={styles.heroResumenTexto}>Compañeros pendientes contigo</Text>
             </View>
           </View>
 
@@ -463,6 +477,9 @@ export default function GastosInquilinoTab() {
               </View>
               <View style={styles.caseroHeaderTextos}>
                 <Text style={styles.caseroTitulo}>Relación con el casero</Text>
+                <Text style={styles.caseroSubtitulo}>
+                  Pagos asociados al propietario, separados del balance entre compañeros.
+                </Text>
               </View>
             </View>
 
@@ -503,7 +520,12 @@ export default function GastosInquilinoTab() {
 
         {deudasPendientesCompaneros.length > 0 && (
           <>
-            <Text style={styles.seccionTitulo}>Pendientes con compañeros</Text>
+            <View style={styles.seccionHeader}>
+              <Text style={styles.seccionTitulo}>Pendientes entre compañeros</Text>
+              <Text style={styles.seccionSubtitulo}>
+                Deudas generadas por gastos comunes del piso.
+              </Text>
+            </View>
             {deudasPendientesCompaneros.map((deuda) => {
               const yoDebo = deuda.deudor_id === miId;
               const companero = yoDebo ? deuda.acreedor : deuda.deudor;
@@ -583,7 +605,12 @@ export default function GastosInquilinoTab() {
 
         {deudasPendientesCasero.length > 0 && (
           <>
-            <Text style={styles.seccionTitulo}>Pendientes con casero</Text>
+            <View style={[styles.seccionHeader, styles.seccionHeaderCasero]}>
+              <Text style={styles.seccionTitulo}>Pendientes con el casero</Text>
+              <Text style={styles.seccionSubtitulo}>
+                Importes que no forman parte del reparto entre compañeros.
+              </Text>
+            </View>
             {deudasPendientesCasero.map((deuda) => {
               const yoDebo = deuda.deudor_id === miId;
               const contraparte = yoDebo ? deuda.acreedor : deuda.deudor;
@@ -661,7 +688,9 @@ export default function GastosInquilinoTab() {
 
         {deudasPagadasConJustificante.length > 0 && (
           <>
-            <Text style={styles.seccionTitulo}>Pagadas con justificante</Text>
+            <Text style={[styles.seccionTitulo, styles.seccionTituloSolo]}>
+              Pagadas con justificante
+            </Text>
             {deudasPagadasConJustificante.map((deuda) => {
               const yoPague = deuda.deudor_id === miId;
               const companero = yoPague ? deuda.acreedor : deuda.deudor;
@@ -735,7 +764,7 @@ export default function GastosInquilinoTab() {
           </View>
         ) : (
           <>
-            <Text style={styles.seccionTitulo}>Movimientos</Text>
+            <Text style={[styles.seccionTitulo, styles.seccionTituloSolo]}>Movimientos</Text>
             {gastos.map((gasto) => (
               <View key={gasto.id} style={styles.gastoCard}>
                 <AvatarInitials nombre={gasto.pagador.nombre} apellidos={gasto.pagador.apellidos} size={46} />
@@ -894,7 +923,7 @@ export default function GastosInquilinoTab() {
                     backgroundColor: Theme.colors.primaryLight,
                   },
                 ]}
-                placeholder="Ej. Papel higienico, gas, pizza..."
+                placeholder="Ej. Papel higiénico, gas, pizza..."
                 placeholderTextColor={Theme.colors.textMuted}
                 value={concepto}
                 onChangeText={setConcepto}

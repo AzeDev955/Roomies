@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Theme.spacing.lg,
     paddingTop: Theme.spacing.lg,
-    paddingBottom: 100,
+    paddingBottom: 180,
   },
 
   header: {
@@ -43,6 +43,35 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Theme.colors.border,
     ...Theme.shadows.sm,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.base,
+    marginBottom: Theme.spacing.lg,
+  },
+  heroIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: Theme.radius.lg,
+    backgroundColor: Theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroHeaderTextos: {
+    flex: 1,
+    gap: Theme.spacing.xs,
+  },
+  heroTitulo: {
+    fontSize: Theme.typography.subtitle,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    letterSpacing: -0.2,
+  },
+  heroSubtitulo: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
   },
   heroImporte: {
     fontSize: Theme.typography.hero,
@@ -118,6 +147,11 @@ export const styles = StyleSheet.create({
     color: Theme.colors.text,
     letterSpacing: -0.2,
   },
+  caseroSubtitulo: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
+  },
   caseroResumenGrid: {
     flexDirection: 'row',
     gap: Theme.spacing.md,
@@ -173,11 +207,25 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  seccionHeader: {
+    marginBottom: Theme.spacing.md,
+    gap: Theme.spacing.xs,
+  },
+  seccionHeaderCasero: {
+    marginTop: Theme.spacing.sm,
+  },
   seccionTitulo: {
     fontSize: Theme.typography.subtitle,
     fontWeight: '700',
     color: Theme.colors.text,
+  },
+  seccionTituloSolo: {
     marginBottom: Theme.spacing.md,
+  },
+  seccionSubtitulo: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
   },
 
   deudaCard: {
@@ -646,7 +694,7 @@ export const styles = StyleSheet.create({
 
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.xl,
+    bottom: 92,
     right: Theme.spacing.lg,
     width: 58,
     height: 58,
