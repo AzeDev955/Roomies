@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Tabs, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Tabs, useFocusEffect, useGlobalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 import { Theme } from '@/constants/theme';
@@ -14,10 +14,13 @@ type ViviendaModulos = {
 
 export default function ViviendaTabsLayout() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useGlobalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [modulos, setModulos] = useState({ limpieza: true });
 
   const cargarModulos = useCallback(async () => {
+    if (!id) return;
+
     try {
       const { data } = await api.get<ViviendaModulos>(`/viviendas/${id}`);
       setModulos({ limpieza: data.mod_limpieza });
@@ -31,6 +34,8 @@ export default function ViviendaTabsLayout() {
       let activo = true;
 
       const cargarModulosSeguro = async () => {
+        if (!id) return;
+
         try {
           const { data } = await api.get<ViviendaModulos>(`/viviendas/${id}`);
           if (activo) {

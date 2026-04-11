@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useGlobalSearchParams } from 'expo-router';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { ModulosViviendaManager } from '@/components/casero/vivienda/ModulosViviendaManager';
 import api from '@/services/api';
@@ -15,11 +15,18 @@ type Vivienda = ModulosVivienda & {
 };
 
 export default function OpcionesViviendaTab() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useGlobalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
   const [loading, setLoading] = useState(true);
 
   const cargarVivienda = useCallback(async () => {
+    if (!id) {
+      setVivienda(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const { data } = await api.get<Vivienda>(`/viviendas/${id}`);

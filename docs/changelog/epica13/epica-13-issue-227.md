@@ -14,6 +14,13 @@
 - `frontend/app/casero/(tabs)/cobros.tsx`: filtrado de viviendas para que el dashboard solo pueda seleccionar casas con `mod_gastos` activo y no intente cargar cobros de viviendas donde el modulo esta desactivado.
 - `frontend/app/casero/(tabs)/inventario.tsx`: filtrado de viviendas para que inventario solo trabaje con casas con `mod_inventario` activo y evite estados inconsistentes tras desactivar el modulo.
 
+## Bugfix posterior
+
+- `frontend/app/casero/vivienda/[id]/(tabs)/_layout.tsx`: lectura de `id` con `useGlobalSearchParams` para conservar el parametro de la ruta dinamica dentro de tabs anidados.
+- `frontend/app/casero/vivienda/[id]/(tabs)/opciones.tsx`: evitadas llamadas a `/viviendas/undefined` al cargar la configuracion de modulos.
+- `frontend/app/casero/vivienda/[id]/(tabs)/limpieza.tsx`: evitadas llamadas a endpoints de zonas, turnos y asignaciones cuando el `id` de vivienda aun no esta disponible.
+- `frontend/app/casero/vivienda/[id]/(tabs)/index.tsx`, `incidencias.tsx` y `tablon.tsx`: normalizada la lectura del `id` de vivienda en todos los tabs hermanos para mantener el mismo comportamiento de navegacion.
+
 ## Validacion
 
 - `frontend`: `npm run lint` sin errores bloqueantes; quedan warnings preexistentes del proyecto.

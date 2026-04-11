@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useEffect } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useGlobalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
@@ -122,7 +122,8 @@ type Turno = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LimpiezaCaseroTab() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useGlobalSearchParams<{ id?: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   // — Vista activa —
   const [vistaActual, setVistaActual] = useState<'CONFIG' | 'CALENDARIO'>('CONFIG');
@@ -170,6 +171,8 @@ export default function LimpiezaCaseroTab() {
   }, [vistaActual, fechaObjetivo]);
 
   const cargarZonas = async () => {
+    if (!id) return;
+
     try {
       const { data } = await api.get<ZonaLimpieza[]>(`/viviendas/${id}/limpieza/zonas`);
       setZonas(data);
@@ -179,6 +182,8 @@ export default function LimpiezaCaseroTab() {
   };
 
   const cargarInquilinos = async () => {
+    if (!id) return;
+
     try {
       const { data } = await api.get<{ habitaciones: { inquilino: Inquilino | null }[] }>(`/viviendas/${id}`);
       setInquilinos(
@@ -190,6 +195,8 @@ export default function LimpiezaCaseroTab() {
   };
 
   const cargarTurnos = async (fecha?: Date) => {
+    if (!id) return;
+
     setLoadingTurnos(true);
     try {
       const base = fecha ?? fechaObjetivo;
@@ -219,7 +226,7 @@ export default function LimpiezaCaseroTab() {
   };
 
   const handleGuardar = async () => {
-    if (!nombre.trim() || pesoSeleccionado === null) return;
+    if (!id || !nombre.trim() || pesoSeleccionado === null) return;
     setGuardando(true);
     try {
       const { data } = await api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, {
@@ -239,6 +246,8 @@ export default function LimpiezaCaseroTab() {
 
   // — Starter Pack —
   const handleGenerarZonasBasicas = async () => {
+    if (!id) return;
+
     setCreandoBase(true);
     try {
       const resultados = await Promise.all(
@@ -270,7 +279,7 @@ export default function LimpiezaCaseroTab() {
   };
 
   const handleGuardarAsignacion = async () => {
-    if (!zonaSeleccionada) return;
+    if (!id || !zonaSeleccionada) return;
     setAsignando(true);
     try {
       const { data } = await api.post<AsignacionFija[]>(
@@ -311,6 +320,8 @@ export default function LimpiezaCaseroTab() {
   };
 
   const handleGenerarTurnos = async () => {
+    if (!id) return;
+
     setGenerando(true);
     try {
       await api.post(`/viviendas/${id}/limpieza/generar`);
