@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Redirect, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { styles } from '@/styles/tablon/tablon.styles';
 
@@ -33,6 +33,8 @@ export default function TablonScreen() {
     esCasero?: string;
     miUsuarioId?: string;
   }>();
+  const viviendaIdNumero = Number(viviendaId);
+  const viviendaIdValido = !!viviendaId && !Number.isNaN(viviendaIdNumero);
 
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,32 +45,34 @@ export default function TablonScreen() {
   const [tituloFocused, setTituloFocused] = useState(false);
   const [contenidoFocused, setContenidoFocused] = useState(false);
 
-  const cargarAnuncios = async () => {
+  const cargarAnuncios = useCallback(async () => {
+    if (!viviendaIdValido) return;
+
     setLoading(true);
     try {
-      const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${viviendaId}`);
+      const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${viviendaIdNumero}`);
       setAnuncios(data);
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudieron cargar los anuncios.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [viviendaIdNumero, viviendaIdValido]);
 
   useFocusEffect(
     useCallback(() => {
       cargarAnuncios();
-    }, [viviendaId])
+    }, [cargarAnuncios])
   );
 
   const handlePublicar = async () => {
-    if (!titulo.trim() || !contenido.trim()) return;
+    if (!viviendaIdValido || !titulo.trim() || !contenido.trim()) return;
     setPublicando(true);
     try {
       const { data } = await api.post<Anuncio>('/anuncios', {
         titulo: titulo.trim(),
         contenido: contenido.trim(),
-        vivienda_id: Number(viviendaId),
+        vivienda_id: viviendaIdNumero,
       });
       setAnuncios((prev) => [data, ...prev]);
       setTitulo('');
@@ -149,6 +153,10 @@ export default function TablonScreen() {
   );
 
   const puedePublicar = titulo.trim().length > 0 && contenido.trim().length > 0;
+
+  if (!viviendaIdValido) {
+    return <Redirect href="/" />;
+  }
 
   return (
     <View style={styles.container}>
