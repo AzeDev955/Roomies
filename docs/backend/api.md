@@ -1523,36 +1523,36 @@ Lista todos los items de inventario de una vivienda, incluyendo habitación asoc
 
 Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item.
 
-**Auth requerida:** SÃ­ â€” `Authorization: Bearer <token>`
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
 
 **Content-Type:** `multipart/form-data`
 
 **Params:**
 
-| Param | DescripciÃ³n |
+| Param | Descripción |
 |---|---|
 | `itemId` | ID del `ItemInventario` |
 
 **Body multipart:**
 
-| Campo | Tipo | Requerido | DescripciÃ³n |
+| Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `foto` | file | SÃ­ | Imagen (`jpg`, `jpeg`, `png`, `webp`) |
+| `foto` | file | Sí | Imagen (`jpg`, `jpeg`, `png`, `webp`) |
 
 **Reglas de acceso:**
 
 - `CASERO`: debe ser propietario de la vivienda a la que pertenece el item.
-- `INQUILINO`: debe tener habitaciÃ³n asignada en la vivienda a la que pertenece el item.
+- `INQUILINO`: debe tener habitación asignada en la vivienda a la que pertenece el item.
 
 **Respuestas:**
 
-| CÃ³digo | DescripciÃ³n |
+| Código | Descripción |
 |---|---|
 | `201` | Foto subida y asset creado. |
-| `400` | `itemId` invÃ¡lido, falta imagen o el item no tiene vivienda resoluble. |
+| `400` | `itemId` inválido, falta imagen o el item no tiene vivienda resoluble. |
 | `403` | El usuario no tiene permiso sobre el item. |
 | `404` | Item de inventario no encontrado. |
-| `500` | Cloudinary no estÃ¡ configurado en el servidor o no se obtiene la URL subida. |
+| `500` | Cloudinary no está configurado en el servidor o no se obtiene la URL subida. |
 
 **Ejemplo respuesta 201:**
 ```json
@@ -1865,3 +1865,10 @@ Notas:
 
 - `POST /viviendas/:viviendaId/inventario` crea los items con `revisado_por_inquilino = false`
 - `GET /viviendas/:viviendaId/inventario` devuelve tambien este flag
+
+## Update 2026-04-11 - Consistencia de datos
+
+- Un usuario inquilino solo puede estar asignado a una `Habitacion` a la vez (`Habitacion.inquilino_id` unico cuando no es `null`).
+- Una `Deuda` queda acotada a una pareja `gasto_id` + `deudor_id`; el backend no debe crear dos deudas del mismo gasto para el mismo usuario.
+- Las deudas se eliminan en cascada al borrar su `Gasto`; las fotos de inventario al borrar su `ItemInventario`; y los turnos/asignaciones al borrar su `ZonaLimpieza`.
+- Los importes siguen saliendo como numeros (`Float`) por compatibilidad de API. La logica de negocio reparte y compara en centimos antes de persistir.

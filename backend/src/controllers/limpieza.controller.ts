@@ -159,7 +159,7 @@ export const eliminarZona: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  // Eliminar registros dependientes antes de borrar la zona (sin cascade en schema).
+  // Mantiene compatibilidad con bases previas aunque el schema ya define cascada.
   await prisma.$transaction([
     prisma.turnoLimpieza.deleteMany({ where: { zona_id: zonaId } }),
     prisma.asignacionLimpiezaFija.deleteMany({ where: { zona_id: zonaId } }),
