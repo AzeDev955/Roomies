@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
 import authRoutes from './routes/auth.routes';
 import viviendaRoutes from './routes/vivienda.routes';
 import inquilinoRoutes from './routes/inquilino.routes';
@@ -33,5 +34,27 @@ app.use('/api', deudaRoutes);
 app.use('/api', inventarioRoutes);
 app.use('/api/usuarios', userRoutes);
 app.use('/api/users', userRoutes);
+
+const uploadErrorHandler: express.ErrorRequestHandler = (error, _req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    const status = error.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+    res.status(status).json({
+      error:
+        error.code === 'LIMIT_FILE_SIZE'
+          ? 'El archivo supera el tamano maximo permitido.'
+          : error.message,
+    });
+    return;
+  }
+
+  if (error instanceof Error && error.message.startsWith('Solo se permiten')) {
+    res.status(400).json({ error: error.message });
+    return;
+  }
+
+  next(error);
+};
+
+app.use(uploadErrorHandler);
 
 export default app;
