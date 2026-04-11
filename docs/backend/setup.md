@@ -160,6 +160,18 @@ npx expo start --clear
 | JWT 7 dias | Simplicidad MVP, sin refresh tokens por ahora |
 | `req.usuario` en Express.Request | Extension de tipos en `src/types/express/index.d.ts` |
 
+## Decisiones de consistencia de datos
+
+| Decision | Motivo |
+|---|---|
+| `Habitacion.inquilino_id` es unico cuando tiene valor | Un inquilino solo puede ocupar una habitacion activa. PostgreSQL permite multiples `NULL`, asi que las habitaciones vacias y zonas comunes no quedan bloqueadas. |
+| `Deuda` es unica por `gasto_id` y `deudor_id` | Evita que un mismo gasto genere dos deudas para el mismo deudor. |
+| `Deuda`, `FotoAsset`, `AsignacionLimpiezaFija` y `TurnoLimpieza` usan cascada desde su padre directo | Son registros dependientes sin sentido fuera del gasto, item o zona que los contiene. |
+| `Incidencia.habitacion` y `Habitacion.inquilino` usan `SetNull` al borrar la entidad relacionada | Conserva el historial operativo aunque se elimine una habitacion o un usuario deje de existir. |
+| Importes monetarios siguen como `Float` por compatibilidad MVP | La logica de reparto convierte a centimos antes de comparar o dividir. Migrar a `Decimal` o centimos enteros queda pendiente de migracion coordinada con frontend, API y datos existentes. |
+
+El seed de demo esta pensado para desarrollo local: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
+
 ## Update 2026-04-09 - Backend real
 
 - El backend actual usa `backend/Dockerfile` en Railway.

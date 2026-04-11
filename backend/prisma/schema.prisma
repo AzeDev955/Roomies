@@ -71,7 +71,7 @@ model Usuario {
   balance_limpieza   Float                    @default(0)
   estado_presencia   EstadoPresencia          @default(ACTIVO)
   viviendas          Vivienda[]
-  habitaciones       Habitacion[]
+  habitacion         Habitacion?
   incidencias        Incidencia[]
   anuncios           Anuncio[]
   turnos_limpieza    TurnoLimpieza[]
@@ -107,8 +107,8 @@ model Habitacion {
   id                Int              @id @default(autoincrement())
   vivienda_id       Int
   vivienda          Vivienda         @relation(fields: [vivienda_id], references: [id])
-  inquilino_id      Int?
-  inquilino         Usuario?         @relation(fields: [inquilino_id], references: [id])
+  inquilino_id      Int?             @unique
+  inquilino         Usuario?         @relation(fields: [inquilino_id], references: [id], onDelete: SetNull)
   nombre            String
   tipo              TipoHabitacion   @default(DORMITORIO)
   es_habitable      Boolean          @default(true)
@@ -126,7 +126,7 @@ model Incidencia {
   creador_id     Int
   creador        Usuario             @relation(fields: [creador_id], references: [id])
   habitacion_id  Int?
-  habitacion     Habitacion?         @relation(fields: [habitacion_id], references: [id])
+  habitacion     Habitacion?         @relation(fields: [habitacion_id], references: [id], onDelete: SetNull)
   titulo         String
   descripcion    String
   estado         EstadoIncidencia    @default(PENDIENTE)
@@ -175,7 +175,7 @@ model GastoRecurrente {
 model Deuda {
   id          Int         @id @default(autoincrement())
   gasto_id    Int
-  gasto       Gasto       @relation(fields: [gasto_id], references: [id])
+  gasto       Gasto       @relation(fields: [gasto_id], references: [id], onDelete: Cascade)
   deudor_id   Int
   deudor      Usuario     @relation("DeudorDeuda", fields: [deudor_id], references: [id])
   acreedor_id Int
@@ -183,6 +183,8 @@ model Deuda {
   importe     Float
   estado      EstadoDeuda @default(PENDIENTE)
   justificante_url String?
+
+  @@unique([gasto_id, deudor_id])
 }
 
 model ItemInventario {
@@ -203,7 +205,7 @@ model FotoAsset {
   id           Int            @id @default(autoincrement())
   url          String
   item_id      Int
-  item         ItemInventario @relation(fields: [item_id], references: [id])
+  item         ItemInventario @relation(fields: [item_id], references: [id], onDelete: Cascade)
   fecha_subida DateTime       @default(now())
 }
 
@@ -225,7 +227,7 @@ model ZonaLimpieza {
 model AsignacionLimpiezaFija {
   id         Int          @id @default(autoincrement())
   zona_id    Int
-  zona       ZonaLimpieza @relation(fields: [zona_id], references: [id])
+  zona       ZonaLimpieza @relation(fields: [zona_id], references: [id], onDelete: Cascade)
   usuario_id Int
   usuario    Usuario      @relation(fields: [usuario_id], references: [id])
 
@@ -238,7 +240,7 @@ model TurnoLimpieza {
   usuario_id   Int
   usuario      Usuario      @relation(fields: [usuario_id], references: [id])
   zona_id      Int
-  zona         ZonaLimpieza @relation(fields: [zona_id], references: [id])
+  zona         ZonaLimpieza @relation(fields: [zona_id], references: [id], onDelete: Cascade)
   fecha_inicio DateTime
   fecha_fin    DateTime
   estado       EstadoTurno  @default(PENDIENTE)

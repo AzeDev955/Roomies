@@ -6,6 +6,11 @@ import 'dotenv/config';
 const adapter = new PrismaPg({ connectionString: process.env['DATABASE_URL']! });
 const prisma = new PrismaClient({ adapter });
 
+const LOCAL_CASERO_PASSWORD = 'casero123';
+const LOCAL_INQUILINO_PASSWORD = 'inquilino123';
+const DEMO_EMAIL_DOMAIN = 'example.test';
+const FORCE_DEMO_SEED = process.env['ROOMIES_ALLOW_PRODUCTION_SEED'] === 'true';
+
 type ParticipanteDeuda = {
   deudorId: number;
   importe: number;
@@ -22,6 +27,17 @@ const dayOfMonth = (day: number, monthsAgo = 0) => {
   const date = startOfMonth(monthsAgo);
   date.setDate(day);
   return date;
+};
+
+const assertSeedSeguro = () => {
+  const entorno = process.env['NODE_ENV'];
+  const railwayEnvironment = process.env['RAILWAY_ENVIRONMENT'];
+
+  if (!FORCE_DEMO_SEED && (entorno === 'production' || railwayEnvironment)) {
+    throw new Error(
+      'Seed demo bloqueado fuera de entorno local. Define ROOMIES_ALLOW_PRODUCTION_SEED=true solo para cargas controladas.',
+    );
+  }
 };
 
 async function crearGastoConDeudas({
@@ -60,17 +76,23 @@ async function crearGastoConDeudas({
 }
 
 async function main() {
+  assertSeedSeguro();
+
   const hash = (pw: string) => bcrypt.hash(pw, 10);
 
   const casero = await prisma.usuario.upsert({
-    where: { email: 'casero@test.com' },
-    update: {},
+    where: { documento_identidad: '11111111A' },
+    update: {
+      email: `casero@${DEMO_EMAIL_DOMAIN}`,
+      telefono: '600111111',
+      rol: RolUsuario.CASERO,
+    },
     create: {
       nombre: 'Carlos',
       apellidos: 'Garcia Lopez',
       documento_identidad: '11111111A',
-      email: 'casero@test.com',
-      password_hash: await hash('casero123'),
+      email: `casero@${DEMO_EMAIL_DOMAIN}`,
+      password_hash: await hash(LOCAL_CASERO_PASSWORD),
       telefono: '600111111',
       rol: RolUsuario.CASERO,
     },
@@ -81,45 +103,49 @@ async function main() {
       nombre: 'Ana',
       apellidos: 'Martinez Ruiz',
       documento_identidad: '22222222B',
-      email: 'ana@test.com',
+      email: `ana@${DEMO_EMAIL_DOMAIN}`,
       tel: '600222222',
     },
     {
       nombre: 'Bruno',
       apellidos: 'Sanchez Vega',
       documento_identidad: '33333333C',
-      email: 'bruno@test.com',
+      email: `bruno@${DEMO_EMAIL_DOMAIN}`,
       tel: '600333333',
     },
     {
       nombre: 'Carmen',
       apellidos: 'Lopez Fuentes',
       documento_identidad: '44444444D',
-      email: 'carmen@test.com',
+      email: `carmen@${DEMO_EMAIL_DOMAIN}`,
       tel: '600444444',
     },
     {
       nombre: 'Diego',
       apellidos: 'Romero Iglesias',
       documento_identidad: '55555555E',
-      email: 'diego@test.com',
+      email: `diego@${DEMO_EMAIL_DOMAIN}`,
       tel: '600555555',
     },
     {
       nombre: 'Elena',
       apellidos: 'Fernandez Castro',
       documento_identidad: '66666666F',
-      email: 'elena@test.com',
+      email: `elena@${DEMO_EMAIL_DOMAIN}`,
       tel: '600666666',
     },
   ];
 
-  const pw = await hash('inquilino123');
+  const pw = await hash(LOCAL_INQUILINO_PASSWORD);
   const inquilinos = await Promise.all(
     inquilinosData.map((inquilino) =>
       prisma.usuario.upsert({
-        where: { email: inquilino.email },
-        update: {},
+        where: { documento_identidad: inquilino.documento_identidad },
+        update: {
+          email: inquilino.email,
+          telefono: inquilino.tel,
+          rol: RolUsuario.INQUILINO,
+        },
         create: {
           nombre: inquilino.nombre,
           apellidos: inquilino.apellidos,
@@ -360,14 +386,14 @@ async function main() {
 ✅ Seed completado - Casa Testing (id: ${vivienda.id})
 
   Casero:
-    casero@test.com / casero123
+    casero@${DEMO_EMAIL_DOMAIN} / ${LOCAL_CASERO_PASSWORD}
 
-  Inquilinos (password: inquilino123):
-    ana@test.com    -> Habitacion 1
-    bruno@test.com  -> Habitacion 2
-    carmen@test.com -> Habitacion 3
-    diego@test.com  -> Habitacion 4
-    elena@test.com  -> Habitacion 5
+  Inquilinos (password: ${LOCAL_INQUILINO_PASSWORD}):
+    ana@${DEMO_EMAIL_DOMAIN}    -> Habitacion 1
+    bruno@${DEMO_EMAIL_DOMAIN}  -> Habitacion 2
+    carmen@${DEMO_EMAIL_DOMAIN} -> Habitacion 3
+    diego@${DEMO_EMAIL_DOMAIN}  -> Habitacion 4
+    elena@${DEMO_EMAIL_DOMAIN}  -> Habitacion 5
 
   Datos de prueba creados:
     - 5 gastos con deudas pendientes y pagadas
