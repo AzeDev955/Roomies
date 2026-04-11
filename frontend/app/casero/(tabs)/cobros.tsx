@@ -114,6 +114,12 @@ type GastoActualizadoResponse = {
   }[];
 };
 
+type RepartoFacturaPuntualLinea = {
+  usuario_id: number;
+  importe: number;
+  automatico: boolean;
+};
+
 const formatearImporte = (importe: number) =>
   importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -127,12 +133,35 @@ const formatearFecha = (fechaIso: string) =>
 const obtenerIniciales = (nombre: string, apellidos: string | null) =>
   `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
 
-const parsearImporte = (valor: string) => {
-  const numero = parseFloat(valor.replace(',', '.'));
-  return Number.isFinite(numero) ? numero : 0;
+const normalizarInputImporte = (valor: string) => {
+  const limpio = valor.trim();
+
+  if (!limpio) {
+    return { vacio: true, numero: null, valido: true };
+  }
+
+  const numero = Number(limpio.replace(',', '.'));
+  return { vacio: false, numero, valido: Number.isFinite(numero) };
 };
 
 const aCentimos = (importe: number) => Math.round(importe * 100);
+
+const desdeCentimos = (centimos: number) => centimos / 100;
+
+const repartirCentimos = (totalCentimos: number, participantes: number[]) => {
+  if (participantes.length === 0) {
+    return [];
+  }
+
+  const base = Math.floor(totalCentimos / participantes.length);
+  const resto = totalCentimos % participantes.length;
+
+  return participantes.map((usuarioId, index) => ({
+    usuario_id: usuarioId,
+    importe: desdeCentimos(base + (index < resto ? 1 : 0)),
+    automatico: true,
+  }));
+};
 
 const recalcularResumenCobros = (deudas: DeudaCobro[]) => ({
   total_pagado_mes: deudas
@@ -165,6 +194,9 @@ export default function CaseroCobrosScreen() {
   const [fechaFacturaPuntual, setFechaFacturaPuntual] = useState(new Date().toISOString().slice(0, 10));
   const [importeFacturaPuntual, setImporteFacturaPuntual] = useState('');
   const [repartoFacturaPuntual, setRepartoFacturaPuntual] = useState<Record<number, string>>({});
+  const [participantesFacturaPuntual, setParticipantesFacturaPuntual] = useState<Record<number, boolean>>(
+    {},
+  );
   const [facturaAdjuntaPuntual, setFacturaAdjuntaPuntual] =
     useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [guardandoFacturaPuntual, setGuardandoFacturaPuntual] = useState(false);
@@ -178,26 +210,120 @@ export default function CaseroCobrosScreen() {
     [resumen],
   );
   const importeFacturaPuntualNumero = useMemo(
-    () => parsearImporte(importeFacturaPuntual),
+    () => normalizarInputImporte(importeFacturaPuntual).numero ?? 0,
     [importeFacturaPuntual],
   );
-  const totalAsignadoFacturaPuntual = useMemo(
+  const participantesSeleccionadosFacturaPuntual = useMemo(
     () =>
-      Object.values(repartoFacturaPuntual).reduce(
-        (total, valor) => total + parsearImporte(valor),
-        0,
+      inquilinosActivos.filter(
+        (inquilino) => participantesFacturaPuntual[inquilino.id] ?? true,
       ),
-    [repartoFacturaPuntual],
+    [inquilinosActivos, participantesFacturaPuntual],
   );
+  const repartoCalculadoFacturaPuntual = useMemo(() => {
+    const totalCentimos = aCentimos(importeFacturaPuntualNumero);
+    const participantesIds = participantesSeleccionadosFacturaPuntual.map((inquilino) => inquilino.id);
+    const entradas = participantesIds.map((usuarioId) => ({
+      usuarioId,
+      normalizado: normalizarInputImporte(repartoFacturaPuntual[usuarioId] ?? ''),
+    }));
+    const entradasInformadas = entradas.filter((entrada) => !entrada.normalizado.vacio);
+    const hayImportesInvalidos = entradas.some(
+      (entrada) =>
+        !entrada.normalizado.valido ||
+        (entrada.normalizado.numero != null && entrada.normalizado.numero < 0),
+    );
+
+    if (participantesIds.length === 0) {
+      return {
+        lineas: [] as RepartoFacturaPuntualLinea[],
+        total: 0,
+        valido: false,
+        automatico: false,
+        mensaje: 'Selecciona al menos un inquilino para repartir la factura.',
+      };
+    }
+
+    if (importeFacturaPuntualNumero <= 0) {
+      return {
+        lineas: [] as RepartoFacturaPuntualLinea[],
+        total: 0,
+        valido: false,
+        automatico: false,
+        mensaje: 'Introduce un importe total mayor que 0.',
+      };
+    }
+
+    if (hayImportesInvalidos) {
+      return {
+        lineas: [] as RepartoFacturaPuntualLinea[],
+        total: 0,
+        valido: false,
+        automatico: false,
+        mensaje: 'Usa importes válidos y nunca negativos. El 0 sí está permitido.',
+      };
+    }
+
+    if (entradasInformadas.length === 0) {
+      const lineas = repartirCentimos(totalCentimos, participantesIds);
+      return {
+        lineas,
+        total: importeFacturaPuntualNumero,
+        valido: true,
+        automatico: true,
+        mensaje: 'Sin importes manuales: se reparte a partes iguales.',
+      };
+    }
+
+    if (entradasInformadas.length !== participantesIds.length) {
+      return {
+        lineas: [] as RepartoFacturaPuntualLinea[],
+        total: entradasInformadas.reduce(
+          (total, entrada) => total + (entrada.normalizado.numero ?? 0),
+          0,
+        ),
+        valido: false,
+        automatico: false,
+        mensaje: 'Para un reparto manual, rellena todos los importes seleccionados. Puedes usar 0.',
+      };
+    }
+
+    const lineas = entradas.map((entrada) => ({
+      usuario_id: entrada.usuarioId,
+      importe: entrada.normalizado.numero ?? 0,
+      automatico: false,
+    }));
+    const sumaCentimos = lineas.reduce((total, linea) => total + aCentimos(linea.importe), 0);
+
+    return {
+      lineas,
+      total: desdeCentimos(sumaCentimos),
+      valido: sumaCentimos === totalCentimos,
+      automatico: false,
+      mensaje:
+        sumaCentimos === totalCentimos
+          ? 'Reparto manual cuadrado.'
+          : 'El reparto manual debe sumar exactamente el importe total.',
+    };
+  }, [
+    importeFacturaPuntualNumero,
+    participantesSeleccionadosFacturaPuntual,
+    repartoFacturaPuntual,
+  ]);
+  const totalAsignadoFacturaPuntual = repartoCalculadoFacturaPuntual.total;
   const repartoPuntualCuadra =
-    importeFacturaPuntualNumero > 0 &&
-    aCentimos(totalAsignadoFacturaPuntual) === aCentimos(importeFacturaPuntualNumero);
+    repartoCalculadoFacturaPuntual.valido && importeFacturaPuntualNumero > 0;
+  const repartoPuntualAutomatico = repartoCalculadoFacturaPuntual.automatico;
   const puedeGuardarFacturaPuntual =
     conceptoFacturaPuntual.trim().length > 0 &&
     fechaFacturaPuntual.trim().length > 0 &&
-    inquilinosActivos.length > 0 &&
     repartoPuntualCuadra &&
     !guardandoFacturaPuntual;
+  const obtenerLineaRepartoCalculado = useCallback(
+    (usuarioId: number) =>
+      repartoCalculadoFacturaPuntual.lineas.find((linea) => linea.usuario_id === usuarioId),
+    [repartoCalculadoFacturaPuntual.lineas],
+  );
   const facturasEmitidas = useMemo(() => {
     if (!resumen) {
       return [];
@@ -250,9 +376,17 @@ export default function CaseroCobrosScreen() {
         });
         return siguiente;
       });
+      setParticipantesFacturaPuntual((actual) => {
+        const siguiente: Record<number, boolean> = {};
+        activos.forEach((inquilino) => {
+          siguiente[inquilino.id] = actual[inquilino.id] ?? true;
+        });
+        return siguiente;
+      });
     } catch {
       setInquilinosActivos([]);
       setRepartoFacturaPuntual({});
+      setParticipantesFacturaPuntual({});
       Toast.show({ type: 'error', text1: 'No se pudieron cargar los inquilinos activos.' });
     }
   }, []);
@@ -329,6 +463,12 @@ export default function CaseroCobrosScreen() {
         return total;
       }, {}),
     );
+    setParticipantesFacturaPuntual(
+      inquilinosActivos.reduce<Record<number, boolean>>((total, inquilino) => {
+        total[inquilino.id] = true;
+        return total;
+      }, {}),
+    );
   };
 
   const cerrarModalFacturaPuntual = () => {
@@ -358,6 +498,13 @@ export default function CaseroCobrosScreen() {
     setRepartoFacturaPuntual((actual) => ({ ...actual, [usuarioId]: valor }));
   };
 
+  const alternarParticipanteFacturaPuntual = (usuarioId: number) => {
+    setParticipantesFacturaPuntual((actual) => ({
+      ...actual,
+      [usuarioId]: !(actual[usuarioId] ?? true),
+    }));
+  };
+
   const guardarFacturaPuntual = async () => {
     if (!viviendaSeleccionadaId || !puedeGuardarFacturaPuntual) {
       return;
@@ -370,11 +517,9 @@ export default function CaseroCobrosScreen() {
     formData.append(
       'repartoManual',
       JSON.stringify(
-        inquilinosActivos.map((inquilino) => ({
-          usuario_id: inquilino.id,
-          importe: parseFloat(
-            parsearImporte(repartoFacturaPuntual[inquilino.id] ?? '').toFixed(2),
-          ),
+        repartoCalculadoFacturaPuntual.lineas.map((linea) => ({
+          usuario_id: linea.usuario_id,
+          importe: parseFloat(linea.importe.toFixed(2)),
         })),
       ),
     );
@@ -923,40 +1068,84 @@ export default function CaseroCobrosScreen() {
               </Pressable>
 
               <View style={styles.splitHeader}>
-                <Text style={styles.sectionTitle}>Reparto desigual</Text>
-                <Text style={styles.sectionSubtitle}>Introduce la parte exacta de cada inquilino.</Text>
+                <Text style={styles.sectionTitle}>Reparto de la factura</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Deja todos los importes vacíos para repartir a partes iguales. Si rellenas uno,
+                  completa todos los seleccionados; el 0 marca que no paga esta factura.
+                </Text>
               </View>
 
               <View style={styles.tenantList}>
-                {inquilinosActivos.map((inquilino) => (
-                  <View key={inquilino.id} style={styles.tenantRow}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>
-                        {obtenerIniciales(inquilino.nombre, inquilino.apellidos)}
-                      </Text>
+                {inquilinosActivos.map((inquilino) => {
+                  const seleccionado = participantesFacturaPuntual[inquilino.id] ?? true;
+                  const lineaCalculada = obtenerLineaRepartoCalculado(inquilino.id);
+                  const importeCalculado = lineaCalculada?.importe ?? 0;
+                  const inputInformado = !normalizarInputImporte(
+                    repartoFacturaPuntual[inquilino.id] ?? '',
+                  ).vacio;
+
+                  return (
+                    <View
+                      key={inquilino.id}
+                      style={[styles.tenantRow, !seleccionado && styles.tenantRowDisabled]}
+                    >
+                      <Pressable
+                        style={[
+                          styles.participantToggle,
+                          seleccionado && styles.participantToggleActive,
+                        ]}
+                        onPress={() => alternarParticipanteFacturaPuntual(inquilino.id)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: seleccionado }}
+                        accessibilityLabel={`Incluir a ${nombreCompleto(
+                          inquilino.nombre,
+                          inquilino.apellidos,
+                        )} en el reparto`}
+                      >
+                        {seleccionado && (
+                          <Ionicons name="checkmark" size={16} color={Theme.colors.surface} />
+                        )}
+                      </Pressable>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                          {obtenerIniciales(inquilino.nombre, inquilino.apellidos)}
+                        </Text>
+                      </View>
+                      <View style={styles.tenantInfo}>
+                        <Text style={styles.debtName} numberOfLines={1}>
+                          {nombreCompleto(inquilino.nombre, inquilino.apellidos)}
+                        </Text>
+                        <Text style={styles.debtDate}>
+                          {!seleccionado
+                            ? 'No incluido'
+                            : importeCalculado === 0 && (inputInformado || repartoPuntualAutomatico)
+                              ? 'No paga esta factura'
+                              : `Paga ${formatearImporte(importeCalculado)}`}
+                        </Text>
+                      </View>
+                      <TextInput
+                        style={[styles.splitInput, !seleccionado && styles.splitInputDisabled]}
+                        placeholder={
+                          repartoPuntualAutomatico ? formatearImporte(importeCalculado) : '0,00'
+                        }
+                        placeholderTextColor={Theme.colors.textMuted}
+                        value={repartoFacturaPuntual[inquilino.id] ?? ''}
+                        onChangeText={(valor) => actualizarRepartoPuntual(inquilino.id, valor)}
+                        keyboardType="decimal-pad"
+                        editable={seleccionado}
+                      />
                     </View>
-                    <View style={styles.tenantInfo}>
-                      <Text style={styles.debtName} numberOfLines={1}>
-                        {nombreCompleto(inquilino.nombre, inquilino.apellidos)}
-                      </Text>
-                      <Text style={styles.debtDate}>Parte asignada</Text>
-                    </View>
-                    <TextInput
-                      style={styles.splitInput}
-                      placeholder="0,00"
-                      placeholderTextColor={Theme.colors.textMuted}
-                      value={repartoFacturaPuntual[inquilino.id] ?? ''}
-                      onChangeText={(valor) => actualizarRepartoPuntual(inquilino.id, valor)}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                ))}
+                  );
+                })}
               </View>
 
               <View style={[styles.totalCounter, repartoPuntualCuadra && styles.totalCounterOk]}>
                 <Text style={[styles.totalCounterText, repartoPuntualCuadra && styles.totalCounterTextOk]}>
                   Total asignado: {formatearImporte(totalAsignadoFacturaPuntual)} /{' '}
                   {formatearImporte(importeFacturaPuntualNumero)}
+                </Text>
+                <Text style={[styles.totalCounterHelp, repartoPuntualCuadra && styles.totalCounterHelpOk]}>
+                  {repartoCalculadoFacturaPuntual.mensaje}
                 </Text>
               </View>
 

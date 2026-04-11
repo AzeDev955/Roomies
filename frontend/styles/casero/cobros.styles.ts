@@ -465,6 +465,24 @@ export const styles = StyleSheet.create({
     padding: Theme.spacing.sm,
     minHeight: 76,
   },
+  tenantRowDisabled: {
+    opacity: 0.62,
+  },
+  participantToggle: {
+    width: 32,
+    height: 32,
+    borderRadius: Theme.radius.full,
+    borderWidth: 1.5,
+    borderColor: Theme.colors.border,
+    backgroundColor: Theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  participantToggleActive: {
+    borderColor: Theme.colors.primary,
+    backgroundColor: Theme.colors.primary,
+  },
   tenantInfo: {
     flex: 1,
     minWidth: 0,
@@ -482,6 +500,10 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.input,
     fontWeight: '800',
     color: Theme.colors.text,
+  },
+  splitInputDisabled: {
+    backgroundColor: Theme.colors.surface2,
+    color: Theme.colors.textMuted,
   },
   totalCounter: {
     borderRadius: Theme.radius.lg,
@@ -501,6 +523,17 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
   },
   totalCounterTextOk: {
+    color: Theme.colors.success,
+  },
+  totalCounterHelp: {
+    marginTop: Theme.spacing.xs,
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  totalCounterHelpOk: {
     color: Theme.colors.success,
   },
   modalHandle: {

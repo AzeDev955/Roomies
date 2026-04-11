@@ -210,10 +210,13 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
       (linea) =>
         !Number.isInteger(linea.usuario_id) ||
         linea.usuario_id <= 0 ||
-        !Number.isFinite(linea.importe),
+        !Number.isFinite(linea.importe) ||
+        linea.importe < 0,
     )
   ) {
-    res.status(400).json({ error: 'repartoManual debe incluir usuario_id numerico e importe valido.' });
+    res.status(400).json({
+      error: 'repartoManual debe incluir usuario_id numerico e importe valido no negativo.',
+    });
     return;
   }
 
