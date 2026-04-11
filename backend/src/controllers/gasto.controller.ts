@@ -3,6 +3,8 @@ import { cloudinaryEstaConfigurado } from '../config/cloudinary.config';
 import { prisma } from '../lib/prisma';
 import {
   crearGastoDividido,
+  normalizarImporteMonetario,
+  repartirImporteEnCentimos,
   usuarioEsCaseroDeVivienda,
   usuarioPerteneceAVivienda,
 } from '../services/gasto.service';
@@ -310,7 +312,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
       return;
     }
 
-    datosActualizacion.importe = importe;
+    datosActualizacion.importe = normalizarImporteMonetario(importe);
   }
 
   if (fecha !== undefined) {
@@ -360,12 +362,20 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
 
   const gastoActualizado = await prisma.$transaction(async (tx) => {
     if (importeCambia && gasto.deudas.length > 0) {
-      const importePorDeuda = parseFloat((datosActualizacion.importe! / gasto.deudas.length).toFixed(2));
+      const repartoActualizado = repartirImporteEnCentimos(
+        datosActualizacion.importe!,
+        gasto.deudas.map((deuda) => deuda.deudor_id),
+      );
+      const deudaIdPorDeudor = new Map(gasto.deudas.map((deuda) => [deuda.deudor_id, deuda.id]));
 
-      await tx.deuda.updateMany({
-        where: { gasto_id: gasto.id },
-        data: { importe: importePorDeuda },
-      });
+      await Promise.all(
+        repartoActualizado.map((linea) =>
+          tx.deuda.update({
+            where: { id: deudaIdPorDeudor.get(linea.usuario_id)! },
+            data: { importe: linea.importe },
+          }),
+        ),
+      );
     }
 
     return tx.gasto.update({

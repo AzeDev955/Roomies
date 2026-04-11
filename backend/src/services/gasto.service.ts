@@ -44,10 +44,14 @@ export const obtenerInquilinosActivosIds = async (viviendaId: number) => {
   return habitaciones.map((habitacion) => habitacion.inquilino_id!);
 };
 
-const desdeCentimos = (centimos: number) => centimos / 100;
+export const aCentimos = (importe: number) => Math.round((importe + Number.EPSILON) * 100);
 
-const repartirImporteEnCentimos = (importe: number, participantesIds: number[]) => {
-  const totalCentimos = Math.round(importe * 100);
+export const desdeCentimos = (centimos: number) => centimos / 100;
+
+export const normalizarImporteMonetario = (importe: number) => desdeCentimos(aCentimos(importe));
+
+export const repartirImporteEnCentimos = (importe: number, participantesIds: number[]) => {
+  const totalCentimos = aCentimos(importe);
   const base = Math.floor(totalCentimos / participantesIds.length);
   const resto = totalCentimos % participantesIds.length;
 
@@ -81,6 +85,7 @@ export const crearGastoDividido = async ({
   const implicadosNormalizados = Array.isArray(implicadosIds)
     ? [...new Set(implicadosIds)]
     : [];
+  const importeNormalizado = normalizarImporteMonetario(importe);
 
   if (implicadosNormalizados.length > 0) {
     const hayInvalidos = implicadosNormalizados.some((id) => !inquilinosActivosSet.has(id));
@@ -114,9 +119,9 @@ export const crearGastoDividido = async ({
       throw new Error('Los importes de repartoManual no pueden ser negativos.');
     }
 
-    const totalCentimos = Math.round(importe * 100);
+    const totalCentimos = aCentimos(importeNormalizado);
     const sumaCentimos = repartoManual.reduce(
-      (total, linea) => total + Math.round(linea.importe * 100),
+      (total, linea) => total + aCentimos(linea.importe),
       0,
     );
 
@@ -130,18 +135,18 @@ export const crearGastoDividido = async ({
     return prisma.gasto.create({
       data: {
         concepto,
-        importe,
+        importe: importeNormalizado,
         factura_url: facturaUrl ?? null,
         fecha_creacion: fecha,
         pagador_id: pagadorId,
         vivienda_id: viviendaId,
         deudas: {
           create: repartoManual
-            .filter((linea) => linea.usuario_id !== pagadorId)
+            .filter((linea) => linea.usuario_id !== pagadorId && aCentimos(linea.importe) > 0)
             .map((linea) => ({
               deudor_id: linea.usuario_id,
               acreedor_id: pagadorId,
-              importe: parseFloat(linea.importe.toFixed(2)),
+              importe: normalizarImporteMonetario(linea.importe),
             })),
         },
       },
@@ -157,25 +162,27 @@ export const crearGastoDividido = async ({
   }
 
   const deudoresIds = participantesIds.filter((id) => id !== pagadorId);
-  const repartoAutomatico = repartirImporteEnCentimos(importe, participantesIds);
+  const repartoAutomatico = repartirImporteEnCentimos(importeNormalizado, participantesIds);
   const importesPorUsuario = new Map(
-    repartoAutomatico.map((linea) => [linea.usuario_id, parseFloat(linea.importe.toFixed(2))]),
+    repartoAutomatico.map((linea) => [linea.usuario_id, normalizarImporteMonetario(linea.importe)]),
   );
 
   return prisma.gasto.create({
     data: {
       concepto,
-      importe,
+      importe: importeNormalizado,
       factura_url: facturaUrl ?? null,
       fecha_creacion: fecha,
       pagador_id: pagadorId,
       vivienda_id: viviendaId,
       deudas: {
-        create: deudoresIds.map((deudorId) => ({
-          deudor_id: deudorId,
-          acreedor_id: pagadorId,
-          importe: importesPorUsuario.get(deudorId) ?? 0,
-        })),
+        create: deudoresIds
+          .map((deudorId) => ({
+            deudor_id: deudorId,
+            acreedor_id: pagadorId,
+            importe: importesPorUsuario.get(deudorId) ?? 0,
+          }))
+          .filter((deuda) => aCentimos(deuda.importe) > 0),
       },
     },
     include: { deudas: true },

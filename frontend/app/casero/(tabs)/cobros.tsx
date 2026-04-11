@@ -181,6 +181,7 @@ export default function CaseroCobrosScreen() {
   const [resumen, setResumen] = useState<CobrosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingCobros, setLoadingCobros] = useState(false);
+  const [errorCobros, setErrorCobros] = useState<string | null>(null);
   const [justificanteSeleccionado, setJustificanteSeleccionado] = useState<DeudaCobro | null>(null);
   const [facturaEditando, setFacturaEditando] = useState<FacturaEmitida | null>(null);
   const [facturaVisualizando, setFacturaVisualizando] = useState<FacturaEmitida | null>(null);
@@ -396,11 +397,14 @@ export default function CaseroCobrosScreen() {
     try {
       const { data } = await api.get<CobrosResponse>(`/viviendas/${viviendaId}/cobros`);
       setResumen(data);
+      setErrorCobros(null);
     } catch (error: any) {
+      const mensaje = error.response?.data?.error ?? 'No se pudo cargar el dashboard de cobros.';
       setResumen(null);
+      setErrorCobros(mensaje);
       Toast.show({
         type: 'error',
-        text1: error.response?.data?.error ?? 'No se pudo cargar el dashboard de cobros.',
+        text1: mensaje,
       });
     } finally {
       setLoadingCobros(false);
@@ -419,6 +423,7 @@ export default function CaseroCobrosScreen() {
         setViviendaSeleccionadaId(null);
         setResumen(null);
         setInquilinosActivos([]);
+        setErrorCobros(null);
         return;
       }
 
@@ -433,6 +438,7 @@ export default function CaseroCobrosScreen() {
       setHayViviendas(false);
       setViviendaSeleccionadaId(null);
       setResumen(null);
+      setErrorCobros('No se pudieron cargar tus viviendas.');
       Toast.show({ type: 'error', text1: 'No se pudieron cargar tus viviendas.' });
     } finally {
       setLoading(false);
@@ -850,8 +856,21 @@ export default function CaseroCobrosScreen() {
           label="Nueva Factura Puntual (Luz, Agua...)"
           variant="secondary"
           onPress={() => setModalFacturaPuntualVisible(true)}
+          disabled={!!errorCobros || !viviendaSeleccionadaId}
           style={styles.invoiceButton}
         />
+
+        {errorCobros && !loadingCobros && (
+          <View style={styles.errorCard}>
+            <View style={styles.errorIcon}>
+              <Ionicons name="alert-circle-outline" size={22} color={Theme.colors.danger} />
+            </View>
+            <View style={styles.errorTextBox}>
+              <Text style={styles.errorTitle}>No se pudieron cargar los cobros</Text>
+              <Text style={styles.errorText}>{errorCobros}</Text>
+            </View>
+          </View>
+        )}
 
         {resumen && (
           <View style={styles.section}>
@@ -897,7 +916,7 @@ export default function CaseroCobrosScreen() {
 
           {loadingCobros ? (
             <LoadingScreen />
-          ) : deudasPendientes.length === 0 ? (
+          ) : errorCobros ? null : deudasPendientes.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
                 <Ionicons name="checkmark-done-outline" size={40} color={Theme.colors.success} />
@@ -929,7 +948,7 @@ export default function CaseroCobrosScreen() {
             </Text>
           </View>
 
-          {deudasPagadas.length === 0 ? (
+          {errorCobros ? null : deudasPagadas.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
                 <Ionicons name="wallet-outline" size={40} color={Theme.colors.primary} />

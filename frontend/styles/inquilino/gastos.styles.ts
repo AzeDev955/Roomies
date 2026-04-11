@@ -206,6 +206,40 @@ export const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     lineHeight: 20,
   },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.base,
+    backgroundColor: Theme.colors.dangerLight,
+    borderRadius: Theme.radius.lg,
+    borderWidth: 1,
+    borderColor: Theme.colors.danger + '28',
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.xl,
+  },
+  errorIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  errorTextos: {
+    flex: 1,
+    gap: Theme.spacing.xs,
+  },
+  errorTitulo: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.text,
+  },
+  errorSubtitulo: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
+  },
 
   seccionHeader: {
     marginBottom: Theme.spacing.md,

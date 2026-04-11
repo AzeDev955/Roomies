@@ -1,0 +1,329 @@
+import assert from 'node:assert/strict';
+import type express from 'express';
+import { beforeEach, describe, test, vi } from 'vitest';
+
+type UsuarioTest = { id: number; rol: 'CASERO' | 'INQUILINO' };
+type Handler = express.RequestHandler;
+
+const prisma = vi.hoisted(() => ({
+  vivienda: {
+    findUnique: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: vivienda.findUnique');
+    },
+    findFirst: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: vivienda.findFirst');
+    },
+  },
+  habitacion: {
+    findMany: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: habitacion.findMany');
+    },
+    findFirst: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: habitacion.findFirst');
+    },
+  },
+  gasto: {
+    create: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: gasto.create');
+    },
+    findFirst: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: gasto.findFirst');
+    },
+  },
+  deuda: {
+    findFirst: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: deuda.findFirst');
+    },
+    update: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: deuda.update');
+    },
+  },
+  $transaction: async (_callback: unknown): Promise<unknown> => {
+    throw new Error('Unexpected prisma call: $transaction');
+  },
+}));
+
+vi.mock('../src/lib/prisma', () => ({ prisma }));
+
+const { crearGastoDividido } = await import('../src/services/gasto.service');
+const { actualizarGasto, saldarDeuda } = await import('../src/controllers/gasto.controller');
+
+let ultimoGastoCreate: { data: { deudas: { create: unknown[] }; importe: number } } | null = null;
+let deudaUpdateCalls: unknown[] = [];
+let transactionCalled = false;
+
+function resetPrisma() {
+  ultimoGastoCreate = null;
+  deudaUpdateCalls = [];
+  transactionCalled = false;
+
+  prisma.vivienda.findUnique = async () => ({ casero_id: 99 });
+  prisma.vivienda.findFirst = async () => null;
+  prisma.habitacion.findMany = async () => [
+    { inquilino_id: 1 },
+    { inquilino_id: 2 },
+    { inquilino_id: 3 },
+  ];
+  prisma.habitacion.findFirst = async () => null;
+  prisma.gasto.create = async (args: unknown) => {
+    ultimoGastoCreate = args as typeof ultimoGastoCreate;
+    const data = (args as { data: { deudas: { create: unknown[] } } }).data;
+    return {
+      id: 10,
+      ...data,
+      deudas: data.deudas.create.map((deuda, index) => ({
+        id: index + 1,
+        gasto_id: 10,
+        estado: 'PENDIENTE',
+        ...deuda,
+      })),
+    };
+  };
+  prisma.gasto.findFirst = async () => null;
+  prisma.deuda.findFirst = async () => null;
+  prisma.deuda.update = async (args: unknown) => {
+    deudaUpdateCalls.push(args);
+    return { id: 1, estado: 'PAGADA' };
+  };
+  prisma.$transaction = async (callback: unknown) => {
+    transactionCalled = true;
+    const tx = {
+      deuda: {
+        update: async (args: unknown) => {
+          deudaUpdateCalls.push(args);
+          return args;
+        },
+      },
+      gasto: {
+        update: async (args: unknown) => ({ id: 1, ...(args as { data: unknown }).data }),
+      },
+    };
+
+    return (callback as (tx: typeof tx) => Promise<unknown>)(tx);
+  };
+}
+
+beforeEach(() => {
+  resetPrisma();
+});
+
+function request({
+  usuario,
+  params = {},
+  body = {},
+}: {
+  usuario: UsuarioTest;
+  params?: Record<string, string>;
+  body?: Record<string, unknown>;
+}) {
+  return {
+    usuario,
+    params,
+    body,
+  } as unknown as express.Request;
+}
+
+function response() {
+  const res = {
+    statusCode: 200,
+    body: undefined as unknown,
+    status(code: number) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload: unknown) {
+      this.body = payload;
+      return this;
+    },
+  };
+
+  return res as unknown as express.Response & typeof res;
+}
+
+async function invoke(handler: Handler, req: express.Request) {
+  const res = response();
+  await handler(req, res, () => undefined);
+  return res;
+}
+
+const importesCreados = () =>
+  (ultimoGastoCreate?.data.deudas.create as Array<{ importe: number }>).map((deuda) => deuda.importe);
+
+const suma = (importes: number[]) =>
+  importes.reduce((total, importe) => Math.round((total + importe + Number.EPSILON) * 100) / 100, 0);
+
+describe('modulo economico', () => {
+  test('reparte automaticamente importes que no dividen exacto sin perder centimos', async () => {
+    await crearGastoDividido({
+      concepto: 'Luz',
+      importe: 10,
+      viviendaId: 1,
+      pagadorId: 99,
+    });
+
+    assert.deepEqual(importesCreados(), [3.34, 3.33, 3.33]);
+    assert.equal(suma(importesCreados()), 10);
+  });
+
+  test('acepta reparto manual correcto con cuota cero sin crear deuda de importe cero', async () => {
+    await crearGastoDividido({
+      concepto: 'Agua',
+      importe: 10,
+      viviendaId: 1,
+      pagadorId: 1,
+      repartoManual: [
+        { usuario_id: 1, importe: 4 },
+        { usuario_id: 2, importe: 0 },
+        { usuario_id: 3, importe: 6 },
+      ],
+    });
+
+    assert.equal(ultimoGastoCreate?.data.importe, 10);
+    assert.deepEqual(ultimoGastoCreate?.data.deudas.create, [
+      { deudor_id: 3, acreedor_id: 1, importe: 6 },
+    ]);
+  });
+
+  test('rechaza reparto manual con suma incorrecta', async () => {
+    await assert.rejects(
+      () =>
+        crearGastoDividido({
+          concepto: 'Gas',
+          importe: 10,
+          viviendaId: 1,
+          pagadorId: 1,
+          repartoManual: [
+            { usuario_id: 1, importe: 4 },
+            { usuario_id: 2, importe: 3 },
+          ],
+        }),
+      /reparto manual suma/i,
+    );
+
+    assert.equal(ultimoGastoCreate, null);
+  });
+
+  test('rechaza reparto manual con usuario duplicado', async () => {
+    await assert.rejects(
+      () =>
+        crearGastoDividido({
+          concepto: 'Internet',
+          importe: 12,
+          viviendaId: 1,
+          pagadorId: 1,
+          repartoManual: [
+            { usuario_id: 2, importe: 6 },
+            { usuario_id: 2, importe: 6 },
+          ],
+        }),
+      /duplicados/i,
+    );
+  });
+
+  test('rechaza reparto manual con usuario ajeno a la vivienda', async () => {
+    await assert.rejects(
+      () =>
+        crearGastoDividido({
+          concepto: 'Compra',
+          importe: 12,
+          viviendaId: 1,
+          pagadorId: 1,
+          repartoManual: [
+            { usuario_id: 1, importe: 6 },
+            { usuario_id: 200, importe: 6 },
+          ],
+        }),
+      /inquilinos activos/i,
+    );
+  });
+
+  test('solo el deudor puede saldar una deuda', async () => {
+    prisma.habitacion.findFirst = async () => ({ id: 1 });
+    prisma.deuda.findFirst = async () => ({
+      id: 7,
+      deudor_id: 2,
+      acreedor_id: 99,
+      estado: 'PENDIENTE',
+    });
+
+    const res = await invoke(
+      saldarDeuda,
+      request({
+        usuario: { id: 3, rol: 'INQUILINO' },
+        params: { viviendaId: '1', deudaId: '7' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 403);
+    assert.deepEqual(deudaUpdateCalls, []);
+  });
+
+  test('el deudor puede saldar su propia deuda pendiente', async () => {
+    prisma.habitacion.findFirst = async () => ({ id: 1 });
+    prisma.deuda.findFirst = async () => ({
+      id: 7,
+      deudor_id: 2,
+      acreedor_id: 99,
+      estado: 'PENDIENTE',
+    });
+
+    const res = await invoke(
+      saldarDeuda,
+      request({
+        usuario: { id: 2, rol: 'INQUILINO' },
+        params: { viviendaId: '1', deudaId: '7' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(deudaUpdateCalls, [{ where: { id: 7 }, data: { estado: 'PAGADA' } }]);
+  });
+
+  test('bloquea editar el importe de una factura si hay pagos registrados', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+    prisma.gasto.findFirst = async () => ({
+      id: 12,
+      importe: 100,
+      deudas: [{ id: 20, deudor_id: 2, estado: 'PAGADA' }],
+    });
+
+    const res = await invoke(
+      actualizarGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1', gastoId: '12' },
+        body: { importe: 120 },
+      }),
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(transactionCalled, false);
+  });
+
+  test('edita importes abiertos redistribuyendo en centimos exactos', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+    prisma.gasto.findFirst = async () => ({
+      id: 12,
+      importe: 9,
+      deudas: [
+        { id: 20, deudor_id: 2, estado: 'PENDIENTE' },
+        { id: 21, deudor_id: 3, estado: 'PENDIENTE' },
+      ],
+    });
+
+    const res = await invoke(
+      actualizarGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1', gastoId: '12' },
+        body: { importe: 10.01 },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(deudaUpdateCalls, [
+      { where: { id: 20 }, data: { importe: 5.01 } },
+      { where: { id: 21 }, data: { importe: 5 } },
+    ]);
+  });
+});
