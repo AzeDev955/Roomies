@@ -111,6 +111,27 @@ npx expo start
 
 > Para probar push real necesitas una build nativa o development build. Expo Go no registra push tokens nativos.
 
+## Tests y calidad
+
+Backend usa Vitest + Supertest. Frontend usa Jest Expo 54 + React Native Testing Library.
+
+```bash
+cd backend
+npm test
+npm run test:watch
+npm run test:coverage
+```
+
+```bash
+cd frontend
+npm test
+npm run test:watch
+npm run test:coverage
+npm run lint
+```
+
+Los tests cargan valores de entorno de prueba y no necesitan `.env` privados. El backend expone `src/app.ts` para importar Express sin arrancar un puerto real ni programar cron jobs.
+
 ## Documentacion
 
 | Recurso | Ruta |

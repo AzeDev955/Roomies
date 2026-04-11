@@ -47,6 +47,22 @@ docker-compose up --build
 
 Metro queda accesible para Expo Go en el puerto configurado por el contenedor.
 
+## Tests y calidad
+
+Frontend usa Jest Expo 54 + React Native Testing Library.
+
+```bash
+cd frontend
+npm test
+npm run test:watch
+npm run test:coverage
+npm run lint
+```
+
+La configuracion vive en `frontend/package.json` y carga `jest.setup.js`, que define una URL de API local de prueba si `EXPO_PUBLIC_API_URL` no existe. No se necesitan `.env` privados para ejecutar la suite.
+
+La primera prueba renderiza `components/common/CustomButton.tsx` y valida que el handler `onPress` se ejecuta, dejando lista la base para tests de pantallas y flujos de navegacion en issues posteriores.
+
 ## Estructura real de la app
 
 ```text
@@ -321,3 +337,9 @@ eas build --platform android --profile preview
 - Los tabs internos de vivienda usan `useViviendaIdParam()` para evitar que rutas hermanas con `[id]` cambien el contexto de la vivienda abierta.
 - El perfil compartido muestra `Propietario` para caseros y elimina la tarjeta redundante de rol.
 - `Gastos` del inquilino separa pendientes entre companeros y con casero, elimina copy temporal, muestra estado vacio real y sube el FAB para no tapar contenido.
+
+## Update 2026-04-11 - Epica 16 issue 246
+
+- Se anade Jest Expo 54 + React Native Testing Library.
+- `package.json` incorpora `test`, `test:watch` y `test:coverage`.
+- `react-test-renderer` queda fijado en `19.1.0` para coincidir exactamente con React.
