@@ -15,6 +15,9 @@ import inventarioRoutes from './routes/inventario.routes';
 import './services/cron.service';
 import { iniciarCronMensualidades } from './cron/mensualidades.cron';
 import { iniciarCronRecordatoriosMorosos } from './cron/recordatorios.cron';
+import { assertCriticalEnv } from './config/env';
+
+assertCriticalEnv();
 
 const app = express();
 const PORT = 3000;

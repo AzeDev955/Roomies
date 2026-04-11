@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
+    "test": "node --test -r ts-node/register --test-reporter=spec tests/auth.security.test.ts",
+    "test:watch": "node --test --watch -r ts-node/register tests/auth.security.test.ts",
     "build": "npx prisma generate && tsc",
     "start": "npx prisma db push --accept-data-loss && node dist/index.js"
   },

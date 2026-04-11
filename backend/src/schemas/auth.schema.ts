@@ -22,19 +22,24 @@ function esDniNieValido(doc: string): boolean {
 }
 
 const DNI_RE = /^[0-9XYZ]/i;
+const rolUsuarioSchema = z.enum(['CASERO', 'INQUILINO'], {
+  message: 'El rol debe ser CASERO o INQUILINO',
+});
 
 export const registroSchema = z.object({
-  nombre: z.string().min(1, 'El nombre es obligatorio'),
-  apellidos: z.string().min(1, 'Los apellidos son obligatorios'),
-  email: z.string().email('El email no tiene un formato válido'),
+  nombre: z.string().trim().min(1, 'El nombre es obligatorio'),
+  apellidos: z.string().trim().min(1, 'Los apellidos son obligatorios'),
+  email: z.string().trim().toLowerCase().email('El email no tiene un formato valido'),
   password: z
     .string()
-    .min(8, 'La contraseña debe tener al menos 8 caracteres')
-    .regex(/[A-Z]/, 'La contraseña debe contener al menos una letra mayúscula')
-    .regex(/[0-9]/, 'La contraseña debe contener al menos un número'),
+    .min(8, 'La contrasena debe tener al menos 8 caracteres')
+    .regex(/[A-Z]/, 'La contrasena debe contener al menos una letra mayuscula')
+    .regex(/[0-9]/, 'La contrasena debe contener al menos un numero'),
   documento_identidad: z
     .string()
-    .regex(/^[A-Z0-9]{6,15}$/i, 'El documento de identidad no tiene un formato válido')
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{6,15}$/i, 'El documento de identidad no tiene un formato valido')
     .refine(
       (val) => {
         if (DNI_RE.test(val)) {
@@ -42,8 +47,21 @@ export const registroSchema = z.object({
         }
         return true;
       },
-      { message: 'El DNI o NIE introducido no es válido' }
+      { message: 'El DNI o NIE introducido no es valido' }
     ),
-  telefono: z.string().min(1, 'El teléfono es obligatorio'),
-  rol: z.enum(['CASERO', 'INQUILINO'], { message: 'El rol debe ser CASERO o INQUILINO' }),
+  telefono: z.string().trim().min(1, 'El telefono es obligatorio'),
+  rol: rolUsuarioSchema,
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email('El email no tiene un formato valido'),
+  password: z.string().min(1, 'La contrasena es obligatoria'),
+});
+
+export const googleLoginSchema = z.object({
+  idToken: z.string().trim().min(1, 'Falta el idToken de Google'),
+});
+
+export const actualizarRolSchema = z.object({
+  rol: rolUsuarioSchema,
 });
