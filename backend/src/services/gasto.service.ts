@@ -44,6 +44,19 @@ export const obtenerInquilinosActivosIds = async (viviendaId: number) => {
   return habitaciones.map((habitacion) => habitacion.inquilino_id!);
 };
 
+const desdeCentimos = (centimos: number) => centimos / 100;
+
+const repartirImporteEnCentimos = (importe: number, participantesIds: number[]) => {
+  const totalCentimos = Math.round(importe * 100);
+  const base = Math.floor(totalCentimos / participantesIds.length);
+  const resto = totalCentimos % participantesIds.length;
+
+  return participantesIds.map((usuarioId, index) => ({
+    usuario_id: usuarioId,
+    importe: desdeCentimos(base + (index < resto ? 1 : 0)),
+  }));
+};
+
 export const crearGastoDividido = async ({
   concepto,
   importe,
@@ -96,9 +109,9 @@ export const crearGastoDividido = async ({
       throw new Error('Todos los usuarios de repartoManual deben ser inquilinos activos de la vivienda.');
     }
 
-    const hayImportesInvalidos = repartoManual.some((linea) => linea.importe <= 0);
+    const hayImportesInvalidos = repartoManual.some((linea) => linea.importe < 0);
     if (hayImportesInvalidos) {
-      throw new Error('Todos los importes de repartoManual deben ser mayores que 0.');
+      throw new Error('Los importes de repartoManual no pueden ser negativos.');
     }
 
     const totalCentimos = Math.round(importe * 100);
@@ -144,7 +157,10 @@ export const crearGastoDividido = async ({
   }
 
   const deudoresIds = participantesIds.filter((id) => id !== pagadorId);
-  const importePorPersona = parseFloat((importe / participantesIds.length).toFixed(2));
+  const repartoAutomatico = repartirImporteEnCentimos(importe, participantesIds);
+  const importesPorUsuario = new Map(
+    repartoAutomatico.map((linea) => [linea.usuario_id, parseFloat(linea.importe.toFixed(2))]),
+  );
 
   return prisma.gasto.create({
     data: {
@@ -158,7 +174,7 @@ export const crearGastoDividido = async ({
         create: deudoresIds.map((deudorId) => ({
           deudor_id: deudorId,
           acreedor_id: pagadorId,
-          importe: importePorPersona,
+          importe: importesPorUsuario.get(deudorId) ?? 0,
         })),
       },
     },
