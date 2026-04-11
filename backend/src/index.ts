@@ -3,6 +3,9 @@ import app from './app';
 import './services/cron.service';
 import { iniciarCronMensualidades } from './cron/mensualidades.cron';
 import { iniciarCronRecordatoriosMorosos } from './cron/recordatorios.cron';
+import { assertCriticalEnv } from './config/env';
+
+assertCriticalEnv();
 
 const PORT = 3000;
 
