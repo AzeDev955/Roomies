@@ -78,6 +78,7 @@ frontend/
             incidencias.tsx
             tablon.tsx
             limpieza.tsx
+            opciones.tsx
     inquilino/
       _layout.tsx
       nueva-incidencia.tsx
@@ -95,6 +96,8 @@ frontend/
       [id].tsx
   components/common/
   constants/theme.ts
+  hooks/
+    useViviendaIdParam.ts
   services/
     api.ts
     auth.service.ts
@@ -129,17 +132,18 @@ frontend/
 | `/casero/tablon` | `casero/(tabs)/tablon.tsx` | Tablon global del casero |
 | `/casero/perfil` | `casero/(tabs)/perfil.tsx` | Perfil del casero |
 | `/casero/nueva-vivienda` | `casero/nueva-vivienda.tsx` | Alta de vivienda y habitaciones |
-| `/casero/vivienda/:id` | `casero/vivienda/[id]/(tabs)/index.tsx` | Centro de mando de la vivienda |
+| `/casero/vivienda/:id` | `casero/vivienda/[id]/(tabs)/index.tsx` | Resumen operativo de la vivienda |
 | `/casero/vivienda/:id/incidencias` | `casero/vivienda/[id]/(tabs)/incidencias.tsx` | Incidencias de la vivienda |
 | `/casero/vivienda/:id/tablon` | `casero/vivienda/[id]/(tabs)/tablon.tsx` | Tablon de la vivienda |
 | `/casero/vivienda/:id/limpieza` | `casero/vivienda/[id]/(tabs)/limpieza.tsx` | Zonas y turnos de limpieza |
+| `/casero/vivienda/:id/opciones` | `casero/vivienda/[id]/(tabs)/opciones.tsx` | Configuracion de modulos de la vivienda |
 | `/casero/vivienda/:id/nueva-habitacion` | `casero/vivienda/[id]/nueva-habitacion.tsx` | Alta de habitacion |
 | `/casero/vivienda/:id/editar-habitacion` | `casero/vivienda/[id]/editar-habitacion.tsx` | Edicion, expulsion y borrado |
 | `/casero/vivienda/:id/nueva-incidencia` | `casero/vivienda/[id]/nueva-incidencia.tsx` | Alta de incidencia desde vista casero |
 | `/inquilino/inicio` | `inquilino/(tabs)/inicio.tsx` | Onboarding y dashboard del inquilino |
 | `/inquilino/tablon` | `inquilino/(tabs)/tablon.tsx` | Tablon del inquilino |
 | `/inquilino/limpieza` | `inquilino/(tabs)/limpieza.tsx` | Turno asignado y marcacion como hecho |
-| `/inquilino/gastos` | `inquilino/(tabs)/gastos.tsx` | Gastos, deudas, mensualidades y justificantes |
+| `/inquilino/gastos` | `inquilino/(tabs)/gastos.tsx` | Gastos puntuales, deudas, facturas y justificantes |
 | `/inquilino/inventario` | `inquilino/(tabs)/inventario.tsx` | Revision visual del inventario |
 | `/inquilino/perfil` | `inquilino/(tabs)/perfil.tsx` | Perfil del inquilino |
 | `/inquilino/nueva-incidencia` | `inquilino/nueva-incidencia.tsx` | Alta de incidencia |
@@ -153,7 +157,7 @@ Cada rol tiene su propio grupo `(tabs)`:
 | Grupo | Pestanas |
 |---|---|
 | Casero (global) | Mis viviendas · Cobros · Inventario · Tablon · Perfil |
-| Casero (vivienda) | Resumen · Incidencias · Tablon · Limpieza |
+| Casero (vivienda) | Resumen · Incidencias · Tablon · Limpieza · Opciones |
 | Inquilino | Mi vivienda · Tablon · Limpieza · Gastos · Inventario · Perfil |
 
 Las rutas fuera de tabs se apilan sobre el tab bar gracias a `casero/_layout.tsx` e `inquilino/_layout.tsx`.
@@ -163,7 +167,8 @@ La navegacion es modular por vivienda:
 - `mod_limpieza` oculta la tab `Limpieza` en el detalle de vivienda del casero y en el inquilino.
 - `mod_gastos` oculta `Gastos` en inquilino y `Cobros` en casero si ninguna vivienda del casero lo tiene activo.
 - `mod_inventario` oculta `Inventario` en inquilino y casero si no hay viviendas con el modulo activo.
-- El centro de mando `casero/vivienda/[id]/(tabs)/index.tsx` muestra switches para activar o desactivar modulos via `PATCH /api/viviendas/:id`.
+- El tab `Opciones` (`casero/vivienda/[id]/(tabs)/opciones.tsx`) muestra switches para activar o desactivar modulos via `PATCH /api/viviendas/:id`.
+- Los tabs anidados de vivienda usan `useViviendaIdParam()` para leer el id local con fallback al pathname y evitar colisiones con otras rutas dinamicas.
 
 ## Autenticacion y sesion
 
@@ -200,8 +205,9 @@ La app usa `expo-notifications`.
 
 ### Modulos por vivienda
 
-- `casero/vivienda/[id]/(tabs)/index.tsx` carga `mod_limpieza`, `mod_gastos` y `mod_inventario` junto con el detalle de vivienda.
-- Los switches de "Configuracion de Modulos" hacen PATCH parcial con el flag cambiado y actualizan el estado local.
+- `casero/vivienda/[id]/(tabs)/opciones.tsx` carga `mod_limpieza`, `mod_gastos` y `mod_inventario` junto con el detalle de vivienda.
+- `ModulosViviendaManager` muestra los switches de modulos, hace PATCH parcial con el flag cambiado y actualiza el estado local.
+- `utils/viviendaModules.ts` propaga cambios de modulos para que las tabs globales y anidadas se refresquen sin reiniciar la app.
 - Las tabs globales del casero (`casero/(tabs)/_layout.tsx`) consultan viviendas y solo muestran `Cobros`/`Inventario` cuando al menos una vivienda tiene el modulo correspondiente activo.
 - Las tabs del inquilino (`inquilino/(tabs)/_layout.tsx`) consultan `/inquilino/vivienda` y ocultan `Limpieza`, `Gastos` e `Inventario` segun los flags de su vivienda.
 
@@ -215,7 +221,7 @@ La app usa `expo-notifications`.
 ### Facturacion flexible
 
 - `casero/(tabs)/cobros.tsx` permite crear facturas puntuales con concepto, importe, fecha, adjunto opcional y reparto desigual por inquilino activo.
-- El reparto se valida en tiempo real en la UI y el backend exige que la suma coincida con el total.
+- El reparto se valida en tiempo real en la UI; si todos los importes quedan vacios se calcula un reparto igualitario automatico en centimos, y una cuota `0` cuenta como valor manual valido.
 - Las facturas emitidas se agrupan por gasto y pueden editarse desde un modal con concepto, importe y fecha.
 - Si alguna deuda hija esta `PAGADA`, el modal deshabilita la edicion del importe y mantiene editables concepto/fecha.
 - Desde el modal y desde la tarjeta se puede subir, reemplazar o abrir la factura original (`factura_url`).
@@ -233,17 +239,23 @@ La app usa `expo-notifications`.
   - modal para ver `justificante_url`
   - facturas emitidas agrupadas por gasto con acciones de editar y ver/subir factura original
 
+### Mensualidades del casero
+
+- `casero/vivienda/[id]/(tabs)/index.tsx` lista y crea gastos fijos de la vivienda con `GET/POST /api/viviendas/:viviendaId/gastos-recurrentes`.
+- El alta de mensualidad vive en el contexto de una vivienda concreta para que el backend pueda validar al casero propietario.
+- El inquilino no carga ni crea mensualidades recurrentes desde su tab de gastos.
+
 ### Gastos del inquilino
 
 - `inquilino/(tabs)/gastos.tsx` combina:
   - `GET /api/viviendas/:viviendaId/gastos`
   - `GET /api/viviendas/:viviendaId/deudas`
-  - `GET /api/viviendas/:viviendaId/gastos-recurrentes`
 - Permite:
   - crear gastos puntuales
-  - crear mensualidades (`POST /api/viviendas/:viviendaId/gastos-recurrentes`)
   - subir justificante (`POST /api/deudas/:deudaId/justificante`)
   - saldar deuda (`PATCH /api/viviendas/:viviendaId/deudas/:deudaId/saldar`)
+  - abrir la factura original (`factura_url`) cuando existe
+- La pantalla separa visualmente los pendientes entre companeros de los pendientes con el casero y muestra un estado vacio cuando no hay deudas reales pendientes.
 
 ## Deep linking
 
@@ -287,18 +299,25 @@ eas build --platform android --profile preview
 | `services/api.ts` | Un solo cliente Axios con interceptor JWT |
 | `auth.service.ts` | Encapsula `SecureStore` y simplifica login/logout |
 | `utils/notifications.ts` | Centraliza permisos, obtencion y sincronizacion del Expo Push Token |
+| `hooks/useViviendaIdParam.ts` | Aisla el id de vivienda en tabs anidados del casero con fallback al pathname |
 
 ## Update 2026-04-10 - Epica 12
 
 - La navegacion del casero ahora incluye `Cobros` e `Inventario` a nivel global.
 - La navegacion del inquilino ahora incluye `Limpieza`, `Gastos` e `Inventario`.
-- `gastos.tsx` documenta el flujo completo de mensualidades, justificantes y saldado de deuda.
+- `gastos.tsx` documenta el flujo de gastos puntuales, justificantes, facturas originales y saldado de deuda.
 - `app/_layout.tsx` sincroniza el push token al restaurar sesion.
 
 ## Update 2026-04-10 - Epicas 13 y 14
 
 - La navegacion de casero e inquilino se adapta a `mod_limpieza`, `mod_gastos` y `mod_inventario`.
-- El centro de mando de vivienda permite configurar modulos con switches persistidos por API.
+- El tab `Opciones` de vivienda permite configurar modulos con switches persistidos por API.
 - Alta y edicion de habitaciones soportan precio mensual privado para dormitorios habitables.
-- `Cobros` permite crear facturas puntuales con reparto desigual, editar facturas ya emitidas y gestionar `factura_url`.
+- `Cobros` permite crear facturas puntuales con reparto desigual o automatico por centimos, editar facturas ya emitidas y gestionar `factura_url`.
 - `Gastos` del inquilino muestra enlaces a factura original cuando existen.
+
+## Update 2026-04-11 - Epica 15
+
+- Los tabs internos de vivienda usan `useViviendaIdParam()` para evitar que rutas hermanas con `[id]` cambien el contexto de la vivienda abierta.
+- El perfil compartido muestra `Propietario` para caseros y elimina la tarjeta redundante de rol.
+- `Gastos` del inquilino separa pendientes entre companeros y con casero, elimina copy temporal, muestra estado vacio real y sube el FAB para no tapar contenido.

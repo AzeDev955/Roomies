@@ -1121,9 +1121,9 @@ Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos ac
 
 **Notas de reparto manual:**
 - Todos los `usuario_id` deben ser inquilinos activos de la vivienda y no pueden repetirse.
-- Los importes deben ser mayores que `0`.
+- Los importes pueden ser `0`, pero nunca negativos ni invalidos.
 - Si el pagador aparece en `repartoManual`, no se genera deuda contra si mismo, pero su importe cuenta para cuadrar el total.
-- Si no se envia `repartoManual`, se usa el reparto automatico entre `implicadosIds` o todos los inquilinos activos.
+- Si no se envia `repartoManual`, se usa el reparto automatico entre `implicadosIds` o todos los inquilinos activos. El reparto automatico trabaja en centimos y distribuye el resto para que la suma de deudas coincida con el gasto.
 
 ---
 
@@ -1239,7 +1239,7 @@ Lista las mensualidades configuradas para una vivienda.
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
 **Reglas de acceso:**
-- Debes pertenecer a la vivienda.
+- Solo el `CASERO` propietario de la vivienda puede ver sus mensualidades.
 
 **Respuestas:**
 
@@ -1247,19 +1247,19 @@ Lista las mensualidades configuradas para una vivienda.
 |---|---|
 | `200` | Array de `GastoRecurrente[]`, ordenado por `activo`, `dia_del_mes` e `id`. |
 | `400` | `viviendaId` invalido. |
-| `403` | No perteneces a la vivienda. |
+| `403` | No eres el casero propietario de la vivienda. |
 
 **Incluye:**
 - `pagador { id, nombre, apellidos }`
 
 **Nota automatica:**
-- El cron `0 2 * * *` revisa cada dia las mensualidades activas cuyo `dia_del_mes` coincide con la fecha actual y las convierte en `Gasto`.
+- El cron `0 2 * * *` revisa cada dia las mensualidades activas cuyo `dia_del_mes` coincide con la fecha actual y las convierte en `Gasto`. El casero queda como pagador/acreedor y el importe se reparte entre inquilinos activos.
 
 ---
 
 ### POST `/viviendas/:viviendaId/gastos-recurrentes`
 
-Crea una mensualidad recurrente para la vivienda.
+Crea una mensualidad recurrente para la vivienda. Es un flujo de casero; el inquilino no puede crear ni listar gastos recurrentes.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
@@ -1277,7 +1277,7 @@ Crea una mensualidad recurrente para la vivienda.
 |---|---|
 | `201` | Mensualidad creada. |
 | `400` | Datos invalidos o `dia_del_mes` fuera de rango. |
-| `403` | No perteneces a la vivienda. |
+| `403` | No eres el casero propietario de la vivienda. |
 
 ---
 

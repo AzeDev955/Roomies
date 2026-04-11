@@ -160,6 +160,17 @@ npx expo start --clear
 ## Update 2026-04-10 - Epica 12 (cobros y push)
 
 - `GastoRecurrente` forma parte del schema y su cron diario se inicia automaticamente al arrancar el backend.
+- Las mensualidades recurrentes son gestionadas por el casero propietario de la vivienda; al generarse, el casero queda como acreedor y se reparte entre inquilinos activos.
 - `POST /api/deudas/:deudaId/justificante` reutiliza Cloudinary para guardar comprobantes en `roomies-justificantes`.
 - `PATCH /api/usuarios/me/push-token` permite registrar o limpiar el `expo_push_token` del usuario autenticado.
 - El cron mensual del dia 5 a las 12:00 envia recordatorios push de pago pendiente usando `expo-server-sdk`.
+
+## Update 2026-04-11 - Epicas 13, 14 y 15
+
+- `Vivienda` incorpora `mod_limpieza`, `mod_gastos` y `mod_inventario`; `PATCH /api/viviendas/:id` permite al casero propietario activar o desactivar modulos.
+- `protegerModuloVivienda()` protege limpieza, gastos, deudas, cobros, mensualidades recurrentes e inventario con `403` cuando el modulo correspondiente esta desactivado.
+- `Habitacion.precio` guarda el precio mensual privado solo en habitaciones habitables; el backend oculta precios de dormitorios ajenos en `/api/inquilino/vivienda`.
+- `Gasto.factura_url` guarda facturas originales en Cloudinary. Los gastos aceptan `factura`, `fecha`, `implicadosIds` y `repartoManual`; los repartos automaticos se cuadran por centimos y el reparto manual acepta cuotas `0`.
+- `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` permite al casero editar concepto, fecha e importe, bloqueando el importe si alguna deuda hija esta `PAGADA`.
+- `POST /api/viviendas/:viviendaId/gastos/:gastoId/factura` sube o reemplaza la factura original del gasto.
+- La epica 15 no introduce cambios de backend; documenta un pulido frontend sobre tabs anidados de vivienda, perfil de propietario y jerarquia visual de gastos comunes.

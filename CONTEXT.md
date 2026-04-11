@@ -34,14 +34,22 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 ## Actualizaciones recientes
 
+### Pulido de casero en vivienda y gastos comunes (Epica 15)
+
+- Los tabs internos de `casero/vivienda/[id]/(tabs)` usan `useViviendaIdParam()` para aislar el `id` de vivienda y evitar colisiones con otras rutas dinamicas como perfiles o incidencias.
+- El tab `Opciones` concentra la configuracion de modulos de la vivienda; el resumen queda reservado para datos operativos, habitaciones, incidencias y mensualidades.
+- El perfil compartido muestra el rol `CASERO` como `Propietario` y elimina la tarjeta redundante de rol.
+- La pantalla `Gastos` del inquilino separa visualmente las deudas entre companeros de los pendientes con el casero, muestra un estado vacio real cuando no hay pagos pendientes y eleva el FAB para que no tape acciones al final del scroll.
+
 ### Arquitectura modular y facturacion flexible (Epicas 13 y 14)
 
 - `Vivienda` incorpora los flags `mod_limpieza`, `mod_gastos` y `mod_inventario` con valor por defecto `true`.
-- El casero configura esos modulos desde el centro de mando de la vivienda con `PATCH /api/viviendas/:id`.
+- El casero configura esos modulos desde el tab `Opciones` de la vivienda con `PATCH /api/viviendas/:id`.
 - El backend usa `protegerModuloVivienda()` para devolver `403` si limpieza, gastos/cobros/mensualidades/deudas o inventario estan desactivados para una vivienda.
 - La navegacion del casero y del inquilino oculta tabs de `Limpieza`, `Gastos`, `Cobros` e `Inventario` segun los flags activos.
 - `Habitacion.precio` guarda el precio mensual privado de dormitorios habitables. El casero lo ve siempre; el inquilino solo ve el precio de su propia habitacion y el backend devuelve `precio: null` para dormitorios ajenos.
-- `Gasto.factura_url` guarda la factura original en Cloudinary. Los gastos pueden crearse con adjunto y `repartoManual`, y el casero puede editar concepto, fecha e importe mientras no existan deudas `PAGADA`.
+- `Gasto.factura_url` guarda la factura original en Cloudinary. Los gastos pueden crearse con adjunto, fecha y `repartoManual`; el reparto manual acepta cuotas `0`, y si se omite se reparte automaticamente cuadrando centimos.
+- El casero puede editar concepto, fecha e importe de facturas emitidas; el importe queda bloqueado si alguna deuda hija esta `PAGADA`.
 
 ### Cobros, mensualidades y push (Epica 12)
 
@@ -49,7 +57,8 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 - `GastoRecurrente` guarda mensualidades activas por vivienda y el cron diario de las `02:00` las transforma en `Gasto` normal con reparto automatico entre inquilinos activos.
 - `Deuda` incorpora `justificante_url`; el deudor puede subir imagen con `POST /api/deudas/:deudaId/justificante` usando `multipart/form-data` en el campo `justificante`.
 - El casero dispone de una pestana global `Cobros` con selector de vivienda, resumen mensual de pagado/pendiente y visualizacion del justificante cuando existe.
-- El frontend del inquilino amplia la pestana `Gastos` con bloque de mensualidades, alta de suscripciones recurrentes y bottom sheet para subir justificante antes de marcar una deuda como pagada.
+- Las mensualidades se gestionan desde el resumen de cada vivienda del casero; el inquilino no ve ni crea gastos recurrentes.
+- El frontend del inquilino mantiene la pestana `Gastos` para gastos puntuales, deudas, facturas originales y bottom sheet de justificante antes de marcar una deuda como pagada.
 - El backend expone `PATCH /api/usuarios/me/push-token` y el alias legado `PUT /api/usuarios/push-token` para registrar el `expo_push_token` del usuario autenticado.
 - El frontend sincroniza el token push desde `app/_layout.tsx`, login, registro y selector de rol; en Expo Go el registro se omite y solo funciona en dispositivo fisico o build nativa.
 - El cron mensual `0 12 5 * *` envia recordatorios push a deudores con deudas `PENDIENTE` y token Expo registrado.
@@ -133,7 +142,8 @@ Roomies/
 │   │   │               ├── _layout.tsx ← Tab bar vivienda + botón ← en headerLeft
 │   │   │               ├── index.tsx   ← Resumen: habitaciones, inquilinos, códigos
 │   │   │               ├── incidencias.tsx ← incidencias de la vivienda
-│   │   │               └── tablon.tsx  ← tablón de anuncios de esta vivienda
+│   │   │               ├── tablon.tsx  ← tablón de anuncios de esta vivienda
+│   │   │               └── opciones.tsx ← configuracion de modulos de la vivienda
 │   │   ├── inquilino/
 │   │   │   ├── _layout.tsx             ← Stack del inquilino
 │   │   │   ├── nueva-incidencia.tsx
@@ -636,11 +646,19 @@ Usuarios de prueba creados por `prisma db seed`:
   - `POST /api/viviendas/:viviendaId/gastos` acepta `multipart/form-data`, `factura`, `fecha` y `repartoManual`.
   - `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` edita concepto, fecha e importe; el importe no se puede cambiar si alguna deuda hija esta `PAGADA`.
 - Frontend:
-  - El centro de mando del casero muestra switches de modulos por vivienda.
+  - El tab `Opciones` del casero muestra switches de modulos por vivienda mediante `ModulosViviendaManager`.
   - Las tabs globales y de vivienda se ocultan segun los flags activos.
   - Los formularios de alta/edicion de habitaciones muestran precio mensual solo en dormitorios habitables.
-  - `Cobros` permite crear facturas puntuales con adjunto y reparto desigual, editar facturas emitidas y subir/reemplazar factura original.
+  - `Cobros` permite crear facturas puntuales con adjunto, reparto desigual o reparto automatico por centimos, editar facturas emitidas y subir/reemplazar factura original.
   - El inquilino ve el precio de su propia habitacion y enlaces a factura original cuando una deuda procede de un gasto con adjunto.
+
+## Update 2026-04-11 - Pulido de casero y gastos comunes (Epica 15)
+
+- Frontend:
+  - `useViviendaIdParam()` fija el `id` de vivienda en tabs anidados del casero y evita que rutas hermanas con `[id]` contaminen el contexto abierto.
+  - `casero/vivienda/[id]/(tabs)/opciones.tsx` centraliza la configuracion de modulos de vivienda.
+  - `perfil.tsx` muestra `Propietario` para usuarios `CASERO` y elimina el bloque redundante de rol.
+  - `inquilino/(tabs)/gastos.tsx` separa pendientes entre companeros y pendientes con casero, elimina textos temporales, muestra estado vacio real y ajusta el FAB para no cubrir contenido.
 
 ## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
 
@@ -651,7 +669,7 @@ Usuarios de prueba creados por `prisma db seed`:
   - `PATCH /api/usuarios/me/push-token` registra el `expo_push_token` del usuario autenticado.
 - Frontend:
   - El casero tiene pestanas globales `Cobros` e `Inventario`.
-  - El inquilino tiene pestanas `Limpieza`, `Gastos` e `Inventario`, y en `Gastos` puede crear mensualidades y subir justificantes.
+  - El inquilino tiene pestanas `Limpieza`, `Gastos` e `Inventario`; en `Gastos` puede crear gastos puntuales, saldar deudas y subir justificantes.
   - `app/_layout.tsx`, login, registro y selector de rol sincronizan el push token cuando existe sesion.
 - Automatizaciones:
   - El cron `0 12 5 * *` envia recordatorios push de deudas pendientes a usuarios con token Expo registrado.
