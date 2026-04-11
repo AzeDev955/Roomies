@@ -1,12 +1,15 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Tabs, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 import { Theme } from '@/constants/theme';
 import api from '@/services/api';
+import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 
 type ViviendaModulos = {
   mod_limpieza: boolean;
+  mod_gastos: boolean;
+  mod_inventario: boolean;
 };
 
 export default function ViviendaTabsLayout() {
@@ -14,11 +17,20 @@ export default function ViviendaTabsLayout() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [modulos, setModulos] = useState({ limpieza: true });
 
+  const cargarModulos = useCallback(async () => {
+    try {
+      const { data } = await api.get<ViviendaModulos>(`/viviendas/${id}`);
+      setModulos({ limpieza: data.mod_limpieza });
+    } catch {
+      setModulos({ limpieza: true });
+    }
+  }, [id]);
+
   useFocusEffect(
     useCallback(() => {
       let activo = true;
 
-      const cargarModulos = async () => {
+      const cargarModulosSeguro = async () => {
         try {
           const { data } = await api.get<ViviendaModulos>(`/viviendas/${id}`);
           if (activo) {
@@ -31,11 +43,23 @@ export default function ViviendaTabsLayout() {
         }
       };
 
-      cargarModulos();
+      cargarModulosSeguro();
       return () => {
         activo = false;
       };
     }, [id]),
+  );
+
+  useEffect(
+    () =>
+      onModulosViviendaActualizados((event) => {
+        if (String(event.viviendaId) === String(id)) {
+          setModulos({ limpieza: event.modulos.mod_limpieza });
+        } else {
+          cargarModulos();
+        }
+      }),
+    [cargarModulos, id],
   );
 
   return (
@@ -105,6 +129,15 @@ export default function ViviendaTabsLayout() {
           href: modulos.limpieza ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="opciones"
+        options={{
+          title: 'Opciones',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />

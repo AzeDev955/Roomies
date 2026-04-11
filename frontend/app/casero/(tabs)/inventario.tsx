@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -21,6 +21,7 @@ import { CustomInput } from '@/components/common/CustomInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { Theme } from '@/constants/theme';
 import api from '@/services/api';
+import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import {
   ESTADO_ITEM_BG,
   ESTADO_ITEM_BORDER,
@@ -40,6 +41,7 @@ type Vivienda = {
   id: number;
   alias_nombre: string;
   direccion: string;
+  mod_inventario: boolean;
   habitaciones: Habitacion[];
 };
 
@@ -85,6 +87,7 @@ const ETIQUETAS_ESTADO: Record<EstadoItem, string> = {
 export default function CaseroInventarioScreen() {
   const router = useRouter();
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
+  const [hayViviendas, setHayViviendas] = useState(false);
   const [viviendaSeleccionadaId, setViviendaSeleccionadaId] = useState<number | null>(null);
   const [items, setItems] = useState<ItemInventario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,21 +121,25 @@ export default function CaseroInventarioScreen() {
     setLoading(true);
     try {
       const { data } = await api.get<Vivienda[]>('/viviendas');
-      setViviendas(data);
+      const viviendasConInventario = data.filter((vivienda) => vivienda.mod_inventario);
+      setHayViviendas(data.length > 0);
+      setViviendas(viviendasConInventario);
 
-      if (data.length === 0) {
+      if (viviendasConInventario.length === 0) {
         setViviendaSeleccionadaId(null);
         setItems([]);
         return;
       }
 
       const viviendaInicial =
-        data.find((vivienda) => vivienda.id === viviendaSeleccionadaId) ?? data[0];
+        viviendasConInventario.find((vivienda) => vivienda.id === viviendaSeleccionadaId) ??
+        viviendasConInventario[0];
 
       setViviendaSeleccionadaId(viviendaInicial.id);
       await cargarInventario(viviendaInicial.id);
     } catch {
       setViviendas([]);
+      setHayViviendas(false);
       setViviendaSeleccionadaId(null);
       setItems([]);
       Toast.show({ type: 'error', text1: 'No se pudieron cargar tus viviendas.' });
@@ -146,6 +153,8 @@ export default function CaseroInventarioScreen() {
       cargarContexto();
     }, [cargarContexto]),
   );
+
+  useEffect(() => onModulosViviendaActualizados(() => cargarContexto()), [cargarContexto]);
 
   const reiniciarFormulario = useCallback(() => {
     setNombre('');
@@ -285,8 +294,8 @@ export default function CaseroInventarioScreen() {
             En cuanto tengas una propiedad creada podrás registrar muebles, electrodomésticos y su estado.
           </Text>
           <CustomButton
-            label="Crear vivienda"
-            onPress={() => router.push('/casero/nueva-vivienda')}
+            label={hayViviendas ? 'Ver viviendas' : 'Crear vivienda'}
+            onPress={() => router.push(hayViviendas ? '/casero/viviendas' : '/casero/nueva-vivienda')}
             style={styles.emptyAction}
           />
         </View>
