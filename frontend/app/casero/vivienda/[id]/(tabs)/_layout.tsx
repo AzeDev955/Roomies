@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Tabs, useFocusEffect, useGlobalSearchParams, useRouter } from 'expo-router';
+import { Tabs, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
 import { Theme } from '@/constants/theme';
 import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
+import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
 
 type ViviendaModulos = {
   mod_limpieza: boolean;
@@ -14,8 +15,7 @@ type ViviendaModulos = {
 
 export default function ViviendaTabsLayout() {
   const router = useRouter();
-  const params = useGlobalSearchParams<{ id?: string | string[] }>();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = useViviendaIdParam();
   const [modulos, setModulos] = useState({ limpieza: true });
 
   const cargarModulos = useCallback(async () => {

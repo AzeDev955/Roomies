@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useState, useCallback } from 'react';
-import { useGlobalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
@@ -22,6 +22,7 @@ import { styles } from '@/styles/casero/vivienda/detalle.styles';
 import { COLORES_PRIORIDAD } from '@/styles/casero/vivienda/incidencias.styles';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
@@ -119,8 +120,7 @@ const AvatarInitials = ({
 };
 
 export default function ResumenViviendaTab() {
-  const params = useGlobalSearchParams<{ id?: string | string[] }>();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = useViviendaIdParam();
   const router = useRouter();
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
   const [gastosRecurrentes, setGastosRecurrentes] = useState<GastoRecurrente[]>([]);
