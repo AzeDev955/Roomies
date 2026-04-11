@@ -126,12 +126,12 @@ export const actualizarVivienda: express.RequestHandler = async (req, res) => {
   };
 
   if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ error: 'ID de vivienda invalido.' });
+    res.status(400).json({ error: 'ID de vivienda inválido.' });
     return;
   }
 
   if (req.usuario!.rol !== RolUsuario.CASERO) {
-    res.status(403).json({ error: 'Solo el casero puede configurar los modulos de una vivienda.' });
+    res.status(403).json({ error: 'Solo el casero puede configurar los módulos de una vivienda.' });
     return;
   }
 
@@ -172,7 +172,7 @@ export const actualizarVivienda: express.RequestHandler = async (req, res) => {
   }
 
   if (Object.keys(data).length === 0) {
-    res.status(400).json({ error: 'No hay modulos para actualizar.' });
+    res.status(400).json({ error: 'No hay módulos para actualizar.' });
     return;
   }
 

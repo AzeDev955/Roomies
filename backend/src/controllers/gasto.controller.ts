@@ -199,7 +199,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
   try {
     repartoManual = normalizarRepartoManual(req.body.repartoManual);
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : 'repartoManual no es valido.';
+    const mensaje = error instanceof Error ? error.message : 'repartoManual no es válido.';
     res.status(400).json({ error: mensaje });
     return;
   }
@@ -215,7 +215,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
     )
   ) {
     res.status(400).json({
-      error: 'repartoManual debe incluir usuario_id numerico e importe valido no negativo.',
+      error: 'repartoManual debe incluir usuario_id numérico e importe válido no negativo.',
     });
     return;
   }
@@ -230,7 +230,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
 
   const fechaGasto = fecha ? new Date(fecha) : undefined;
   if (fecha && Number.isNaN(fechaGasto?.getTime())) {
-    res.status(400).json({ error: 'fecha debe ser una fecha valida.' });
+    res.status(400).json({ error: 'fecha debe ser una fecha válida.' });
     return;
   }
 
@@ -274,12 +274,12 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
   const usuarioId = req.usuario!.id;
 
   if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
-    res.status(400).json({ error: 'viviendaId invalido.' });
+    res.status(400).json({ error: 'viviendaId inválido.' });
     return;
   }
 
   if (!Number.isInteger(gastoId) || gastoId <= 0) {
-    res.status(400).json({ error: 'gastoId invalido.' });
+    res.status(400).json({ error: 'gastoId inválido.' });
     return;
   }
 
@@ -297,7 +297,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
 
   if (concepto !== undefined) {
     if (!concepto.trim()) {
-      res.status(400).json({ error: 'El concepto no puede estar vacio.' });
+      res.status(400).json({ error: 'El concepto no puede estar vacío.' });
       return;
     }
 
@@ -306,7 +306,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
 
   if (importe !== undefined) {
     if (typeof importe !== 'number' || !Number.isFinite(importe) || importe <= 0) {
-      res.status(400).json({ error: 'El importe debe ser un numero mayor que 0.' });
+      res.status(400).json({ error: 'El importe debe ser un número mayor que 0.' });
       return;
     }
 
@@ -317,7 +317,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     const fechaActualizada = new Date(fecha);
 
     if (Number.isNaN(fechaActualizada.getTime())) {
-      res.status(400).json({ error: 'La fecha indicada no es valida.' });
+      res.status(400).json({ error: 'La fecha indicada no es válida.' });
       return;
     }
 
@@ -325,7 +325,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
   }
 
   if (Object.keys(datosActualizacion).length === 0) {
-    res.status(400).json({ error: 'No hay campos validos para actualizar.' });
+    res.status(400).json({ error: 'No hay campos válidos para actualizar.' });
     return;
   }
 
@@ -387,17 +387,17 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
   const usuarioId = req.usuario!.id;
 
   if (!cloudinaryEstaConfigurado) {
-    res.status(500).json({ error: 'Cloudinary no esta configurado en el servidor.' });
+    res.status(500).json({ error: 'Cloudinary no está configurado en el servidor.' });
     return;
   }
 
   if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
-    res.status(400).json({ error: 'viviendaId invalido.' });
+    res.status(400).json({ error: 'viviendaId inválido.' });
     return;
   }
 
   if (!Number.isInteger(gastoId) || gastoId <= 0) {
-    res.status(400).json({ error: 'gastoId invalido.' });
+    res.status(400).json({ error: 'gastoId inválido.' });
     return;
   }
 

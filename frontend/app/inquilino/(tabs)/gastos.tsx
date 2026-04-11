@@ -341,7 +341,7 @@ export default function GastosInquilinoTab() {
 
     const importeNum = parseFloat(importe.replace(',', '.'));
     if (isNaN(importeNum) || importeNum <= 0) {
-      Toast.show({ type: 'error', text1: 'Introduce un importe valido mayor que 0.' });
+      Toast.show({ type: 'error', text1: 'Introduce un importe válido mayor que 0.' });
       return;
     }
 
@@ -413,12 +413,12 @@ export default function GastosInquilinoTab() {
           <View style={styles.heroHeader}>
             <View style={[styles.heroEtiquetaBadge, { backgroundColor: Theme.colors.primaryLight }]}>
               <Text style={[styles.heroEtiqueta, { color: Theme.colors.primary }]}>
-                RESUMEN ENTRE COMPANEROS
+                RESUMEN ENTRE COMPAÑEROS
               </Text>
             </View>
             <Text style={styles.heroTitulo}>Lo que debes y lo que te deben van por separado</Text>
             <Text style={styles.heroDescripcion}>
-              Ya no compensamos un pendiente con otro. Asi ves con claridad lo que debes y lo que
+              Ya no compensamos un pendiente con otro. Así ves con claridad lo que debes y lo que
               te deben dentro del piso.
             </Text>
           </View>
@@ -439,7 +439,7 @@ export default function GastosInquilinoTab() {
               <Text style={[styles.heroResumenImporte, { color: Theme.colors.danger }]}>
                 {formatImporte(totalDeboCompaneros)}
               </Text>
-              <Text style={styles.heroResumenTexto}>Pendiente con companeros</Text>
+              <Text style={styles.heroResumenTexto}>Pendiente con compañeros</Text>
             </View>
 
             <View
@@ -478,9 +478,9 @@ export default function GastosInquilinoTab() {
                 <Ionicons name="business-outline" size={18} color={Theme.colors.info} />
               </View>
               <View style={styles.caseroHeaderTextos}>
-                <Text style={styles.caseroTitulo}>Relacion con el casero</Text>
+                <Text style={styles.caseroTitulo}>Relación con el casero</Text>
                 <Text style={styles.caseroDescripcion}>
-                  Este bloque va aparte y no se mezcla con los companeros del piso.
+                  Este bloque va aparte y no se mezcla con los compañeros del piso.
                 </Text>
               </View>
             </View>
@@ -507,7 +507,7 @@ export default function GastosInquilinoTab() {
 
         {deudasPendientesCompaneros.length > 0 && (
           <>
-            <Text style={styles.seccionTitulo}>Pendientes con companeros</Text>
+            <Text style={styles.seccionTitulo}>Pendientes con compañeros</Text>
             {deudasPendientesCompaneros.map((deuda) => {
               const yoDebo = deuda.deudor_id === miId;
               const companero = yoDebo ? deuda.acreedor : deuda.deudor;
@@ -731,9 +731,9 @@ export default function GastosInquilinoTab() {
             <View style={styles.emptyIconBox}>
               <Ionicons name="wallet-outline" size={40} color={Theme.colors.primary} />
             </View>
-            <Text style={styles.emptyTitulo}>Sin gastos todavia</Text>
+            <Text style={styles.emptyTitulo}>Sin gastos todavía</Text>
             <Text style={styles.emptySubtitulo}>
-              Cuando alguien pague algo por la casa, aparecera aqui para que todos contribuyan su
+              Cuando alguien pague algo por la casa, aparecerá aquí para que todos contribuyan su
               parte.
             </Text>
           </View>
@@ -761,7 +761,7 @@ export default function GastosInquilinoTab() {
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={abrirModal}
-        accessibilityLabel="Anadir nuevo gasto"
+        accessibilityLabel="Añadir nuevo gasto"
         accessibilityRole="button"
       >
         <Ionicons name="add" size={28} color={Theme.colors.surface} />
@@ -931,7 +931,7 @@ export default function GastosInquilinoTab() {
             </View>
 
             <View style={styles.participantesSection}>
-              <Text style={styles.inputLabel}>Quien participa?</Text>
+              <Text style={styles.inputLabel}>¿Quién participa?</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -952,7 +952,7 @@ export default function GastosInquilinoTab() {
                       onPress={() => toggleImplicado(inquilino.id)}
                       accessibilityRole="button"
                       accessibilityLabel={`${
-                        estaSeleccionado ? 'Quitar de' : 'Anadir a'
+                        estaSeleccionado ? 'Quitar de' : 'Añadir a'
                       } participantes a ${esYo ? 'ti' : inquilino.nombre}`}
                     >
                       <AvatarInitials
@@ -968,7 +968,7 @@ export default function GastosInquilinoTab() {
                           ]}
                           numberOfLines={1}
                         >
-                          {esYo ? 'Tu' : inquilino.nombre}
+                          {esYo ? 'Tú' : inquilino.nombre}
                         </Text>
                         <Text
                           style={[

@@ -605,12 +605,12 @@ export default function CaseroCobrosScreen() {
     const importeNormalizado = Number(importeEditado.replace(',', '.'));
 
     if (!conceptoNormalizado) {
-      Toast.show({ type: 'error', text1: 'El concepto no puede estar vacio.' });
+      Toast.show({ type: 'error', text1: 'El concepto no puede estar vacío.' });
       return;
     }
 
     if (!facturaTienePagos && (!Number.isFinite(importeNormalizado) || importeNormalizado <= 0)) {
-      Toast.show({ type: 'error', text1: 'Introduce un importe valido mayor que 0.' });
+      Toast.show({ type: 'error', text1: 'Introduce un importe válido mayor que 0.' });
       return;
     }
 
@@ -691,7 +691,7 @@ export default function CaseroCobrosScreen() {
         Toast.show({
           type: 'info',
           text1: 'Permiso necesario',
-          text2: 'Necesitamos acceso a tu galeria para adjuntar la factura.',
+          text2: 'Necesitamos acceso a tu galería para adjuntar la factura.',
         });
         return;
       }
@@ -869,7 +869,7 @@ export default function CaseroCobrosScreen() {
                 </View>
                 <Text style={styles.emptyTitle}>Sin facturas emitidas</Text>
                 <Text style={styles.emptySubtitle}>
-                  Las mensualidades generadas apareceran aqui para poder revisarlas.
+                  Las mensualidades generadas aparecerán aquí para poder revisarlas.
                 </Text>
               </View>
             ) : (
@@ -1182,7 +1182,7 @@ export default function CaseroCobrosScreen() {
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Editar factura</Text>
             <Text style={styles.modalSubtitle}>
-              Actualiza los datos del recibo y se reflejara en los cobros abiertos.
+              Actualiza los datos del recibo y se reflejará en los cobros abiertos.
             </Text>
 
             {facturaTienePagos && (

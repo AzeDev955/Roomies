@@ -82,7 +82,7 @@ export default function CaseroTabsLayout() {
       <Tabs.Screen
         name="viviendas"
         options={{
-          title: 'Mis viviendas',
+          title: 'Viviendas',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -101,7 +101,7 @@ export default function CaseroTabsLayout() {
       <Tabs.Screen
         name="inventario"
         options={{
-          title: 'Inventario',
+          title: 'Invent.',
           href: modulos.inventario ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="albums-outline" size={size} color={color} />

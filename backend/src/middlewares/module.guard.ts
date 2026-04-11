@@ -29,7 +29,7 @@ export const protegerModuloVivienda = (
   const viviendaId = await resolverViviendaId(req);
 
   if (!viviendaId) {
-    res.status(400).json({ error: 'viviendaId invalido.' });
+    res.status(400).json({ error: 'viviendaId inválido.' });
     return;
   }
 
@@ -45,7 +45,7 @@ export const protegerModuloVivienda = (
   }
 
   if (!vivienda[campo]) {
-    res.status(403).json({ error: `El modulo ${modulo} esta desactivado para esta vivienda.` });
+    res.status(403).json({ error: `El módulo ${modulo} está desactivado para esta vivienda.` });
     return;
   }
 
