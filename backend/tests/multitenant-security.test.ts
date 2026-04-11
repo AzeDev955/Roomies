@@ -1,68 +1,62 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
 import type express from 'express';
+import { test, vi } from 'vitest';
 
 type UsuarioTest = { id: number; rol: 'CASERO' | 'INQUILINO' };
 type Handler = express.RequestHandler;
 
-const prisma = {
+const prisma = vi.hoisted(() => ({
   vivienda: {
-    findUnique: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('vivienda.findUnique'),
-    findFirst: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('vivienda.findFirst'),
+    findUnique: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: vivienda.findUnique');
+    },
+    findFirst: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: vivienda.findFirst');
+    },
   },
   habitacion: {
-    findUnique: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('habitacion.findUnique'),
-    findFirst: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('habitacion.findFirst'),
-    update: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('habitacion.update'),
+    findUnique: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: habitacion.findUnique');
+    },
+    findFirst: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: habitacion.findFirst');
+    },
+    update: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: habitacion.update');
+    },
   },
   incidencia: {
-    findUnique: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('incidencia.findUnique'),
-    create: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('incidencia.create'),
+    findUnique: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: incidencia.findUnique');
+    },
+    create: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: incidencia.create');
+    },
   },
   anuncio: {
-    findUnique: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('anuncio.findUnique'),
-    delete: async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('anuncio.delete'),
+    findUnique: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: anuncio.findUnique');
+    },
+    delete: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: anuncio.delete');
+    },
   },
-};
+}));
 
 function unexpectedPrismaCall(method: string): never {
   throw new Error(`Unexpected prisma call: ${method}`);
 }
 
-function mockModule(modulePath: string, exports: unknown) {
-  const resolved = require.resolve(modulePath);
-  require.cache[resolved] = {
-    id: resolved,
-    filename: resolved,
-    loaded: true,
-    exports,
-    children: [],
-    paths: [],
-  } as unknown as NodeJS.Module;
-}
-
-mockModule('../src/lib/prisma', { prisma });
-mockModule('../src/services/notification.service', {
+vi.mock('../src/lib/prisma', () => ({ prisma }));
+vi.mock('../src/services/notification.service', () => ({
   enviarNotificacionPush: async () => undefined,
-});
+}));
 
-const { obtenerVivienda, editarHabitacion } = require('../src/controllers/vivienda.controller') as {
-  obtenerVivienda: Handler;
-  editarHabitacion: Handler;
-};
-const { obtenerMiVivienda, unirseHabitacion } = require('../src/controllers/inquilino.controller') as {
-  obtenerMiVivienda: Handler;
-  unirseHabitacion: Handler;
-};
-const { crearIncidencia } = require('../src/controllers/incidencia.controller') as {
-  crearIncidencia: Handler;
-};
-const { eliminarAnuncio } = require('../src/controllers/anuncio.controller') as {
-  eliminarAnuncio: Handler;
-};
-const { protegerModuloVivienda } = require('../src/middlewares/module.guard') as {
-  protegerModuloVivienda: (modulo: 'limpieza' | 'gastos' | 'inventario') => Handler;
-};
+const { obtenerVivienda, editarHabitacion } = await import('../src/controllers/vivienda.controller');
+const { obtenerMiVivienda, unirseHabitacion } = await import('../src/controllers/inquilino.controller');
+const { crearIncidencia } = await import('../src/controllers/incidencia.controller');
+const { eliminarAnuncio } = await import('../src/controllers/anuncio.controller');
+const { protegerModuloVivienda } = await import('../src/middlewares/module.guard');
 
 function resetPrisma() {
   prisma.vivienda.findUnique = async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('vivienda.findUnique');

@@ -60,6 +60,22 @@ GET http://localhost:3000/ping  ->  pong
 | `npm run dev` | Servidor con hot-reload (`nodemon --exec ts-node src/index.ts`) |
 | `npm run build` | Compila TypeScript a `dist/` (`npx prisma generate && tsc`) |
 | `npm start` | Arranca el servidor compilado (`npx prisma db push --accept-data-loss && node dist/index.js`) |
+| `npm test` | Ejecuta la suite de Vitest una vez |
+| `npm run test:watch` | Ejecuta Vitest en modo watch |
+| `npm run test:coverage` | Ejecuta Vitest y genera cobertura en `coverage/` |
+
+## Tests
+
+El backend usa Vitest + Supertest. La app Express vive en `src/app.ts` y se importa desde los tests sin llamar a `app.listen()` ni arrancar cron jobs reales.
+
+Los tests cargan valores seguros en `tests/setup.ts`:
+
+- `NODE_ENV=test`
+- `DATABASE_URL=postgresql://roomies_test:roomies_test@localhost:5432/roomies_test`
+- `JWT_SECRET=test-secret-not-for-production`
+- `GOOGLE_CLIENT_ID=test-google-client-id`
+
+Estos valores permiten importar controladores, rutas y Prisma sin depender de `.env` privados. Los tests que necesiten base de datos real deberan preparar una base aislada de test o mockear Prisma de forma explicita.
 
 ## Despliegue en Railway
 
@@ -174,3 +190,9 @@ npx expo start --clear
 - `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` permite al casero editar concepto, fecha e importe, bloqueando el importe si alguna deuda hija esta `PAGADA`.
 - `POST /api/viviendas/:viviendaId/gastos/:gastoId/factura` sube o reemplaza la factura original del gasto.
 - La epica 15 no introduce cambios de backend; documenta un pulido frontend sobre tabs anidados de vivienda, perfil de propietario y jerarquia visual de gastos comunes.
+
+## Update 2026-04-11 - Epica 16 issue 246
+
+- Se separa `src/app.ts` de `src/index.ts` para que Express pueda probarse sin abrir puerto ni arrancar cron jobs.
+- Se anade Vitest + Supertest con scripts `test`, `test:watch` y `test:coverage`.
+- La suite inicial valida `GET /ping` como smoke test de la app Express.

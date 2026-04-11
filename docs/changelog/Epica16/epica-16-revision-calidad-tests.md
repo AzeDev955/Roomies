@@ -4,9 +4,9 @@
 Revisar todo el codigo de Roomies para detectar malos usos, typos, incongruencias, regresiones funcionales, brechas de seguridad y deuda tecnica, introduciendo una base real de tests que permita seguir desarrollando sin romper flujos criticos.
 
 ## Rama objetivo
-`main`
+`dev`
 
-> Regla del repo aplicada: la rama actual es `dev`, por tanto la rama objetivo de esta epica debe ser `main`.
+> Regla del repo aplicada desde el skill `roomies-github-issues`: las ramas de trabajo salen siempre desde `dev` salvo instruccion explicita contraria.
 
 ## Diagnostico inicial
 - No hay tests versionados: `git ls-files '*test*' '*spec*' '__tests__/*'` no devuelve archivos.

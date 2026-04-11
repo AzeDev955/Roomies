@@ -9,3 +9,6 @@ Thumbs.db
 
 CLAUDE.md
 .codex/
+
+# Test artifacts
+coverage/
