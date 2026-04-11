@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Tabs, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Theme } from '@/constants/theme';
 import api from '@/services/api';
+import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 
 type ViviendaModulos = {
   mod_gastos: boolean;
@@ -15,11 +16,24 @@ export default function CaseroTabsLayout() {
     inventario: true,
   });
 
+  const cargarModulos = useCallback(async () => {
+    try {
+      const { data } = await api.get<ViviendaModulos[]>('/viviendas');
+
+      setModulos({
+        gastos: data.some((vivienda) => vivienda.mod_gastos),
+        inventario: data.some((vivienda) => vivienda.mod_inventario),
+      });
+    } catch {
+      setModulos({ gastos: true, inventario: true });
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       let activo = true;
 
-      const cargarModulos = async () => {
+      const cargarModulosSeguro = async () => {
         try {
           const { data } = await api.get<ViviendaModulos[]>('/viviendas');
           if (!activo || data.length === 0) return;
@@ -35,12 +49,14 @@ export default function CaseroTabsLayout() {
         }
       };
 
-      cargarModulos();
+      cargarModulosSeguro();
       return () => {
         activo = false;
       };
     }, []),
   );
+
+  useEffect(() => onModulosViviendaActualizados(() => cargarModulos()), [cargarModulos]);
 
   return (
     <Tabs

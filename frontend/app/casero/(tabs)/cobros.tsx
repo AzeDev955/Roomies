@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -22,6 +22,7 @@ import { CustomInput } from '@/components/common/CustomInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { Theme } from '@/constants/theme';
 import api from '@/services/api';
+import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import {
   ESTADO_BADGE_BG,
   ESTADO_BADGE_BORDER,
@@ -33,6 +34,7 @@ type Vivienda = {
   id: number;
   alias_nombre: string;
   direccion: string;
+  mod_gastos: boolean;
 };
 
 type InquilinoActivo = {
@@ -145,6 +147,7 @@ const recalcularResumenCobros = (deudas: DeudaCobro[]) => ({
 export default function CaseroCobrosScreen() {
   const router = useRouter();
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
+  const [hayViviendas, setHayViviendas] = useState(false);
   const [viviendaSeleccionadaId, setViviendaSeleccionadaId] = useState<number | null>(null);
   const [resumen, setResumen] = useState<CobrosResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -274,21 +277,26 @@ export default function CaseroCobrosScreen() {
     setLoading(true);
     try {
       const { data } = await api.get<Vivienda[]>('/viviendas');
-      setViviendas(data);
+      const viviendasConGastos = data.filter((vivienda) => vivienda.mod_gastos);
+      setHayViviendas(data.length > 0);
+      setViviendas(viviendasConGastos);
 
-      if (data.length === 0) {
+      if (viviendasConGastos.length === 0) {
         setViviendaSeleccionadaId(null);
         setResumen(null);
+        setInquilinosActivos([]);
         return;
       }
 
       const viviendaInicial =
-        data.find((vivienda) => vivienda.id === viviendaSeleccionadaId) ?? data[0];
+        viviendasConGastos.find((vivienda) => vivienda.id === viviendaSeleccionadaId) ??
+        viviendasConGastos[0];
 
       setViviendaSeleccionadaId(viviendaInicial.id);
       await Promise.all([cargarCobros(viviendaInicial.id), cargarInquilinosActivos(viviendaInicial.id)]);
     } catch {
       setViviendas([]);
+      setHayViviendas(false);
       setViviendaSeleccionadaId(null);
       setResumen(null);
       Toast.show({ type: 'error', text1: 'No se pudieron cargar tus viviendas.' });
@@ -302,6 +310,8 @@ export default function CaseroCobrosScreen() {
       cargarContexto();
     }, [cargarContexto]),
   );
+
+  useEffect(() => onModulosViviendaActualizados(() => cargarContexto()), [cargarContexto]);
 
   const cambiarVivienda = async (viviendaId: number) => {
     setViviendaSeleccionadaId(viviendaId);
@@ -610,8 +620,8 @@ export default function CaseroCobrosScreen() {
             El dashboard de cobros aparecerá aquí en cuanto tengas una propiedad creada.
           </Text>
           <CustomButton
-            label="Crear vivienda"
-            onPress={() => router.push('/casero/nueva-vivienda')}
+            label={hayViviendas ? 'Ver viviendas' : 'Crear vivienda'}
+            onPress={() => router.push(hayViviendas ? '/casero/viviendas' : '/casero/nueva-vivienda')}
             style={styles.emptyAction}
           />
         </View>
