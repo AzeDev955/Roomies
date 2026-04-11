@@ -99,6 +99,7 @@ export default function GastosInquilinoTab() {
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [deudas, setDeudas] = useState<Deuda[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [saldando, setSaldando] = useState<number | null>(null);
   const [deudaSeleccionada, setDeudaSeleccionada] = useState<Deuda | null>(null);
 
@@ -119,9 +120,11 @@ export default function GastosInquilinoTab() {
 
       setGastos(gastosData);
       setDeudas(deudasData);
+      setErrorCarga(null);
     } catch {
       setGastos([]);
       setDeudas([]);
+      setErrorCarga('No se pudieron cargar tus gastos y deudas.');
     }
   }, []);
 
@@ -131,6 +134,7 @@ export default function GastosInquilinoTab() {
 
       const inicializar = async () => {
         setLoading(true);
+        setErrorCarga(null);
         try {
           const { data: viviendaData } = await api.get<{
             miHabitacionId: number;
@@ -164,6 +168,7 @@ export default function GastosInquilinoTab() {
           setImplicadosSeleccionados([]);
           setGastos([]);
           setDeudas([]);
+          setErrorCarga('No pudimos cargar tu vivienda para revisar los gastos.');
         } finally {
           if (activo) setLoading(false);
         }
@@ -412,6 +417,19 @@ export default function GastosInquilinoTab() {
           </Text>
         </View>
 
+        {errorCarga && (
+          <View style={styles.errorCard}>
+            <View style={styles.errorIconBox}>
+              <Ionicons name="alert-circle-outline" size={22} color={Theme.colors.danger} />
+            </View>
+            <View style={styles.errorTextos}>
+              <Text style={styles.errorTitulo}>No se pudieron cargar los gastos</Text>
+              <Text style={styles.errorSubtitulo}>{errorCarga}</Text>
+            </View>
+          </View>
+        )}
+
+        {!errorCarga && (
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
             <View style={styles.heroIconBox}>
@@ -468,8 +486,9 @@ export default function GastosInquilinoTab() {
           </View>
 
         </View>
+        )}
 
-        {(totalDeboCasero > 0 || totalMeDebenCasero > 0) && (
+        {!errorCarga && (totalDeboCasero > 0 || totalMeDebenCasero > 0) && (
           <View style={styles.caseroCard}>
             <View style={styles.caseroHeader}>
               <View style={styles.caseroIconBox}>
@@ -503,7 +522,7 @@ export default function GastosInquilinoTab() {
           </View>
         )}
 
-        {mostrarPendientesVacios && (
+        {!errorCarga && mostrarPendientesVacios && (
           <View style={styles.pendientesEmptyCard}>
             <View style={styles.pendientesEmptyIcon}>
               <Ionicons name="checkmark-circle-outline" size={22} color={Theme.colors.success} />
@@ -518,7 +537,7 @@ export default function GastosInquilinoTab() {
           </View>
         )}
 
-        {deudasPendientesCompaneros.length > 0 && (
+        {!errorCarga && deudasPendientesCompaneros.length > 0 && (
           <>
             <View style={styles.seccionHeader}>
               <Text style={styles.seccionTitulo}>Pendientes entre compañeros</Text>
@@ -603,7 +622,7 @@ export default function GastosInquilinoTab() {
           </>
         )}
 
-        {deudasPendientesCasero.length > 0 && (
+        {!errorCarga && deudasPendientesCasero.length > 0 && (
           <>
             <View style={[styles.seccionHeader, styles.seccionHeaderCasero]}>
               <Text style={styles.seccionTitulo}>Pendientes con el casero</Text>
@@ -686,7 +705,7 @@ export default function GastosInquilinoTab() {
           </>
         )}
 
-        {deudasPagadasConJustificante.length > 0 && (
+        {!errorCarga && deudasPagadasConJustificante.length > 0 && (
           <>
             <Text style={[styles.seccionTitulo, styles.seccionTituloSolo]}>
               Pagadas con justificante
@@ -751,7 +770,7 @@ export default function GastosInquilinoTab() {
           </>
         )}
 
-        {gastos.length === 0 ? (
+        {!errorCarga && (gastos.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
               <Ionicons name="wallet-outline" size={40} color={Theme.colors.primary} />
@@ -780,9 +799,10 @@ export default function GastosInquilinoTab() {
               </View>
             ))}
           </>
-        )}
+        ))}
       </ScrollView>
 
+      {!errorCarga && viviendaId && (
       <Pressable
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={abrirModal}
@@ -791,6 +811,7 @@ export default function GastosInquilinoTab() {
       >
         <Ionicons name="add" size={28} color={Theme.colors.surface} />
       </Pressable>
+      )}
 
       <Modal
         visible={!!deudaSeleccionada}

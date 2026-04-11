@@ -11,6 +11,12 @@ const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   return parseInt(normalizado, 10);
 };
 
+const aCentimos = (importe: number) => Math.round((importe + Number.EPSILON) * 100);
+const desdeCentimos = (centimos: number) => centimos / 100;
+
+const sumarImportes = (importes: number[]) =>
+  desdeCentimos(importes.reduce((total, importe) => total + aCentimos(importe), 0));
+
 export const listarCobrosVivienda: express.RequestHandler = async (req, res) => {
   const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const usuarioId = req.usuario!.id;
@@ -79,13 +85,12 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
     ],
   });
 
-  const totalPagadoMes = deudas
-    .filter((deuda) => deuda.estado === 'PAGADA')
-    .reduce((acumulado, deuda) => acumulado + deuda.importe, 0);
-
-  const totalPendiente = deudas
-    .filter((deuda) => deuda.estado === 'PENDIENTE')
-    .reduce((acumulado, deuda) => acumulado + deuda.importe, 0);
+  const totalPagadoMes = sumarImportes(
+    deudas.filter((deuda) => deuda.estado === 'PAGADA').map((deuda) => deuda.importe),
+  );
+  const totalPendiente = sumarImportes(
+    deudas.filter((deuda) => deuda.estado === 'PENDIENTE').map((deuda) => deuda.importe),
+  );
 
   res.status(200).json({
     vivienda: {
