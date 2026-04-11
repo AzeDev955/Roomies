@@ -3,18 +3,15 @@ process.env['GOOGLE_CLIENT_ID'] ??= 'google-client-test';
 process.env['JWT_SECRET'] = 'jwt-secret-test-issue-247';
 process.env['NODE_ENV'] = 'test';
 
-const nodeTest: typeof import('node:test') = require('node:test');
-const assert: typeof import('node:assert/strict') = require('node:assert/strict');
-const bcrypt: typeof import('bcrypt') = require('bcrypt');
-const jwt: typeof import('jsonwebtoken') = require('jsonwebtoken');
-
-const { after, beforeEach, test } = nodeTest;
-
-const { login, register, actualizarRol } = require('../src/controllers/auth.controller') as typeof import('../src/controllers/auth.controller');
-const { verificarToken } = require('../src/middlewares/auth.middleware') as typeof import('../src/middlewares/auth.middleware');
-const { getJwtSecret } = require('../src/config/env') as typeof import('../src/config/env');
-const { prisma } = require('../src/lib/prisma') as typeof import('../src/lib/prisma');
-const { RolUsuario } = require('../src/generated/prisma/client') as typeof import('../src/generated/prisma/client');
+import assert from 'node:assert/strict';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { afterAll, beforeEach, test } from 'vitest';
+import { login, register, actualizarRol } from '../src/controllers/auth.controller';
+import { verificarToken } from '../src/middlewares/auth.middleware';
+import { getJwtSecret } from '../src/config/env';
+import { prisma } from '../src/lib/prisma';
+import { RolUsuario } from '../src/generated/prisma/client';
 
 const TEST_JWT_SECRET = 'jwt-secret-test-issue-247';
 
@@ -96,7 +93,7 @@ beforeEach(() => {
   mockedUsuarioMethods.clear();
 });
 
-after(async () => {
+afterAll(async () => {
   await prisma.$disconnect();
 });
 
