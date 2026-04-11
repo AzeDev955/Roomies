@@ -63,7 +63,7 @@ export default function PerfilScreen() {
         <Text style={styles.nombreCompleto}>{perfil.nombre} {perfil.apellidos}</Text>
 
         <View style={[styles.badge, esCasero ? styles.badgeCasero : styles.badgeInquilino]}>
-          <Text style={styles.badgeTexto}>{esCasero ? 'Casero' : 'Inquilino'}</Text>
+          <Text style={styles.badgeTexto}>{esCasero ? 'Propietario' : 'Inquilino'}</Text>
         </View>
 
         <View style={styles.tarjeta}>
@@ -77,11 +77,6 @@ export default function PerfilScreen() {
             <Text style={styles.tarjetaValor}>{perfil.telefono}</Text>
           </View>
         ) : null}
-
-        <View style={styles.tarjeta}>
-          <Text style={styles.tarjetaLabel}>Rol</Text>
-          <Text style={styles.tarjetaValor}>{esCasero ? 'Propietario / Casero' : 'Inquilino'}</Text>
-        </View>
 
         <Pressable
           style={({ pressed }) => [styles.botonLogout, pressed && styles.pressed]}
