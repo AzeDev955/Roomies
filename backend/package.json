@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
+    "test": "node --test -r ts-node/register test/multitenant-security.test.ts",
     "build": "npx prisma generate && tsc",
     "start": "npx prisma db push --accept-data-loss && node dist/index.js"
   },

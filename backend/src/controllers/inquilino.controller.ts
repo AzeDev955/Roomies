@@ -4,12 +4,15 @@ import { RolUsuario } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
 import { enviarNotificacionPush } from '../services/notification.service';
 
-const serializarHabitacionParaInquilino = <T extends { precio: number | null; inquilino_id?: number | null }>(
+const serializarHabitacionParaInquilino = <
+  T extends { precio: number | null; codigo_invitacion: string | null; inquilino_id?: number | null },
+>(
   habitacion: T,
   usuarioId: number,
-): T => ({
+): Omit<T, 'precio' | 'codigo_invitacion'> & { precio: number | null; codigo_invitacion: null } => ({
   ...habitacion,
   precio: habitacion.inquilino_id === usuarioId ? habitacion.precio : null,
+  codigo_invitacion: null,
 });
 
 export const obtenerPerfilInquilino: express.RequestHandler = async (req, res) => {
@@ -124,7 +127,7 @@ export const unirseHabitacion: express.RequestHandler = async (req, res) => {
 
   res.status(200).json({
     mensaje: 'Te has unido a la habitación correctamente.',
-    habitacion: habitacionActualizada,
+    habitacion: serializarHabitacionParaInquilino(habitacionActualizada, req.usuario!.id),
   });
 
   // Notify casero async (fire-and-forget)

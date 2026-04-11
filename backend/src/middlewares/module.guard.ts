@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
+import { RolUsuario } from '../generated/prisma/client';
 
 type ModuloVivienda = 'limpieza' | 'gastos' | 'inventario';
 type CampoModulo = 'mod_limpieza' | 'mod_gastos' | 'mod_inventario';
@@ -33,14 +34,25 @@ export const protegerModuloVivienda = (
     return;
   }
 
+  const usuario = req.usuario;
+  if (!usuario) {
+    res.status(401).json({ error: 'Token no proporcionado.' });
+    return;
+  }
+
   const campo = CAMPO_MODULO[modulo];
-  const vivienda = await prisma.vivienda.findUnique({
-    where: { id: viviendaId },
+  const vivienda = await prisma.vivienda.findFirst({
+    where: {
+      id: viviendaId,
+      ...(usuario.rol === RolUsuario.CASERO
+        ? { casero_id: usuario.id }
+        : { habitaciones: { some: { inquilino_id: usuario.id } } }),
+    },
     select: { [campo]: true },
   });
 
   if (!vivienda) {
-    res.status(404).json({ error: 'Vivienda no encontrada.' });
+    res.status(403).json({ error: 'No tienes acceso a esta vivienda.' });
     return;
   }
 
