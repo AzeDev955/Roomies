@@ -75,12 +75,24 @@ export default function InquilinoTablonScreen() {
   useFocusEffect(useCallback(() => { if (contexto) cargarAnuncios(contexto.viviendaId); }, [cargarAnuncios, contexto]));
 
   const handlePublicar = async () => {
-    if (!titulo.trim() || !contenido.trim() || !contexto) return;
+    const tituloLimpio = titulo.trim();
+    const contenidoLimpio = contenido.trim();
+
+    if (!tituloLimpio || !contenidoLimpio) {
+      Toast.show({ type: 'error', text1: 'Completa titulo y contenido antes de publicar.' });
+      return;
+    }
+
+    if (!contexto) {
+      Toast.show({ type: 'error', text1: 'No pudimos identificar tu vivienda.' });
+      return;
+    }
+
     setPublicando(true);
     try {
       const { data } = await api.post<Anuncio>('/anuncios', {
-        titulo: titulo.trim(),
-        contenido: contenido.trim(),
+        titulo: tituloLimpio,
+        contenido: contenidoLimpio,
         vivienda_id: contexto.viviendaId,
       });
       setAnuncios((prev) => [data, ...prev]);

@@ -23,6 +23,22 @@ export const styles = StyleSheet.create({
     fontSize: Theme.typography.body,
     lineHeight: 24,
   },
+  emptyIconBox: {
+    width: 88,
+    height: 88,
+    borderRadius: Theme.radius.xl,
+    backgroundColor: Theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Theme.spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: Theme.typography.heading,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    textAlign: 'center',
+    marginBottom: Theme.spacing.sm,
+  },
 
   // — Cabecera —
   header: {

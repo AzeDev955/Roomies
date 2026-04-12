@@ -168,10 +168,20 @@ export default function InquilinoInicioScreen() {
   );
 
   const handleCanjearCodigo = async () => {
+    const codigo = sufijo.trim().toUpperCase();
+
+    if (!/^[A-Z0-9]{6}$/.test(codigo)) {
+      Toast.show({
+        type: 'error',
+        text1: 'Introduce un codigo valido de 6 caracteres.',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await api.post('/inquilino/unirse', {
-        codigo_invitacion: `ROOM-${sufijo}`,
+        codigo_invitacion: `ROOM-${codigo}`,
       });
       await cargarVivienda();
       cargarIncidencias();
@@ -233,6 +243,8 @@ export default function InquilinoInicioScreen() {
   const formatearFechaCorta = (iso: string) =>
     new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
+  const codigoInvitacionValido = /^[A-Z0-9]{6}$/.test(sufijo.trim().toUpperCase());
+
   // ── Onboarding (sin casa) ─────────────────────────────────────────────────
 
   if (!tieneCasa) {
@@ -247,18 +259,18 @@ export default function InquilinoInicioScreen() {
           <TextInput
             style={styles.inputSufijo}
             value={sufijo}
-            onChangeText={(text) => setSufijo(text.toUpperCase())}
+            onChangeText={(text) => setSufijo(text.replace(/[^a-z0-9]/gi, '').toUpperCase())}
             placeholder="XXXXXX"
-            placeholderTextColor="#c7c7cc"
+            placeholderTextColor={Theme.colors.textMuted}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={6}
           />
         </View>
         <Pressable
-          style={[styles.botonCanjear, (!sufijo.trim() || loading) && styles.botonCanjearDisabled]}
+          style={[styles.botonCanjear, (!codigoInvitacionValido || loading) && styles.botonCanjearDisabled]}
           onPress={handleCanjearCodigo}
-          disabled={!sufijo.trim() || loading}
+          disabled={!codigoInvitacionValido || loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />

@@ -165,6 +165,16 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.textMedium,
   },
+  estadoSoloLectura: {
+    alignSelf: 'flex-start',
+    borderRadius: Theme.radius.full,
+    paddingHorizontal: Theme.spacing.base,
+    paddingVertical: Theme.spacing.sm,
+  },
+  estadoSoloLecturaTexto: {
+    fontSize: Theme.typography.label,
+    fontWeight: '800',
+  },
 
   // — Acciones —
   accionFila: {
@@ -189,6 +199,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 52,
     justifyContent: 'center',
+  },
+  botonDisabled: {
+    opacity: 0.55,
   },
   botonCancelar: {
     flex: 1,

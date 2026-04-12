@@ -33,6 +33,25 @@ export const styles = StyleSheet.create({
     color: Theme.colors.text,
     marginBottom: Theme.spacing.lg,
   },
+  contextoAviso: {
+    backgroundColor: Theme.colors.warningLight,
+    borderRadius: Theme.radius.lg,
+    borderWidth: 1,
+    borderColor: Theme.colors.warning + '30',
+    padding: Theme.spacing.base,
+    marginBottom: Theme.spacing.lg,
+    gap: Theme.spacing.xs,
+  },
+  contextoAvisoTitulo: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.text,
+  },
+  contextoAvisoTexto: {
+    fontSize: Theme.typography.label,
+    color: Theme.colors.textSecondary,
+    lineHeight: 20,
+  },
 
   // — Campos —
   label: {

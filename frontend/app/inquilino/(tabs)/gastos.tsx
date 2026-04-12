@@ -121,10 +121,15 @@ export default function GastosInquilinoTab() {
       setGastos(gastosData);
       setDeudas(deudasData);
       setErrorCarga(null);
-    } catch {
+    } catch (err: any) {
+      const mensaje = err.response?.data?.error as string | undefined;
       setGastos([]);
       setDeudas([]);
-      setErrorCarga('No se pudieron cargar tus gastos y deudas.');
+      setErrorCarga(
+        err.response?.status === 403 && mensaje?.toLowerCase().includes('desactivado')
+          ? 'El modulo de gastos esta desactivado para esta vivienda.'
+          : 'No se pudieron cargar tus gastos y deudas.',
+      );
     }
   }, []);
 
@@ -160,15 +165,20 @@ export default function GastosInquilinoTab() {
           setCompanerosPiso(participantes);
           setImplicadosSeleccionados(participantes.map((inquilino) => inquilino.id));
           await cargarTodo(vId);
-        } catch {
+        } catch (err: any) {
           if (!activo) return;
+          const mensaje = err.response?.data?.error as string | undefined;
           setViviendaId(null);
           setMiId(null);
           setCompanerosPiso([]);
           setImplicadosSeleccionados([]);
           setGastos([]);
           setDeudas([]);
-          setErrorCarga('No pudimos cargar tu vivienda para revisar los gastos.');
+          setErrorCarga(
+            err.response?.status === 403 && mensaje?.toLowerCase().includes('desactivado')
+              ? 'El modulo de gastos esta desactivado para esta vivienda.'
+              : 'No pudimos cargar tu vivienda para revisar los gastos.',
+          );
         } finally {
           if (activo) setLoading(false);
         }
@@ -340,7 +350,15 @@ export default function GastosInquilinoTab() {
   };
 
   const handleGuardar = async () => {
-    if (!concepto.trim() || !importe.trim() || !viviendaId) return;
+    if (!viviendaId) {
+      Toast.show({ type: 'error', text1: 'No pudimos identificar tu vivienda.' });
+      return;
+    }
+
+    if (!concepto.trim() || !importe.trim()) {
+      Toast.show({ type: 'error', text1: 'Completa concepto e importe antes de guardar.' });
+      return;
+    }
 
     if (implicadosSeleccionados.length === 0) {
       Toast.show({ type: 'error', text1: 'Selecciona al menos un participante para el gasto.' });
@@ -423,7 +441,9 @@ export default function GastosInquilinoTab() {
               <Ionicons name="alert-circle-outline" size={22} color={Theme.colors.danger} />
             </View>
             <View style={styles.errorTextos}>
-              <Text style={styles.errorTitulo}>No se pudieron cargar los gastos</Text>
+              <Text style={styles.errorTitulo}>
+                {errorCarga.includes('desactivado') ? 'Modulo desactivado' : 'No se pudieron cargar los gastos'}
+              </Text>
               <Text style={styles.errorSubtitulo}>{errorCarga}</Text>
             </View>
           </View>
