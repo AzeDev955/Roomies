@@ -12,6 +12,7 @@ import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { dniNieSchema, pasaporteSchema, passwordSchema } from '@/utils/schemas';
 import { syncPushToken } from '@/utils/notifications';
+import { getDashboardRoute } from '@/utils/authRoutes';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -50,8 +51,7 @@ export default function RegistroScreen() {
       if (data.esNuevo) {
         router.replace('/rol');
       } else {
-        const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-        router.replace(destino);
+        router.replace(getDashboardRoute(data.usuario.rol));
       }
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudo completar el registro con Google.' });
@@ -111,8 +111,7 @@ export default function RegistroScreen() {
       );
       await guardarToken(data.token);
       void syncPushToken();
-      const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-      router.replace(destino);
+      router.replace(getDashboardRoute(data.usuario.rol));
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo crear la cuenta. Inténtalo de nuevo.';
       Toast.show({ type: 'error', text1: mensaje });
