@@ -59,26 +59,42 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 | Desarrollo | `https://roomies-dev.up.railway.app/api` |
 | Produccion | `https://roomies-production-c884.up.railway.app/api` |
 
-## Levantar el proyecto con Docker
+## Testeo habitual con Expo Go y Railway dev
 
 ### Prerrequisitos
 
-- Docker Desktop
+- Node.js 20+
+- Expo Go instalado en el movil
+- Backend desplegado en Railway desarrollo
 
 ### Pasos
 
-1. Copia `.env.example` a `.env` y rellena `HOST_IP`.
-2. Levanta los servicios:
+1. Copia `frontend/.env.example` a `frontend/.env`.
+2. Usa Railway desarrollo como API:
 
-```bash
-docker-compose up --build
+```env
+EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
 ```
 
-| Servicio | Puerto | Descripcion |
-|---|---|---|
-| `db` | 5433 | PostgreSQL 15 |
-| `backend` | 3001 | API Express |
-| `frontend` | 8080 | Metro Bundler |
+3. Arranca Expo con cache limpia:
+
+```bash
+cd frontend
+npm install
+npx expo start --clear
+```
+
+4. Abre el QR con Expo Go.
+
+> Hay dos entornos Railway: desarrollo para pruebas funcionales y produccion para releases.
+
+## Docker y Railway
+
+El `backend/Dockerfile` se usa para que Railway construya la imagen del backend. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, que aplica `prisma db push --accept-data-loss` y levanta `dist/index.js`.
+
+`docker-compose.yml` queda como apoyo para revisar infraestructura local si hace falta, pero no es el flujo habitual de testeo.
+
+Consulta `docs/infra/setup-despliegue.md` para el detalle completo de variables, URLs por entorno y despliegue.
 
 ### Usuarios de prueba
 
@@ -95,6 +111,7 @@ docker-compose up --build
 cd backend
 npm install
 cp .env.example .env
+npx prisma generate
 npx prisma db push
 npx prisma db seed
 npm run dev
@@ -140,4 +157,5 @@ Los tests cargan valores de entorno de prueba y no necesitan `.env` privados. El
 | Setup backend | `docs/backend/setup.md` |
 | API REST | `docs/backend/api.md` |
 | Setup frontend | `docs/frontend/setup.md` |
+| Infraestructura y despliegue | `docs/infra/setup-despliegue.md` |
 | Changelog tecnico | `docs/changelog/` |

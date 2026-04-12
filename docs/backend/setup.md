@@ -3,7 +3,7 @@
 ## Requisitos
 
 - Node.js 20+
-- Una instancia de Prisma Postgres en local (`npx prisma dev`)
+- PostgreSQL local, PostgreSQL de Docker Compose o Prisma Postgres (`npx prisma dev`)
 
 ## Instalacion
 
@@ -29,14 +29,21 @@ CLOUDINARY_API_SECRET=<tu_api_secret>
 
 ## Primer uso (base de datos vacia)
 
-Con `npx prisma dev` corriendo en otra terminal:
+Con `DATABASE_URL` apuntando a una base disponible:
 
 ```bash
 cd backend
-npx prisma migrate dev --name init
+npx prisma generate
+npx prisma db push
 ```
 
-Esto crea todas las tablas en la base de datos.
+Esto genera el cliente en `src/generated/prisma` y crea o actualiza las tablas segun `prisma/schema.prisma`. El repo no versiona migraciones SQL; para desarrollo y despliegue se usa `prisma db push`.
+
+Seed opcional para datos de demo:
+
+```bash
+npx prisma db seed
+```
 
 ## Arrancar en desarrollo
 
@@ -64,6 +71,17 @@ GET http://localhost:3000/ping  ->  pong
 | `npm run test:watch` | Ejecuta Vitest en modo watch |
 | `npm run test:coverage` | Ejecuta Vitest y genera cobertura en `coverage/` |
 
+## Variables obligatorias y opcionales
+
+| Variable | Obligatoria | Descripcion |
+|---|---|---|
+| `DATABASE_URL` | Si | Conexion PostgreSQL usada por Prisma. |
+| `JWT_SECRET` | Si | Firma de JWT. Usa una cadena larga y aleatoria. |
+| `GOOGLE_CLIENT_ID` | Si | Web Client ID validado por `google-auth-library`. |
+| `BACKEND_URL` | Si para correos reales | Base publica usada en enlaces de verificacion. Tiene fallback local. |
+| `EMAIL_USER` / `EMAIL_PASS` | Opcional local | SMTP para enviar magic links de verificacion. |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Opcional para arrancar | Requerido para subir inventario, justificantes y facturas. |
+
 ## Tests
 
 El backend usa Vitest + Supertest. La app Express vive en `src/app.ts` y se importa desde los tests sin llamar a `app.listen()` ni arrancar cron jobs reales.
@@ -79,7 +97,7 @@ Estos valores permiten importar controladores, rutas y Prisma sin depender de `.
 
 ## Despliegue en Railway
 
-Railway gestiona el build y el arranque automaticamente usando los scripts de `package.json`. En este proyecto el backend se despliega con `backend/Dockerfile`, y el contenedor ejecuta `prisma db push` antes de levantar la app.
+El backend se prueba y despliega en Railway. En este proyecto Railway usa `backend/Dockerfile` para construir la imagen; el Dockerfile compila con `npm run build` y el contenedor arranca con `npm start`.
 
 ### 1. Base de datos
 
@@ -106,11 +124,18 @@ En el servicio del backend anade:
 
 ### 4. Build y arranque automatico
 
-Railway ejecuta:
+Railway ejecuta con el Dockerfile del backend:
 
 ```text
-npm run build   -> prisma generate + tsc
-npm start       -> prisma db push + node dist/index.js
+RUN npm run build
+npm start
+```
+
+El script `npm start` ejecuta:
+
+```text
+npx prisma db push --accept-data-loss
+node dist/index.js
 ```
 
 ### 5. Cron jobs incluidos en el arranque

@@ -456,29 +456,35 @@ Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados
 
 ---
 
-## Docker
+## Railway, Expo Go y Docker
 
-```bash
-# Primera vez o tras cambios en dependencias
-docker-compose down -v
-docker-compose build --no-cache backend
-docker-compose up
+El testeo funcional diario se hace levantando Expo Go contra Railway desarrollo:
 
-# Uso habitual
-docker-compose up
-docker-compose down
-```
+1. `frontend/.env` apunta a `EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api`.
+2. Se ejecuta `npx expo start --clear` en `frontend`.
+3. La app se abre desde Expo Go.
 
-El backend en Docker ejecuta al arrancar:
+El backend usa dos servicios Railway: desarrollo para pruebas y produccion para releases. `backend/Dockerfile` existe para que Railway construya la imagen del backend.
 
-1. `npx prisma db push --accept-data-loss` — aplica el schema
-2. `npx prisma generate` — regenera el cliente
-3. `npx prisma db seed` — carga datos de prueba
-4. `npm run dev` — arranca el servidor con nodemon
+El `backend/Dockerfile` ejecuta:
+
+1. `npm run build` durante la construccion de la imagen.
+2. `npm start` al arrancar el contenedor.
+
+`npm start` ejecuta `npx prisma db push --accept-data-loss` y `node dist/index.js`.
+
+`docker-compose.yml` queda como apoyo opcional para revisar infraestructura local. En ese modo, el servicio backend sobreescribe el comando de la imagen Railway y ejecuta:
+
+1. `npx prisma generate` - regenera el cliente despues del bind mount.
+2. `npx prisma db push --accept-data-loss` - aplica el schema.
+3. `npm run dev` - arranca el servidor con nodemon.
+
+Si `RESET_DB=true`, sustituye el `db push --accept-data-loss` por `db push --force-reset` y ejecuta `npx prisma db seed` antes de arrancar.
 
 **Puertos**: PostgreSQL en `5433:5432`, backend en `3001:3000`, frontend en `8080:8080`.
 
 > El puerto 8080 se usa en lugar de 8081 para evitar conflictos con reglas de firewall de Windows.
+> El frontend del compose lee `EXPO_PUBLIC_API_URL` desde `.env`; para Expo Go en movil fisico debe apuntar a `http://<HOST_IP>:3001/api`.
 
 ---
 
@@ -659,6 +665,14 @@ Usuarios de prueba creados por `prisma db seed`:
   - `casero/vivienda/[id]/(tabs)/opciones.tsx` centraliza la configuracion de modulos de vivienda.
   - `perfil.tsx` muestra `Propietario` para usuarios `CASERO` y elimina el bloque redundante de rol.
   - `inquilino/(tabs)/gastos.tsx` separa pendientes entre companeros y pendientes con casero, elimina textos temporales, muestra estado vacio real y ajusta el FAB para no cubrir contenido.
+
+## Update 2026-04-12 - Epica 16 issue 256
+
+- `docker-compose.yml` deja de fijar la API del frontend a produccion y consume `EXPO_PUBLIC_API_URL` desde `.env`.
+- `backend/Dockerfile` queda orientado a Railway: compila con `npm run build` y arranca con `npm start`.
+- `docker-compose.yml` mantiene un comando de desarrollo propio para regenerar Prisma Client y arrancar con nodemon solo cuando se use Compose.
+- `.env.example`, `backend/.env.example` y `frontend/.env.example` documentan variables obligatorias, opcionales, URLs locales y tokens por entorno.
+- `docs/infra/setup-despliegue.md` concentra el flujo Railway desarrollo + Expo Go, Dockerfile, Compose auxiliar y comandos de build/test/lint.
 
 ## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
 
