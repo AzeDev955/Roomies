@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Theme } from '@/constants/theme';
 import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
+import { parsePositiveIntParam } from '@/utils/routeParams';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
 type TipoHabitacion = typeof TIPOS[number];
@@ -26,6 +27,7 @@ const NOMBRE_SUGERIDO: Partial<Record<TipoHabitacion, string>> = {
 export default function NuevaHabitacionScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const viviendaId = parsePositiveIntParam(id);
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState<TipoHabitacion>('DORMITORIO');
   const [esHabitable, setEsHabitable] = useState(true);
@@ -42,10 +44,15 @@ export default function NuevaHabitacionScreen() {
   };
 
   const guardar = async () => {
+    if (!viviendaId) {
+      Toast.show({ type: 'error', text1: 'La ruta de la vivienda no es valida.' });
+      return;
+    }
+
     if (!nombre.trim()) return;
     setLoading(true);
     try {
-      await api.post(`/viviendas/${id}/habitaciones`, {
+      await api.post(`/viviendas/${viviendaId}/habitaciones`, {
         nombre: nombre.trim(),
         tipo,
         es_habitable: tipo === 'DORMITORIO' ? esHabitable : false,
@@ -59,6 +66,22 @@ export default function NuevaHabitacionScreen() {
       setLoading(false);
     }
   };
+
+  if (!viviendaId) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorState}>
+          <Text style={styles.errorTitle}>Vivienda no encontrada</Text>
+          <Text style={styles.errorText}>
+            No podemos crear una habitacion porque el enlace no apunta a una vivienda valida.
+          </Text>
+          <Pressable style={styles.secondaryButton} onPress={() => router.replace('/casero/viviendas')}>
+            <Text style={styles.secondaryButtonText}>Volver a viviendas</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -141,7 +164,7 @@ export default function NuevaHabitacionScreen() {
           disabled={!nombre.trim() || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Theme.colors.surface} />
           ) : (
             <Text style={styles.botonTexto}>Añadir habitación</Text>
           )}

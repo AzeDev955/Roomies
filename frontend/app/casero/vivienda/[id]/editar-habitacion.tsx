@@ -6,6 +6,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
 import { Theme } from '@/constants/theme';
 import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
+import { parsePositiveIntParam } from '@/utils/routeParams';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
 type TipoHabitacion = typeof TIPOS[number];
@@ -31,6 +32,8 @@ export default function EditarHabitacionScreen() {
       precio: string;
       inquilinoId: string;
     }>();
+  const viviendaId = parsePositiveIntParam(id);
+  const habitacionId = parsePositiveIntParam(habId);
 
   const tipoInicial = (TIPOS.includes(tipoParam as TipoHabitacion) ? tipoParam : 'DORMITORIO') as TipoHabitacion;
 
@@ -50,6 +53,8 @@ export default function EditarHabitacionScreen() {
   };
 
   const expulsarInquilino = () => {
+    if (!viviendaId || !habitacionId) return;
+
     Alert.alert(
       '¿Expulsar inquilino?',
       'Esta acción desvinculará al usuario de la habitación.',
@@ -61,7 +66,7 @@ export default function EditarHabitacionScreen() {
           onPress: async () => {
             setExpulsando(true);
             try {
-              await api.delete(`/viviendas/${id}/habitaciones/${habId}/inquilino`);
+              await api.delete(`/viviendas/${viviendaId}/habitaciones/${habitacionId}/inquilino`);
               router.back();
             } catch (err: any) {
               Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo expulsar al inquilino.' });
@@ -75,6 +80,8 @@ export default function EditarHabitacionScreen() {
   };
 
   const eliminarHabitacion = () => {
+    if (!viviendaId || !habitacionId) return;
+
     Alert.alert(
       'Eliminar habitación',
       `¿Eliminar "${nombre.trim()}"? Esta acción no se puede deshacer.`,
@@ -85,7 +92,7 @@ export default function EditarHabitacionScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.delete(`/viviendas/${id}/habitaciones/${habId}`);
+              await api.delete(`/viviendas/${viviendaId}/habitaciones/${habitacionId}`);
               router.back();
             } catch (err: any) {
               Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar la habitación.' });
@@ -103,10 +110,15 @@ export default function EditarHabitacionScreen() {
   };
 
   const guardar = async () => {
+    if (!viviendaId || !habitacionId) {
+      Toast.show({ type: 'error', text1: 'La ruta de la habitacion no es valida.' });
+      return;
+    }
+
     if (!nombre.trim()) return;
     setLoading(true);
     try {
-      await api.put(`/viviendas/${id}/habitaciones/${habId}`, {
+      await api.put(`/viviendas/${viviendaId}/habitaciones/${habitacionId}`, {
         nombre: nombre.trim(),
         tipo,
         es_habitable: tipo === 'DORMITORIO' ? esHabitable : false,
@@ -121,6 +133,22 @@ export default function EditarHabitacionScreen() {
       setLoading(false);
     }
   };
+
+  if (!viviendaId || !habitacionId) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorState}>
+          <Text style={styles.errorTitle}>Habitacion no encontrada</Text>
+          <Text style={styles.errorText}>
+            No podemos editar esta habitacion porque el enlace no tiene parametros validos.
+          </Text>
+          <Pressable style={styles.secondaryButton} onPress={() => router.replace('/casero/viviendas')}>
+            <Text style={styles.secondaryButtonText}>Volver a viviendas</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -203,7 +231,7 @@ export default function EditarHabitacionScreen() {
           disabled={!nombre.trim() || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Theme.colors.surface} />
           ) : (
             <Text style={styles.botonTexto}>Guardar cambios</Text>
           )}

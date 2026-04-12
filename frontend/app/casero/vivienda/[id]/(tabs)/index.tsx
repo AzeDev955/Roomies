@@ -361,7 +361,7 @@ export default function ResumenViviendaTab() {
             onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}
           >
             <View style={styles.accionIconIncidencias}>
-              <Ionicons name="warning-outline" size={22} color="#EA580C" />
+              <Ionicons name="warning-outline" size={22} color={Theme.colors.warning} />
             </View>
             <Text style={styles.accionLabel}>Incidencias</Text>
           </Pressable>
@@ -378,7 +378,7 @@ export default function ResumenViviendaTab() {
             }
           >
             <View style={styles.accionIconNuevaInc}>
-              <Ionicons name="add-circle-outline" size={22} color="#059669" />
+              <Ionicons name="add-circle-outline" size={22} color={Theme.colors.success} />
             </View>
             <Text style={styles.accionLabel}>Nueva Incidencia</Text>
           </Pressable>

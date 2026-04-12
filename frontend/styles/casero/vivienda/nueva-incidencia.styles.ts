@@ -27,6 +27,40 @@ export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
   content: { padding: Theme.spacing.base, paddingBottom: 96 },
 
+  errorState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Theme.spacing.xl,
+    gap: Theme.spacing.base,
+  },
+  errorTitle: {
+    fontSize: Theme.typography.heading,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  secondaryButton: {
+    marginTop: Theme.spacing.sm,
+    borderRadius: Theme.radius.lg,
+    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: Theme.spacing.base,
+    backgroundColor: Theme.colors.primaryLight,
+    minHeight: 52,
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: Theme.colors.primary,
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+  },
+
   titulo: {
     fontSize: Theme.typography.heading,
     fontWeight: '700',

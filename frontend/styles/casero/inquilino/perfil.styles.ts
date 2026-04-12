@@ -76,6 +76,38 @@ export const styles = StyleSheet.create({
   },
 
   // — Botón de email —
+  errorState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Theme.spacing.xl,
+    gap: Theme.spacing.base,
+  },
+  errorIconBox: {
+    width: 88,
+    height: 88,
+    borderRadius: Theme.radius.xl,
+    backgroundColor: Theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorTitle: {
+    fontSize: Theme.typography.heading,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  errorAction: {
+    width: '100%',
+    marginTop: Theme.spacing.sm,
+  },
+
   botonEmail: {
     width: '100%',
     marginTop: Theme.spacing.sm,
