@@ -1,4 +1,4 @@
-# Issue #sin-numero â€” sincronización documental de inventario y check-in
+# Issue #sin-numero - sincronización documental de inventario y check-in
 
 **Fecha:** 2026-04-09
 **Épica:** 11

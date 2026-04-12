@@ -10,7 +10,7 @@ interface CustomInputProps extends TextInputProps {
   secureToggle?: boolean;
 }
 
-export function CustomInput({ label, error, secureToggle = false, ...rest }: CustomInputProps) {
+export function CustomInput({ label, error, secureToggle = false, accessibilityLabel, ...rest }: CustomInputProps) {
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(secureToggle);
 
@@ -29,6 +29,7 @@ export function CustomInput({ label, error, secureToggle = false, ...rest }: Cus
           secureTextEntry={hidden}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          accessibilityLabel={accessibilityLabel ?? label}
           placeholderTextColor={Theme.colors.textMuted}
           {...rest}
         />

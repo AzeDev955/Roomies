@@ -43,8 +43,13 @@ export const styles = StyleSheet.create({
     borderColor: Theme.colors.primary,
     backgroundColor: Theme.colors.primaryLight,
   },
-  cardEmoji: {
-    fontSize: 40,
+  cardIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: Theme.radius.lg,
+    backgroundColor: Theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Theme.spacing.md,
   },
   cardTitulo: {

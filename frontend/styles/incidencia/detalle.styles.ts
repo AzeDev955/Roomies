@@ -3,15 +3,15 @@ import { Theme } from '@/constants/theme';
 
 // — Soft tints por prioridad —
 export const PRIORIDAD_BG: Record<string, string> = {
-  VERDE:    '#E5FAF3',
-  AMARILLO: '#FFF5E0',
-  ROJO:     '#FFE8E8',
+  VERDE:    Theme.colors.successLight,
+  AMARILLO: Theme.colors.warningLight,
+  ROJO:     Theme.colors.dangerLight,
 };
 
 export const PRIORIDAD_TEXT: Record<string, string> = {
-  VERDE:    '#0D7A5E',
-  AMARILLO: '#A05C00',
-  ROJO:     '#C0392B',
+  VERDE:    Theme.colors.successText,
+  AMARILLO: Theme.colors.warningText,
+  ROJO:     Theme.colors.dangerText,
 };
 
 export const COLORES_PRIORIDAD: Record<string, string> = {
@@ -34,15 +34,15 @@ export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
 
 // — Colores activos por estado —
 export const ESTADO_PILL_BG: Record<string, string> = {
-  PENDIENTE:  '#FFF5E0',
+  PENDIENTE:  Theme.colors.warningLight,
   EN_PROCESO: Theme.colors.primary + '20',
-  RESUELTA:   '#E5FAF3',
+  RESUELTA:   Theme.colors.successLight,
 };
 
 export const ESTADO_PILL_TEXT: Record<string, string> = {
-  PENDIENTE:  '#A05C00',
+  PENDIENTE:  Theme.colors.warningText,
   EN_PROCESO: Theme.colors.primary,
-  RESUELTA:   '#0D7A5E',
+  RESUELTA:   Theme.colors.successText,
 };
 
 export const styles = StyleSheet.create({

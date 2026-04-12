@@ -221,7 +221,7 @@ export default function LimpiezaInquilinoTab() {
                     <Ionicons
                       name={zonaIcon(t.zona.nombre)}
                       size={22}
-                      color={esHecho ? '#248A3D' : Theme.colors.primary}
+                      color={esHecho ? Theme.colors.successText : Theme.colors.primary}
                     />
                   </View>
                 </View>
@@ -244,7 +244,7 @@ export default function LimpiezaInquilinoTab() {
                   </Pressable>
                 ) : (
                   <View style={styles.badgeHecho}>
-                    <Ionicons name="checkmark-circle" size={15} color="#248A3D" />
+                    <Ionicons name="checkmark-circle" size={15} color={Theme.colors.successText} />
                     <Text style={styles.badgeHechoTexto}>Completado</Text>
                   </View>
                 )}

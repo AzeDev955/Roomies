@@ -19,13 +19,13 @@ const ZONA_ICONS: Record<string, any> = {
 };
 
 const ESTADO_BADGE_BG: Record<string, string> = {
-  PENDIENTE:  '#FF950018',
+  PENDIENTE:  Theme.colors.warning + '18',
   EN_PROCESO: Theme.colors.primary + '18',
   RESUELTA:   Theme.colors.success + '18',
 };
 
 const ESTADO_BADGE_COLOR: Record<string, string> = {
-  PENDIENTE:  '#FF9500',
+  PENDIENTE:  Theme.colors.warning,
   EN_PROCESO: Theme.colors.primary,
   RESUELTA:   Theme.colors.success,
 };
@@ -273,7 +273,7 @@ export default function InquilinoInicioScreen() {
           disabled={!codigoInvitacionValido || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Theme.colors.surface} />
           ) : (
             <Text style={styles.botonCanjearTexto}>Canjear Código</Text>
           )}

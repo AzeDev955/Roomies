@@ -10,6 +10,7 @@ import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { Theme } from '@/constants/theme';
 import { dniNieSchema, pasaporteSchema, passwordSchema } from '@/utils/schemas';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
@@ -146,6 +147,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.docChip, tipoDocumento === 'DNI/NIE' && styles.docChipActivo, pressed && styles.pressed]}
           onPress={() => { setTipoDocumento('DNI/NIE'); setDocumentoIdentidad(''); setErrorDoc(''); }}
+          accessibilityRole="button"
+          accessibilityLabel="Usar DNI o NIE"
+          accessibilityState={{ selected: tipoDocumento === 'DNI/NIE' }}
         >
           <Text style={[styles.docChipTexto, tipoDocumento === 'DNI/NIE' && styles.docChipTextoActivo]}>
             DNI / NIE
@@ -154,6 +158,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.docChip, tipoDocumento === 'PASAPORTE' && styles.docChipActivo, pressed && styles.pressed]}
           onPress={() => { setTipoDocumento('PASAPORTE'); setDocumentoIdentidad(''); setErrorDoc(''); }}
+          accessibilityRole="button"
+          accessibilityLabel="Usar pasaporte"
+          accessibilityState={{ selected: tipoDocumento === 'PASAPORTE' }}
         >
           <Text style={[styles.docChipTexto, tipoDocumento === 'PASAPORTE' && styles.docChipTextoActivo]}>
             Pasaporte
@@ -205,6 +212,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.rolPill, rol === 'CASERO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('CASERO')}
+          accessibilityRole="button"
+          accessibilityLabel="Seleccionar rol casero"
+          accessibilityState={{ selected: rol === 'CASERO' }}
         >
           <Text style={[styles.rolPillTexto, rol === 'CASERO' && styles.rolPillTextoActivo]}>
             Casero
@@ -213,6 +223,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.rolPill, rol === 'INQUILINO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('INQUILINO')}
+          accessibilityRole="button"
+          accessibilityLabel="Seleccionar rol inquilino"
+          accessibilityState={{ selected: rol === 'INQUILINO' }}
         >
           <Text style={[styles.rolPillTexto, rol === 'INQUILINO' && styles.rolPillTextoActivo]}>
             Inquilino
@@ -237,14 +250,19 @@ export default function RegistroScreen() {
         style={({ pressed }) => [styles.botonGoogle, pressed && styles.pressed]}
         onPress={() => googlePromptAsync()}
         disabled={loading}
+        accessibilityRole="button"
+        accessibilityLabel="Continuar con Google"
+        accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <AntDesign name="google" size={20} color="#DB4437" />
+        <AntDesign name="google" size={20} color={Theme.colors.google} />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
       <Pressable
         style={({ pressed }) => [styles.enlaceLogin, pressed && styles.pressed]}
         onPress={() => router.back()}
+        accessibilityRole="link"
+        accessibilityLabel="Volver al inicio de sesión"
       >
         <Text style={styles.enlaceLoginTexto}>¿Ya tienes cuenta? Inicia sesión</Text>
       </Pressable>
