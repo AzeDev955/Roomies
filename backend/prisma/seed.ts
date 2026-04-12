@@ -1,15 +1,22 @@
-import { PrismaClient, RolUsuario, TipoHabitacion, EstadoDeuda } from '../src/generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import bcrypt from 'bcrypt';
-import 'dotenv/config';
+import {
+  PrismaClient,
+  RolUsuario,
+  TipoHabitacion,
+  EstadoDeuda,
+} from "../src/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcrypt";
+import "dotenv/config";
 
-const adapter = new PrismaPg({ connectionString: process.env['DATABASE_URL']! });
+const adapter = new PrismaPg({
+  connectionString: process.env["DATABASE_URL"]!,
+});
 const prisma = new PrismaClient({ adapter });
 
-const LOCAL_CASERO_PASSWORD = 'casero123';
-const LOCAL_INQUILINO_PASSWORD = 'inquilino123';
-const DEMO_EMAIL_DOMAIN = 'example.test';
-const FORCE_DEMO_SEED = process.env['ROOMIES_ALLOW_PRODUCTION_SEED'] === 'true';
+const LOCAL_CASERO_PASSWORD = process.env["SEED_CASERO_PASSWORD"];
+const LOCAL_INQUILINO_PASSWORD = process.env["SEED_INQUILINO_PASSWORD"];
+const DEMO_EMAIL_DOMAIN = process.env["SEED_DEMO_DOMAIN"];
+const FORCE_DEMO_SEED = process.env["ROOMIES_ALLOW_PRODUCTION_SEED"] === "true";
 
 type ParticipanteDeuda = {
   deudorId: number;
@@ -30,20 +37,23 @@ const dayOfMonth = (day: number, monthsAgo = 0) => {
 };
 
 const assertSeedSeguro = () => {
-  const entorno = process.env['NODE_ENV'];
+  const entorno = process.env["NODE_ENV"];
   const railwayEnvironment = (
-    process.env['ROOMIES_APP_ENV'] ??
-    process.env['RAILWAY_ENVIRONMENT_NAME'] ??
-    process.env['RAILWAY_ENVIRONMENT'] ??
-    ''
+    process.env["ROOMIES_APP_ENV"] ??
+    process.env["RAILWAY_ENVIRONMENT_NAME"] ??
+    process.env["RAILWAY_ENVIRONMENT"] ??
+    ""
   ).toLowerCase();
-  const isRailwayDevelopment = ['development', 'dev', 'desarrollo'].includes(railwayEnvironment);
-  const isRailwayNonDevelopment = Boolean(railwayEnvironment) && !isRailwayDevelopment;
-  const isLocalProduction = entorno === 'production' && !isRailwayDevelopment;
+  const isRailwayDevelopment = ["development", "dev", "desarrollo"].includes(
+    railwayEnvironment,
+  );
+  const isRailwayNonDevelopment =
+    Boolean(railwayEnvironment) && !isRailwayDevelopment;
+  const isLocalProduction = entorno === "production" && !isRailwayDevelopment;
 
   if (!FORCE_DEMO_SEED && (isLocalProduction || isRailwayNonDevelopment)) {
     throw new Error(
-      'Seed demo bloqueado fuera de entorno local o Railway development. Define ROOMIES_ALLOW_PRODUCTION_SEED=true solo para cargas controladas.',
+      "Seed demo bloqueado fuera de entorno local o Railway development. Define ROOMIES_ALLOW_PRODUCTION_SEED=true solo para cargas controladas.",
     );
   }
 };
@@ -89,58 +99,58 @@ async function main() {
   const hash = (pw: string) => bcrypt.hash(pw, 10);
 
   const casero = await prisma.usuario.upsert({
-    where: { documento_identidad: '11111111A' },
+    where: { documento_identidad: "11111111A" },
     update: {
       email: `casero@${DEMO_EMAIL_DOMAIN}`,
-      telefono: '600111111',
+      telefono: "600111111",
       rol: RolUsuario.CASERO,
     },
     create: {
-      nombre: 'Carlos',
-      apellidos: 'Garcia Lopez',
-      documento_identidad: '11111111A',
+      nombre: "Carlos",
+      apellidos: "Garcia Lopez",
+      documento_identidad: "11111111A",
       email: `casero@${DEMO_EMAIL_DOMAIN}`,
       password_hash: await hash(LOCAL_CASERO_PASSWORD),
-      telefono: '600111111',
+      telefono: "600111111",
       rol: RolUsuario.CASERO,
     },
   });
 
   const inquilinosData = [
     {
-      nombre: 'Ana',
-      apellidos: 'Martinez Ruiz',
-      documento_identidad: '22222222B',
+      nombre: "Ana",
+      apellidos: "Martinez Ruiz",
+      documento_identidad: "22222222B",
       email: `ana@${DEMO_EMAIL_DOMAIN}`,
-      tel: '600222222',
+      tel: "600222222",
     },
     {
-      nombre: 'Bruno',
-      apellidos: 'Sanchez Vega',
-      documento_identidad: '33333333C',
+      nombre: "Bruno",
+      apellidos: "Sanchez Vega",
+      documento_identidad: "33333333C",
       email: `bruno@${DEMO_EMAIL_DOMAIN}`,
-      tel: '600333333',
+      tel: "600333333",
     },
     {
-      nombre: 'Carmen',
-      apellidos: 'Lopez Fuentes',
-      documento_identidad: '44444444D',
+      nombre: "Carmen",
+      apellidos: "Lopez Fuentes",
+      documento_identidad: "44444444D",
       email: `carmen@${DEMO_EMAIL_DOMAIN}`,
-      tel: '600444444',
+      tel: "600444444",
     },
     {
-      nombre: 'Diego',
-      apellidos: 'Romero Iglesias',
-      documento_identidad: '55555555E',
+      nombre: "Diego",
+      apellidos: "Romero Iglesias",
+      documento_identidad: "55555555E",
       email: `diego@${DEMO_EMAIL_DOMAIN}`,
-      tel: '600555555',
+      tel: "600555555",
     },
     {
-      nombre: 'Elena',
-      apellidos: 'Fernandez Castro',
-      documento_identidad: '66666666F',
+      nombre: "Elena",
+      apellidos: "Fernandez Castro",
+      documento_identidad: "66666666F",
       email: `elena@${DEMO_EMAIL_DOMAIN}`,
-      tel: '600666666',
+      tel: "600666666",
     },
   ];
 
@@ -163,8 +173,8 @@ async function main() {
           telefono: inquilino.tel,
           rol: RolUsuario.INQUILINO,
         },
-      })
-    )
+      }),
+    ),
   );
 
   const [ana, bruno, carmen, diego, elena] = inquilinos;
@@ -174,20 +184,45 @@ async function main() {
     update: {},
     create: {
       casero_id: casero.id,
-      alias_nombre: 'Casa Testing',
-      direccion: 'Calle Falsa 123',
-      codigo_postal: '28001',
-      ciudad: 'Madrid',
-      provincia: 'Madrid',
+      alias_nombre: "Casa Testing",
+      direccion: "Calle Falsa 123",
+      codigo_postal: "28001",
+      ciudad: "Madrid",
+      provincia: "Madrid",
     },
   });
 
   const dormitorios = [
-    { nombre: 'Habitacion 1', metros: 12.0, inquilino: ana, codigo: 'ROOM-TEST1' },
-    { nombre: 'Habitacion 2', metros: 10.5, inquilino: bruno, codigo: 'ROOM-TEST2' },
-    { nombre: 'Habitacion 3', metros: 11.0, inquilino: carmen, codigo: 'ROOM-TEST3' },
-    { nombre: 'Habitacion 4', metros: 9.5, inquilino: diego, codigo: 'ROOM-TEST4' },
-    { nombre: 'Habitacion 5', metros: 13.0, inquilino: elena, codigo: 'ROOM-TEST5' },
+    {
+      nombre: "Habitacion 1",
+      metros: 12.0,
+      inquilino: ana,
+      codigo: "ROOM-TEST1",
+    },
+    {
+      nombre: "Habitacion 2",
+      metros: 10.5,
+      inquilino: bruno,
+      codigo: "ROOM-TEST2",
+    },
+    {
+      nombre: "Habitacion 3",
+      metros: 11.0,
+      inquilino: carmen,
+      codigo: "ROOM-TEST3",
+    },
+    {
+      nombre: "Habitacion 4",
+      metros: 9.5,
+      inquilino: diego,
+      codigo: "ROOM-TEST4",
+    },
+    {
+      nombre: "Habitacion 5",
+      metros: 13.0,
+      inquilino: elena,
+      codigo: "ROOM-TEST5",
+    },
   ];
 
   for (const dormitorio of dormitorios) {
@@ -223,10 +258,10 @@ async function main() {
   }
 
   const zonasComunes = [
-    { nombre: 'Bano 1', tipo: TipoHabitacion.BANO, metros: 5.0 },
-    { nombre: 'Bano 2', tipo: TipoHabitacion.BANO, metros: 4.5 },
-    { nombre: 'Cocina', tipo: TipoHabitacion.COCINA, metros: 14.0 },
-    { nombre: 'Salon', tipo: TipoHabitacion.SALON, metros: 18.0 },
+    { nombre: "Bano 1", tipo: TipoHabitacion.BANO, metros: 5.0 },
+    { nombre: "Bano 2", tipo: TipoHabitacion.BANO, metros: 4.5 },
+    { nombre: "Cocina", tipo: TipoHabitacion.COCINA, metros: 14.0 },
+    { nombre: "Salon", tipo: TipoHabitacion.SALON, metros: 18.0 },
   ];
 
   for (const zona of zonasComunes) {
@@ -280,7 +315,7 @@ async function main() {
   });
 
   await crearGastoConDeudas({
-    concepto: 'Compra del supermercado',
+    concepto: "Compra del supermercado",
     importe: 150,
     fechaCreacion: dayOfMonth(3),
     pagadorId: ana.id,
@@ -293,13 +328,14 @@ async function main() {
         deudorId: elena.id,
         importe: 30,
         estado: EstadoDeuda.PAGADA,
-        justificanteUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        justificanteUrl:
+          "https://res.cloudinary.com/demo/image/upload/sample.jpg",
       },
     ],
   });
 
   await crearGastoConDeudas({
-    concepto: 'Cena compartida del viernes',
+    concepto: "Cena compartida del viernes",
     importe: 72,
     fechaCreacion: dayOfMonth(8),
     pagadorId: bruno.id,
@@ -312,7 +348,7 @@ async function main() {
   });
 
   await crearGastoConDeudas({
-    concepto: 'Internet fibra abril',
+    concepto: "Internet fibra abril",
     importe: 60,
     fechaCreacion: dayOfMonth(5),
     pagadorId: casero.id,
@@ -322,7 +358,8 @@ async function main() {
         deudorId: ana.id,
         importe: 12,
         estado: EstadoDeuda.PAGADA,
-        justificanteUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        justificanteUrl:
+          "https://res.cloudinary.com/demo/image/upload/sample.jpg",
       },
       { deudorId: bruno.id, importe: 12, estado: EstadoDeuda.PAGADA },
       { deudorId: carmen.id, importe: 12 },
@@ -332,7 +369,7 @@ async function main() {
   });
 
   await crearGastoConDeudas({
-    concepto: 'Electricidad abril',
+    concepto: "Electricidad abril",
     importe: 110,
     fechaCreacion: dayOfMonth(9),
     pagadorId: casero.id,
@@ -347,7 +384,7 @@ async function main() {
   });
 
   await crearGastoConDeudas({
-    concepto: 'Agua marzo',
+    concepto: "Agua marzo",
     importe: 80,
     fechaCreacion: dayOfMonth(16, 1),
     pagadorId: casero.id,
@@ -364,7 +401,7 @@ async function main() {
   await prisma.gastoRecurrente.createMany({
     data: [
       {
-        concepto: 'Alquiler mensual',
+        concepto: "Alquiler mensual",
         importe: 1800,
         dia_del_mes: 1,
         vivienda_id: vivienda.id,
@@ -372,7 +409,7 @@ async function main() {
         activo: true,
       },
       {
-        concepto: 'Internet fibra',
+        concepto: "Internet fibra",
         importe: 60,
         dia_del_mes: 5,
         vivienda_id: vivienda.id,
@@ -380,7 +417,7 @@ async function main() {
         activo: true,
       },
       {
-        concepto: 'Cuota limpieza portal',
+        concepto: "Cuota limpieza portal",
         importe: 35,
         dia_del_mes: 15,
         vivienda_id: vivienda.id,
