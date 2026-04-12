@@ -22,7 +22,9 @@ const run = (label, command, args) => {
 
 const normalized = (value) => (value ?? '').toLowerCase();
 const railwayEnvironment = normalized(
-  process.env.RAILWAY_ENVIRONMENT_NAME ?? process.env.RAILWAY_ENVIRONMENT,
+  process.env.ROOMIES_APP_ENV ??
+    process.env.RAILWAY_ENVIRONMENT_NAME ??
+    process.env.RAILWAY_ENVIRONMENT,
 );
 const seedOnStart = process.env.ROOMIES_SEED_ON_START === 'true';
 const isRailwayDevelopment = ['development', 'dev', 'desarrollo'].includes(railwayEnvironment);

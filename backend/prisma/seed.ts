@@ -32,6 +32,7 @@ const dayOfMonth = (day: number, monthsAgo = 0) => {
 const assertSeedSeguro = () => {
   const entorno = process.env['NODE_ENV'];
   const railwayEnvironment = (
+    process.env['ROOMIES_APP_ENV'] ??
     process.env['RAILWAY_ENVIRONMENT_NAME'] ??
     process.env['RAILWAY_ENVIRONMENT'] ??
     ''

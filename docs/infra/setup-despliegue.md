@@ -138,9 +138,9 @@ El backend se despliega con `backend/Dockerfile`; Railway lo usa para construir 
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
 
-El Dockerfile ejecuta `npm run build`. Al arrancar, `npm start` aplica `npx prisma db push --accept-data-loss`, ejecuta `npx prisma db seed` cuando `RAILWAY_ENVIRONMENT_NAME` identifica desarrollo (`development`, `dev` o `desarrollo`) y levanta `node dist/index.js`.
+El Dockerfile ejecuta `npm run build`. Al arrancar, `npm start` aplica `npx prisma db push --accept-data-loss`, ejecuta `npx prisma db seed` cuando `ROOMIES_APP_ENV` o `RAILWAY_ENVIRONMENT_NAME` identifica desarrollo (`development`, `dev` o `desarrollo`) y levanta `node dist/index.js`.
 
-El seed queda bloqueado en Railway produccion salvo override explicito con `ROOMIES_ALLOW_PRODUCTION_SEED=true`. Para forzarlo en otro entorno controlado se puede usar `ROOMIES_SEED_ON_START=true`, manteniendo el guard de seguridad del propio seed.
+El seed queda bloqueado en Railway produccion salvo override explicito con `ROOMIES_ALLOW_PRODUCTION_SEED=true`. Si Railway dev esta montado como servicio/proyecto separado y el nombre automatico del entorno no es de desarrollo, define `ROOMIES_APP_ENV=development` solo en el backend de desarrollo.
 
 ### Frontend EAS
 
