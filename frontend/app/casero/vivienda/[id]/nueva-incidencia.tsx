@@ -11,6 +11,7 @@ import {
   PRIORIDAD_TEXT,
   PRIORIDAD_BORDER,
 } from '@/styles/casero/vivienda/nueva-incidencia.styles';
+import { parseJsonArrayParam, parsePositiveIntParam } from '@/utils/routeParams';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
 
@@ -31,8 +32,17 @@ export default function NuevaIncidenciaCaseroScreen() {
     id: string;
     habitacionesJson: string;
   }>();
+  const viviendaIdNumerico = parsePositiveIntParam(viviendaId);
 
-  const habitaciones: HabitacionResumen[] = JSON.parse(habitacionesJson ?? '[]');
+  const habitaciones = parseJsonArrayParam<Partial<HabitacionResumen> | null>(habitacionesJson).filter(
+    (habitacion): habitacion is HabitacionResumen =>
+      !!habitacion &&
+      typeof habitacion.id === 'number' &&
+      Number.isSafeInteger(habitacion.id) &&
+      habitacion.id > 0 &&
+      typeof habitacion.nombre === 'string' &&
+      habitacion.nombre.trim().length > 0,
+  );
 
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -43,6 +53,11 @@ export default function NuevaIncidenciaCaseroScreen() {
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleEnviar = async () => {
+    if (!viviendaIdNumerico) {
+      Toast.show({ type: 'error', text1: 'La ruta de la vivienda no es valida.' });
+      return;
+    }
+
     setLoading(true);
     try {
       const habitacion_id = ubicacionId !== ZONA_COMUN_ID ? ubicacionId : undefined;
@@ -50,7 +65,7 @@ export default function NuevaIncidenciaCaseroScreen() {
         titulo,
         descripcion,
         prioridad,
-        vivienda_id: Number(viviendaId),
+        vivienda_id: viviendaIdNumerico,
         ...(habitacion_id !== undefined ? { habitacion_id } : {}),
       });
       router.back();
@@ -63,6 +78,22 @@ export default function NuevaIncidenciaCaseroScreen() {
   };
 
   const puedeEnviar = titulo.trim().length > 0 && descripcion.trim().length > 0;
+
+  if (!viviendaIdNumerico) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorState}>
+          <Text style={styles.errorTitle}>Vivienda no encontrada</Text>
+          <Text style={styles.errorText}>
+            No podemos abrir el formulario porque el enlace no apunta a una vivienda valida.
+          </Text>
+          <Pressable style={styles.secondaryButton} onPress={() => router.replace('/casero/viviendas')}>
+            <Text style={styles.secondaryButtonText}>Volver a viviendas</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -150,7 +181,7 @@ export default function NuevaIncidenciaCaseroScreen() {
           disabled={!puedeEnviar || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Theme.colors.surface} />
           ) : (
             <Text style={styles.botonEnviarTexto}>Enviar Incidencia</Text>
           )}

@@ -82,7 +82,7 @@ const ESTADO_LABEL: Record<string, string> = {
 
 const ESTADO_COLOR: Record<string, string> = {
   PENDIENTE: Theme.colors.textTertiary,
-  HECHO: '#2e7d32',
+  HECHO: Theme.colors.success,
   NO_HECHO: Theme.colors.danger,
 };
 
@@ -363,7 +363,7 @@ export default function LimpiezaCaseroTab() {
               {item.activa ? 'Activa' : 'Inactiva'}
             </Text>
           </View>
-          <Pressable onPress={() => handleEliminarZona(item)} hitSlop={8} style={{ paddingLeft: 8 }}>
+          <Pressable onPress={() => handleEliminarZona(item)} hitSlop={8} style={styles.eliminarIconButton}>
             <Text style={styles.eliminarBtn}>✕</Text>
           </Pressable>
         </View>
@@ -621,7 +621,7 @@ export default function LimpiezaCaseroTab() {
                 disabled={!puedeGuardar || guardando}
               >
                 {guardando ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={Theme.colors.surface} />
                 ) : (
                   <Text style={styles.botonGuardarTexto}>Guardar</Text>
                 )}
@@ -684,7 +684,7 @@ export default function LimpiezaCaseroTab() {
                 disabled={asignando}
               >
                 {asignando ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={Theme.colors.surface} />
                 ) : (
                   <Text style={styles.botonGuardarTexto}>Guardar</Text>
                 )}

@@ -180,7 +180,7 @@ export default function NuevaViviendaScreen() {
             disabled={buscandoDireccion}
           >
             {buscandoDireccion ? (
-              <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={Theme.colors.surface} size="small" />
             ) : (
               <Text style={styles.buscadorBotonTexto}>Buscar</Text>
             )}
@@ -296,7 +296,7 @@ export default function NuevaViviendaScreen() {
                 value={habEsHabitable}
                 onValueChange={setHabEsHabitable}
                 trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
-                thumbColor="#fff"
+                  thumbColor={Theme.colors.surface}
               />
             </View>
           </>
@@ -355,7 +355,7 @@ export default function NuevaViviendaScreen() {
           disabled={!puedeGuardar || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Theme.colors.surface} />
           ) : (
             <Text style={styles.botonTexto}>Guardar vivienda</Text>
           )}

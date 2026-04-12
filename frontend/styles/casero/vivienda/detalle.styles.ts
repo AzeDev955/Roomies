@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
   // — Header card —
   headerCard: {
     backgroundColor: Theme.colors.surface,
-    borderRadius: 24,
+    borderRadius: Theme.radius.lg,
     padding: Theme.spacing.lg,
     marginBottom: Theme.spacing.base,
     shadowColor: Theme.colors.shadow,
@@ -19,7 +19,7 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: Theme.colors.border,
   },
   headerNombre: {
     fontSize: 24,
@@ -40,7 +40,7 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   chipHabitaciones: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: Theme.colors.infoLight,
     borderRadius: Theme.radius.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -48,10 +48,10 @@ export const styles = StyleSheet.create({
   chipHabitacionesTexto: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1D4ED8',
+    color: Theme.colors.info,
   },
   chipInquilinos: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: Theme.colors.successLight,
     borderRadius: Theme.radius.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -59,7 +59,7 @@ export const styles = StyleSheet.create({
   chipInquilinosTexto: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#065F46',
+    color: Theme.colors.success,
   },
 
   // — Accesos rápidos —
@@ -71,7 +71,7 @@ export const styles = StyleSheet.create({
   accionBtn: {
     flex: 1,
     backgroundColor: Theme.colors.surface,
-    borderRadius: 24,
+    borderRadius: Theme.radius.lg,
     padding: Theme.spacing.lg,
     alignItems: 'center',
     shadowColor: Theme.colors.shadow,
@@ -83,18 +83,18 @@ export const styles = StyleSheet.create({
   },
   accionBtnPressed: { opacity: 0.75 },
   accionIconIncidencias: {
-    backgroundColor: '#FFF7ED',
-    borderRadius: 16,
+    backgroundColor: Theme.colors.warningLight,
+    borderRadius: Theme.radius.md,
     padding: 12,
   },
   accionIconTablon: {
     backgroundColor: Theme.colors.primary + '12',
-    borderRadius: 16,
+    borderRadius: Theme.radius.md,
     padding: 12,
   },
   accionIconNuevaInc: {
-    backgroundColor: '#ECFDF5',
-    borderRadius: 16,
+    backgroundColor: Theme.colors.successLight,
+    borderRadius: Theme.radius.md,
     padding: 12,
   },
   accionLabel: {
@@ -280,7 +280,7 @@ export const styles = StyleSheet.create({
   // — Habitación card —
   habCard: {
     backgroundColor: Theme.colors.surface,
-    borderRadius: 20,
+    borderRadius: Theme.radius.lg,
     padding: Theme.spacing.base,
     marginBottom: Theme.spacing.md,
     shadowColor: Theme.colors.shadow,
@@ -304,7 +304,7 @@ export const styles = StyleSheet.create({
     marginRight: Theme.spacing.md,
   },
   habIconBox: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: Theme.colors.surface2,
     padding: 8,
     borderRadius: 12,
   },
@@ -360,7 +360,7 @@ export const styles = StyleSheet.create({
 
   // — Código de invitación —
   codigoContainer: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: Theme.colors.surface2,
     borderRadius: Theme.radius.md,
     padding: Theme.spacing.md,
   },
@@ -397,7 +397,7 @@ export const styles = StyleSheet.create({
   // — Incidencias en card —
   incidenciasHabitacion: {
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: Theme.colors.border,
     paddingTop: Theme.spacing.sm,
     gap: 6,
   },

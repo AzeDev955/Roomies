@@ -114,18 +114,21 @@ export const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: Theme.radius.full,
   },
-  badgeActiva: { backgroundColor: '#e6f4ea' },
+  badgeActiva: { backgroundColor: Theme.colors.successLight },
   badgeInactiva: { backgroundColor: Theme.colors.background },
   badgeTexto: {
     fontSize: Theme.typography.caption,
     fontWeight: '600',
   },
-  badgeTextoActiva: { color: '#2e7d32' },
+  badgeTextoActiva: { color: Theme.colors.success },
   badgeTextoInactiva: { color: Theme.colors.textTertiary },
   eliminarBtn: {
     fontSize: 14,
-    color: Theme.colors.textTertiary,
+    color: Theme.colors.danger,
     fontWeight: '600',
+  },
+  eliminarIconButton: {
+    paddingLeft: Theme.spacing.sm,
   },
   zonaPeso: {
     fontSize: Theme.typography.caption,
@@ -375,7 +378,7 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    borderColor: Theme.colors.border,
   },
   userCardHeader: {
     flexDirection: 'row',
@@ -426,7 +429,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: Theme.radius.full,
   },
-  turnoEstadoBadgeHecho: { backgroundColor: '#E1F5E8' },
+  turnoEstadoBadgeHecho: { backgroundColor: Theme.colors.successLight },
   turnoEstadoBadgePendiente: { backgroundColor: Theme.colors.surface2 },
   turnoEstadoTexto: {
     fontSize: 10,
@@ -434,6 +437,6 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  turnoEstadoTextoHecho: { color: '#248A3D' },
+  turnoEstadoTextoHecho: { color: Theme.colors.success },
   turnoEstadoTextoPendiente: { color: Theme.colors.textTertiary },
 });
