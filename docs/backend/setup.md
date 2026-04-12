@@ -66,7 +66,7 @@ GET http://localhost:3000/ping  ->  pong
 |---|---|
 | `npm run dev` | Servidor con hot-reload (`nodemon --exec ts-node src/index.ts`) |
 | `npm run build` | Compila TypeScript a `dist/` (`npx prisma generate && tsc`) |
-| `npm start` | Arranca el servidor compilado (`npx prisma db push --accept-data-loss && node dist/index.js`) |
+| `npm start` | Arranca el servidor compilado (`node scripts/start.js`) |
 | `npm test` | Ejecuta la suite de Vitest una vez |
 | `npm run test:watch` | Ejecuta Vitest en modo watch |
 | `npm run test:coverage` | Ejecuta Vitest y genera cobertura en `coverage/` |
@@ -195,7 +195,7 @@ npx expo start --clear
 | `Incidencia.habitacion` y `Habitacion.inquilino` usan `SetNull` al borrar la entidad relacionada | Conserva el historial operativo aunque se elimine una habitacion o un usuario deje de existir. |
 | Importes monetarios siguen como `Float` por compatibilidad MVP | La logica de reparto convierte a centimos antes de comparar o dividir. Migrar a `Decimal` o centimos enteros queda pendiente de migracion coordinada con frontend, API y datos existentes. |
 
-El seed de demo esta pensado para desarrollo local: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
+El seed de demo esta pensado para desarrollo local y Railway desarrollo: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway no desarrollo salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
 
 ## Update 2026-04-09 - Backend real
 

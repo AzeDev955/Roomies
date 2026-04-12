@@ -471,7 +471,7 @@ El `backend/Dockerfile` ejecuta:
 1. `npm run build` durante la construccion de la imagen.
 2. `npm start` al arrancar el contenedor.
 
-`npm start` ejecuta `npx prisma db push --accept-data-loss` y `node dist/index.js`.
+`npm start` ejecuta `node scripts/start.js`: aplica `npx prisma db push --accept-data-loss`, ejecuta `npx prisma db seed` automaticamente en Railway desarrollo y levanta `node dist/index.js`.
 
 `docker-compose.yml` queda como apoyo opcional para revisar infraestructura local. En ese modo, el servicio backend sobreescribe el comando de la imagen Railway y ejecuta:
 
@@ -670,6 +670,7 @@ Usuarios de prueba creados por `prisma db seed`:
 
 - `docker-compose.yml` deja de fijar la API del frontend a produccion y consume `EXPO_PUBLIC_API_URL` desde `.env`.
 - `backend/Dockerfile` queda orientado a Railway: compila con `npm run build` y arranca con `npm start`.
+- `backend/scripts/start.js` aplica el schema y recupera el seed automatico en Railway desarrollo sin habilitarlo en produccion.
 - `docker-compose.yml` mantiene un comando de desarrollo propio para regenerar Prisma Client y arrancar con nodemon solo cuando se use Compose.
 - `.env.example`, `backend/.env.example` y `frontend/.env.example` documentan variables obligatorias, opcionales, URLs locales y tokens por entorno.
 - `docs/infra/setup-despliegue.md` concentra el flujo Railway desarrollo + Expo Go, Dockerfile, Compose auxiliar y comandos de build/test/lint.

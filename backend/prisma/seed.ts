@@ -31,11 +31,19 @@ const dayOfMonth = (day: number, monthsAgo = 0) => {
 
 const assertSeedSeguro = () => {
   const entorno = process.env['NODE_ENV'];
-  const railwayEnvironment = process.env['RAILWAY_ENVIRONMENT'];
+  const railwayEnvironment = (
+    process.env['ROOMIES_APP_ENV'] ??
+    process.env['RAILWAY_ENVIRONMENT_NAME'] ??
+    process.env['RAILWAY_ENVIRONMENT'] ??
+    ''
+  ).toLowerCase();
+  const isRailwayDevelopment = ['development', 'dev', 'desarrollo'].includes(railwayEnvironment);
+  const isRailwayNonDevelopment = Boolean(railwayEnvironment) && !isRailwayDevelopment;
+  const isLocalProduction = entorno === 'production' && !isRailwayDevelopment;
 
-  if (!FORCE_DEMO_SEED && (entorno === 'production' || railwayEnvironment)) {
+  if (!FORCE_DEMO_SEED && (isLocalProduction || isRailwayNonDevelopment)) {
     throw new Error(
-      'Seed demo bloqueado fuera de entorno local. Define ROOMIES_ALLOW_PRODUCTION_SEED=true solo para cargas controladas.',
+      'Seed demo bloqueado fuera de entorno local o Railway development. Define ROOMIES_ALLOW_PRODUCTION_SEED=true solo para cargas controladas.',
     );
   }
 };

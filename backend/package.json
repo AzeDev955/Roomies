@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "npx prisma generate && tsc",
-    "start": "npx prisma db push --accept-data-loss && node dist/index.js",
+    "start": "node scripts/start.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
