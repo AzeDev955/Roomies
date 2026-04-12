@@ -90,7 +90,7 @@ npx expo start --clear
 
 ## Docker y Railway
 
-El `backend/Dockerfile` se usa para que Railway construya la imagen del backend. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, que aplica `prisma db push --accept-data-loss` y levanta `dist/index.js`.
+El `backend/Dockerfile` se usa para que Railway construya la imagen del backend. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, que aplica `prisma db push --accept-data-loss`, ejecuta el seed automaticamente en Railway desarrollo y levanta `dist/index.js`.
 
 `docker-compose.yml` queda como apoyo para revisar infraestructura local si hace falta, pero no es el flujo habitual de testeo.
 
