@@ -6,6 +6,7 @@ import { styles } from '@/styles/rol.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { syncPushToken } from '@/utils/notifications';
+import { getDashboardRoute } from '@/utils/authRoutes';
 
 type Rol = 'CASERO' | 'INQUILINO';
 
@@ -23,8 +24,7 @@ export default function SeleccionRolScreen() {
       });
       await guardarToken(data.token);
       void syncPushToken();
-      const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-      router.replace(destino);
+      router.replace(getDashboardRoute(data.usuario.rol));
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudo guardar el rol. Inténtalo de nuevo.' });
     } finally {

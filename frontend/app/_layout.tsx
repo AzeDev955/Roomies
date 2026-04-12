@@ -7,6 +7,7 @@ import api from '@/services/api';
 import { Theme } from '@/constants/theme';
 import { toastConfig } from '@/constants/toastConfig';
 import { syncPushToken } from '@/utils/notifications';
+import { getDashboardRoute } from '@/utils/authRoutes';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -19,11 +20,11 @@ export default function RootLayout() {
         if (token) {
           const { data } = await api.get<{ rol: string }>('/auth/me');
           void syncPushToken();
-          const destino = data.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-          router.replace(destino);
+          router.replace(getDashboardRoute(data.rol));
         }
       } catch {
         await eliminarToken();
+        router.replace('/');
       } finally {
         setChecking(false);
       }

@@ -12,6 +12,7 @@ import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { syncPushToken } from '@/utils/notifications';
+import { getDashboardRoute } from '@/utils/authRoutes';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -37,8 +38,7 @@ export default function LoginScreen() {
   });
 
   const irAlDashboard = useCallback((rol: string) => {
-    const destino = rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-    router.replace(destino);
+    router.replace(getDashboardRoute(rol));
   }, [router]);
 
   const handleGoogleLogin = useCallback(async (idToken: string) => {
