@@ -7,15 +7,19 @@ export const Theme = {
     // Semánticos
     success:          '#06D6A0',  // Teal-verde vibrante
     successLight:     '#E8FBF5',
+    successText:      '#0D7A5E',
     successDisabled:  '#A3E8DA',
     info:             '#4F8CFF',
     infoLight:        '#EDF4FF',
     danger:           '#FF4757',
     dangerLight:      '#FFF0F2',
+    dangerText:       '#C0392B',
     warning:          '#FFA726',
     warningLight:     '#FFF7E8',
+    warningText:      '#A05C00',
     // Fondos
     background:       '#F8F7F4',  // Off-white cálido (no frío puro)
+    backgroundDark:   '#151718',
     surface:          '#FFFFFF',
     surface2:         '#F2F0EB',  // Warm light grey para chips y secundarios
     // Texto
@@ -27,6 +31,7 @@ export const Theme = {
     // UI
     border:           '#E8E6E0',  // Borde cálido
     shadow:           '#000000',
+    google:           '#DB4437',
   },
   spacing: {
     xs:   4,
@@ -68,5 +73,5 @@ export const Theme = {
 // Expo template compatibility — used by unused boilerplate components
 export const Colors = {
   light: { icon: Theme.colors.textSecondary, text: Theme.colors.text,    background: Theme.colors.background },
-  dark:  { icon: Theme.colors.textTertiary,  text: Theme.colors.surface, background: '#151718' },
+  dark:  { icon: Theme.colors.textTertiary,  text: Theme.colors.surface, background: Theme.colors.backgroundDark },
 } as const;

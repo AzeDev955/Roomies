@@ -11,6 +11,7 @@ import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { Theme } from '@/constants/theme';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
 
@@ -131,14 +132,19 @@ export default function LoginScreen() {
         style={({ pressed }) => [styles.botonGoogle, pressed && styles.pressed]}
         onPress={() => googlePromptAsync()}
         disabled={loading}
+        accessibilityRole="button"
+        accessibilityLabel="Continuar con Google"
+        accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <AntDesign name="google" size={20} color="#DB4437" />
+        <AntDesign name="google" size={20} color={Theme.colors.google} />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
       <Pressable
         style={({ pressed }) => [styles.enlaceRegistro, pressed && styles.pressed]}
         onPress={() => router.push('/registro')}
+        accessibilityRole="link"
+        accessibilityLabel="Crear una cuenta"
       >
         <Text style={styles.enlaceRegistroTexto}>¿No tienes cuenta? Regístrate</Text>
       </Pressable>

@@ -175,7 +175,7 @@ export default function NuevaIncidenciaScreen() {
           disabled={!puedeEnviar || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={Theme.colors.surface} />
           ) : (
             <Text style={styles.botonEnviarTexto}>Enviar Incidencia</Text>
           )}

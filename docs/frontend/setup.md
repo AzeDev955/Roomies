@@ -312,6 +312,7 @@ eas build --platform android --profile preview
 |---|---|
 | `expo-router` | Navegacion por archivos con grupos `(tabs)` y stacks por rol |
 | `Theme` centralizado | Tokens consistentes en UI y Soft Tints |
+| `docs/frontend/visual-quality.md` | Reglas obligatorias para tokens, accesibilidad, copy y mojibake en futuras PRs |
 | `services/api.ts` | Un solo cliente Axios con interceptor JWT |
 | `auth.service.ts` | Encapsula `SecureStore` y simplifica login/logout |
 | `utils/notifications.ts` | Centraliza permisos, obtencion y sincronizacion del Expo Push Token |
@@ -343,3 +344,9 @@ eas build --platform android --profile preview
 - Se anade Jest Expo 54 + React Native Testing Library.
 - `package.json` incorpora `test`, `test:watch` y `test:coverage`.
 - `react-test-renderer` queda fijado en `19.1.0` para coincidir exactamente con React.
+
+## Update 2026-04-12 - Epica 16 issue 255
+
+- Se documentan los criterios obligatorios de calidad visual, accesibilidad, copy y encoding en `docs/frontend/visual-quality.md`.
+- Los colores semanticos compartidos quedan centralizados en `Theme.colors` para evitar hexadecimales locales.
+- Los componentes comunes y pantallas de autenticacion declaran roles, labels y estados accesibles en acciones principales.

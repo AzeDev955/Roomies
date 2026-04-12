@@ -4,7 +4,7 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Colors, Theme } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
@@ -16,6 +16,9 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
       <TouchableOpacity
         style={styles.heading}
         onPress={() => setIsOpen((value) => !value)}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ expanded: isOpen }}
         activeOpacity={0.8}>
         <IconSymbol
           name="chevron.right"
@@ -36,10 +39,11 @@ const styles = StyleSheet.create({
   heading: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Theme.spacing.sm,
+    minHeight: 44,
   },
   content: {
-    marginTop: 6,
-    marginLeft: 24,
+    marginTop: Theme.spacing.sm,
+    marginLeft: Theme.spacing.lg,
   },
 });

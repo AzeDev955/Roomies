@@ -2,9 +2,11 @@ import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { styles } from '@/styles/rol.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
+import { Theme } from '@/constants/theme';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
 
@@ -42,8 +44,13 @@ export default function SeleccionRolScreen() {
       <Pressable
         style={[styles.card, rolSeleccionado === 'CASERO' && styles.cardActivo]}
         onPress={() => setRolSeleccionado('CASERO')}
+        accessibilityRole="button"
+        accessibilityLabel="Seleccionar rol casero"
+        accessibilityState={{ selected: rolSeleccionado === 'CASERO' }}
       >
-        <Text style={styles.cardEmoji}>🏠</Text>
+        <View style={styles.cardIconBox}>
+          <Ionicons name="home-outline" size={28} color={Theme.colors.primary} />
+        </View>
         <Text style={styles.cardTitulo}>Casero</Text>
         <Text style={styles.cardDescripcion}>
           Gestiona viviendas, habitaciones e inquilinos. Crea códigos de invitación y controla incidencias.
@@ -53,8 +60,13 @@ export default function SeleccionRolScreen() {
       <Pressable
         style={[styles.card, rolSeleccionado === 'INQUILINO' && styles.cardActivo]}
         onPress={() => setRolSeleccionado('INQUILINO')}
+        accessibilityRole="button"
+        accessibilityLabel="Seleccionar rol inquilino"
+        accessibilityState={{ selected: rolSeleccionado === 'INQUILINO' }}
       >
-        <Text style={styles.cardEmoji}>🛏️</Text>
+        <View style={styles.cardIconBox}>
+          <Ionicons name="people-outline" size={28} color={Theme.colors.primary} />
+        </View>
         <Text style={styles.cardTitulo}>Inquilino</Text>
         <Text style={styles.cardDescripcion}>
           Únete a una vivienda con tu código de invitación, ve a tus compañeros y reporta incidencias.
@@ -65,9 +77,12 @@ export default function SeleccionRolScreen() {
         style={[styles.botonConfirmar, (!rolSeleccionado || loading) && styles.botonConfirmarDisabled]}
         onPress={confirmar}
         disabled={!rolSeleccionado || loading}
+        accessibilityRole="button"
+        accessibilityLabel="Confirmar rol"
+        accessibilityState={{ disabled: !rolSeleccionado || loading, busy: loading }}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={Theme.colors.surface} />
         ) : (
           <Text style={styles.botonConfirmarTexto}>Confirmar</Text>
         )}

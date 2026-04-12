@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
     borderRadius: Theme.radius.md,
   },
   miTareaIconBoxHecha: {
-    backgroundColor: '#E5FAF3',
+    backgroundColor: Theme.colors.successLight,
   },
 
   // — Botón Marcar como Hecho —
@@ -169,14 +169,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#E5FAF3',
+    backgroundColor: Theme.colors.successLight,
     borderRadius: Theme.radius.md,
     paddingVertical: 10,
   },
   badgeHechoTexto: {
     fontSize: Theme.typography.label,
     fontWeight: '700',
-    color: '#0D7A5E',
+    color: Theme.colors.successText,
   },
 
   // — Filas de compañeros —
@@ -220,7 +220,7 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    color: '#0D7A5E',
+    color: Theme.colors.successText,
   },
   companeroAsignado: {
     fontSize: 11,

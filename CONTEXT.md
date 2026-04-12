@@ -71,11 +71,11 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 - `ItemInventario` incorpora el campo `revisado_por_inquilino` con valor por defecto `false`.
 - El backend expone `PATCH /api/inventario/:itemId/conformidad` para que el inquilino marque un item como validado.
-- El frontend del inquilino incorpora la pestaÃ±a `Inventario` con agrupado por habitaciÃ³n/zona, galerÃ­a de fotos y modal de revisiÃ³n.
-- Si el item no coincide, el flujo redirige al mÃ³dulo de incidencias mediante un `Alert` nativo.
+- El frontend del inquilino incorpora la pestaña `Inventario` con agrupado por habitación/zona, galería de fotos y modal de revisión.
+- Si el item no coincide, el flujo redirige al módulo de incidencias mediante un `Alert` nativo.
 
 - El backend desplegado en Railway se construye con `backend/Dockerfile`.
-- Se aÃ±adiÃ³ infraestructura de inventario con `ItemInventario` y `FotoAsset` en Prisma.
+- Se añadió infraestructura de inventario con `ItemInventario` y `FotoAsset` en Prisma.
 - La subida de fotos del inventario usa Cloudinary con `multer` + `multer-storage-cloudinary`.
 - El endpoint disponible es `POST /api/inventario/:itemId/fotos` y espera `multipart/form-data` con el archivo en el campo `foto`.
 - Para backend local y Railway ahora son obligatorias las variables `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`.
@@ -284,8 +284,8 @@ Roomies/
 | Campo            | Tipo          | Notas |
 | ---------------- | ------------- | ----- |
 | `id`             | Int PK        | autoincrement |
-| `vivienda_id`    | FK â†’ Vivienda | gasto asociado a una vivienda |
-| `pagador_id`     | FK â†’ Usuario  | usuario que adelanta el pago |
+| `vivienda_id`    | FK -> Vivienda | gasto asociado a una vivienda |
+| `pagador_id`     | FK -> Usuario  | usuario que adelanta el pago |
 | `concepto`       | String        | descripcion corta del gasto |
 | `importe`        | Float         | importe total |
 | `factura_url`    | String?       | URL Cloudinary de la factura original |
@@ -299,8 +299,8 @@ Roomies/
 | `concepto`    | String        | nombre de la mensualidad |
 | `importe`     | Float         | importe total a repartir |
 | `dia_del_mes` | Int           | entero entre `1` y `31` |
-| `vivienda_id` | FK â†’ Vivienda | vivienda donde se genera |
-| `pagador_id`  | FK â†’ Usuario  | usuario que queda como pagador del gasto generado |
+| `vivienda_id` | FK -> Vivienda | vivienda donde se genera |
+| `pagador_id`  | FK -> Usuario  | usuario que queda como pagador del gasto generado |
 | `activo`      | Boolean       | `@default(true)` |
 
 ### `Deuda`
@@ -308,9 +308,9 @@ Roomies/
 | Campo              | Tipo                    | Notas |
 | ------------------ | ----------------------- | ----- |
 | `id`               | Int PK                  | autoincrement |
-| `gasto_id`         | FK â†’ Gasto             | deuda derivada de un gasto |
-| `deudor_id`        | FK â†’ Usuario           | usuario que debe pagar |
-| `acreedor_id`      | FK â†’ Usuario           | usuario que debe cobrar |
+| `gasto_id`         | FK -> Gasto             | deuda derivada de un gasto |
+| `deudor_id`        | FK -> Usuario           | usuario que debe pagar |
+| `acreedor_id`      | FK -> Usuario           | usuario que debe cobrar |
 | `importe`          | Float                   | importe individual |
 | `estado`           | `PENDIENTE` \| `PAGADA` | estado actual |
 | `justificante_url` | String?                 | URL Cloudinary del comprobante si el deudor lo sube |
@@ -370,7 +370,7 @@ Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e in
 | POST   | `/anuncios`     | Sí   | Publica anuncio. Body: `{ titulo, contenido, vivienda_id }`                         |
 | DELETE | `/anuncios/:id` | Sí   | Elimina anuncio. Solo el autor o el casero de la vivienda                           |
 
-### Finanzas â€” `/viviendas/:viviendaId`
+### Finanzas - `/viviendas/:viviendaId`
 
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |
@@ -384,13 +384,13 @@ Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e in
 | POST   | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Crea una mensualidad recurrente con `concepto`, `importe` y `dia_del_mes` |
 | GET    | `/viviendas/:viviendaId/cobros` | Si | Dashboard mensual del casero con resumen pagado o pendiente y detalle de justificantes |
 
-### Deudas â€” `/deudas`
+### Deudas - `/deudas`
 
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |
 | POST   | `/deudas/:deudaId/justificante` | Si | Sube un justificante de pago a Cloudinary; campo multipart `justificante` |
 
-### Usuarios â€” `/usuarios`
+### Usuarios - `/usuarios`
 
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |

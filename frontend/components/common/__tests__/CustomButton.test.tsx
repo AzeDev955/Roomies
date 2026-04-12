@@ -10,4 +10,13 @@ describe('CustomButton', () => {
 
     expect(onPress).toHaveBeenCalledTimes(1);
   });
+
+  it('expone label y estado accesible en carga', () => {
+    render(<CustomButton label="Guardar" onPress={jest.fn()} loading />);
+
+    const button = screen.getByLabelText('Guardar');
+
+    expect(button.props.accessibilityRole).toBe('button');
+    expect(button.props.accessibilityState).toEqual({ disabled: true, busy: true });
+  });
 });

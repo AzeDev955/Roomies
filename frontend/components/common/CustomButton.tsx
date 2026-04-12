@@ -10,6 +10,7 @@ interface CustomButtonProps {
   variant?: ButtonVariant;
   disabled?: boolean;
   loading?: boolean;
+  accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -21,6 +22,7 @@ export function CustomButton({
   variant = 'primary',
   disabled = false,
   loading = false,
+  accessibilityLabel,
   style,
 }: CustomButtonProps) {
   const isDarkText = DARK_TEXT_VARIANTS.includes(variant);
@@ -30,6 +32,9 @@ export function CustomButton({
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         styles[variant],

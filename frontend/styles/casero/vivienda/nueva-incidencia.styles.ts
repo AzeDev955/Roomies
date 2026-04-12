@@ -3,19 +3,19 @@ import { Theme } from '@/constants/theme';
 
 // Soft tint system para prioridad (coherente con módulo de incidencias #171)
 export const PRIORIDAD_BG: Record<string, string> = {
-  VERDE:    '#E5FAF3',
-  AMARILLO: '#FFF5E0',
-  ROJO:     '#FFE8E8',
+  VERDE:    Theme.colors.successLight,
+  AMARILLO: Theme.colors.warningLight,
+  ROJO:     Theme.colors.dangerLight,
 };
 export const PRIORIDAD_TEXT: Record<string, string> = {
-  VERDE:    '#0D7A5E',
-  AMARILLO: '#A05C00',
-  ROJO:     '#C0392B',
+  VERDE:    Theme.colors.successText,
+  AMARILLO: Theme.colors.warningText,
+  ROJO:     Theme.colors.dangerText,
 };
 export const PRIORIDAD_BORDER: Record<string, string> = {
-  VERDE:    '#0D7A5E',
-  AMARILLO: '#A05C00',
-  ROJO:     '#C0392B',
+  VERDE:    Theme.colors.successText,
+  AMARILLO: Theme.colors.warningText,
+  ROJO:     Theme.colors.dangerText,
 };
 export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
   VERDE:    'Sugerencia',
