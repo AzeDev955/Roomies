@@ -674,6 +674,12 @@ Usuarios de prueba creados por `prisma db seed`:
 - `.env.example`, `backend/.env.example` y `frontend/.env.example` documentan variables obligatorias, opcionales, URLs locales y tokens por entorno.
 - `docs/infra/setup-despliegue.md` concentra el flujo Railway desarrollo + Expo Go, Dockerfile, Compose auxiliar y comandos de build/test/lint.
 
+## Update 2026-04-12 - Epica 16 issue 257
+
+- `backend/tests/release-regression.test.ts` cubre una regresion final de rutas principales protegidas, payloads publicos de auth y cron de recordatorios tolerante a fallos de proveedor externo.
+- `frontend/app/__tests__/navigation-smoke.test.tsx` valida las tabs principales de casero, inquilino y detalle de vivienda, incluyendo ocultacion de modulos desactivados.
+- `docs/release/epica-16-regresion-final.md` centraliza checklist manual de release, matriz archivo -> issue -> estado, cobertura automatica por flujo y riesgos residuales.
+
 ## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
 
 - Backend:
