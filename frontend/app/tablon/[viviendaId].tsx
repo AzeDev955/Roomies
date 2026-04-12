@@ -66,12 +66,24 @@ export default function TablonScreen() {
   );
 
   const handlePublicar = async () => {
-    if (!viviendaIdValido || !titulo.trim() || !contenido.trim()) return;
+    const tituloLimpio = titulo.trim();
+    const contenidoLimpio = contenido.trim();
+
+    if (!viviendaIdValido) {
+      Toast.show({ type: 'error', text1: 'No pudimos identificar la vivienda.' });
+      return;
+    }
+
+    if (!tituloLimpio || !contenidoLimpio) {
+      Toast.show({ type: 'error', text1: 'Completa titulo y contenido antes de publicar.' });
+      return;
+    }
+
     setPublicando(true);
     try {
       const { data } = await api.post<Anuncio>('/anuncios', {
-        titulo: titulo.trim(),
-        contenido: contenido.trim(),
+        titulo: tituloLimpio,
+        contenido: contenidoLimpio,
         vivienda_id: viviendaIdNumero,
       });
       setAnuncios((prev) => [data, ...prev]);

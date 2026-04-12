@@ -22,6 +22,17 @@ type HabitacionResumen = {
 
 const PRIORIDADES: Prioridad[] = ['VERDE', 'AMARILLO', 'ROJO'];
 
+const parseHabitaciones = (habitacionesJson?: string): HabitacionResumen[] => {
+  if (!habitacionesJson) return [];
+
+  try {
+    const parsed = JSON.parse(habitacionesJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function NuevaIncidenciaScreen() {
   const router = useRouter();
   const { viviendaId, habitacionesJson, miHabitacionId } = useLocalSearchParams<{
@@ -30,7 +41,9 @@ export default function NuevaIncidenciaScreen() {
     miHabitacionId: string;
   }>();
 
-  const habitaciones: HabitacionResumen[] = JSON.parse(habitacionesJson ?? '[]');
+  const habitaciones = parseHabitaciones(habitacionesJson);
+  const viviendaIdNumero = Number(viviendaId);
+  const viviendaIdValido = Number.isInteger(viviendaIdNumero) && viviendaIdNumero > 0;
   const opcionesHabitacion = habitaciones.filter(
     (h) => h.tipo !== 'DORMITORIO' || h.id === Number(miHabitacionId)
   );
@@ -43,13 +56,26 @@ export default function NuevaIncidenciaScreen() {
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleEnviar = async () => {
+    const tituloLimpio = titulo.trim();
+    const descripcionLimpia = descripcion.trim();
+
+    if (!tituloLimpio || !descripcionLimpia) {
+      Toast.show({ type: 'error', text1: 'Completa titulo y descripcion antes de enviar.' });
+      return;
+    }
+
+    if (!viviendaIdValido) {
+      Toast.show({ type: 'error', text1: 'No pudimos identificar tu vivienda.' });
+      return;
+    }
+
     setLoading(true);
     try {
       await api.post('/incidencias', {
-        titulo,
-        descripcion,
+        titulo: tituloLimpio,
+        descripcion: descripcionLimpia,
         prioridad,
-        vivienda_id: Number(viviendaId),
+        vivienda_id: viviendaIdNumero,
         ...(habitacionId ? { habitacion_id: habitacionId } : {}),
       });
       router.back();
@@ -61,12 +87,21 @@ export default function NuevaIncidenciaScreen() {
     }
   };
 
-  const puedeEnviar = titulo.trim().length > 0 && descripcion.trim().length > 0;
+  const puedeEnviar = titulo.trim().length > 0 && descripcion.trim().length > 0 && viviendaIdValido;
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.titulo}>Nueva incidencia</Text>
+
+        {!viviendaIdValido && (
+          <View style={styles.contextoAviso}>
+            <Text style={styles.contextoAvisoTitulo}>Vivienda no disponible</Text>
+            <Text style={styles.contextoAvisoTexto}>
+              Vuelve a tu panel y abre el formulario desde Reportar problema.
+            </Text>
+          </View>
+        )}
 
         <Text style={styles.label}>Título</Text>
         <TextInput

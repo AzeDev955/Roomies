@@ -72,6 +72,7 @@ export default function LimpiezaInquilinoTab() {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loading, setLoading] = useState(true);
   const [marcando, setMarcando] = useState<number | null>(null);
+  const [moduloDesactivado, setModuloDesactivado] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -79,6 +80,7 @@ export default function LimpiezaInquilinoTab() {
 
       const cargarDatos = async () => {
         setLoading(true);
+        setModuloDesactivado(false);
         try {
           const { data: viviendaData } = await api.get<{ miHabitacionId: number; vivienda: any }>(
             '/inquilino/vivienda'
@@ -93,9 +95,21 @@ export default function LimpiezaInquilinoTab() {
           setMiUsuarioId(uId);
 
           const { data: turnosData } = await api.get<Turno[]>(`/viviendas/${vId}/limpieza/turnos`);
-          if (activo) setTurnos(turnosData);
-        } catch {
-          // Sin vivienda o sin turnos — se muestra estado vacío
+          if (activo) {
+            setTurnos(turnosData);
+            setModuloDesactivado(false);
+          }
+        } catch (err: any) {
+          const mensaje = err.response?.data?.error as string | undefined;
+          if (activo && err.response?.status === 403 && mensaje?.toLowerCase().includes('desactivado')) {
+            setTurnos([]);
+            setModuloDesactivado(true);
+          } else if (activo) {
+            setViviendaId(null);
+            setMiUsuarioId(null);
+            setTurnos([]);
+            setModuloDesactivado(false);
+          }
         } finally {
           if (activo) setLoading(false);
         }
@@ -139,6 +153,23 @@ export default function LimpiezaInquilinoTab() {
 
   if (loading) {
     return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
+  }
+
+  if (moduloDesactivado) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="lock-closed-outline" size={40} color={Theme.colors.primary} />
+          </View>
+          <Text style={styles.emptyTitle}>Limpieza desactivada</Text>
+          <Text style={styles.emptyText}>
+            El casero ha desactivado este modulo para la vivienda. Cuando vuelva a estar activo,
+            veras aqui tus turnos.
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   if (!viviendaId) {
@@ -228,7 +259,6 @@ export default function LimpiezaInquilinoTab() {
             <Text style={styles.seccionTitulo}>Turnos de la casa</Text>
             {turnosResto.map((t) => {
               const esPendiente = t.estado === 'PENDIENTE';
-              const nombreCompleto = `${t.usuario.nombre}${t.usuario.apellidos ? ` ${t.usuario.apellidos}` : ''}`;
               return (
                 <View key={t.id} style={styles.companeroRow}>
                   <AvatarInitials nombre={t.usuario.nombre} apellidos={t.usuario.apellidos} />

@@ -82,6 +82,7 @@ export default function InquilinoInventarioScreen() {
   const [itemSeleccionado, setItemSeleccionado] = useState<ItemInventario | null>(null);
   const [fotoSeleccionadaIndex, setFotoSeleccionadaIndex] = useState(0);
   const [guardandoConformidad, setGuardandoConformidad] = useState(false);
+  const [moduloDesactivado, setModuloDesactivado] = useState(false);
 
   const grupos = useMemo(() => construirGruposInventario(items), [items]);
   const itemsValidados = useMemo(
@@ -110,15 +111,24 @@ export default function InquilinoInventarioScreen() {
         `/viviendas/${viviendaData.vivienda.id}/inventario`,
       );
       setItems(inventarioData);
+      setModuloDesactivado(false);
     } catch (error: any) {
       const mensaje = error.response?.data?.error;
 
       if (error.response?.status === 404) {
         setDatosVivienda(null);
         setItems([]);
+        setModuloDesactivado(false);
         return;
       }
 
+      if (error.response?.status === 403 && mensaje?.toLowerCase().includes('desactivado')) {
+        setItems([]);
+        setModuloDesactivado(true);
+        return;
+      }
+
+      setModuloDesactivado(false);
       Toast.show({
         type: 'error',
         text1: mensaje ?? 'No se pudo cargar el inventario de la vivienda.',
@@ -186,6 +196,23 @@ export default function InquilinoInventarioScreen() {
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (moduloDesactivado) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="lock-closed-outline" size={44} color={Theme.colors.primary} />
+          </View>
+          <Text style={styles.emptyTitle}>Inventario desactivado</Text>
+          <Text style={styles.emptySubtitle}>
+            El casero ha desactivado este modulo para la vivienda. Cuando vuelva a estar activo,
+            podras revisar los elementos desde aqui.
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   if (!datosVivienda) {
