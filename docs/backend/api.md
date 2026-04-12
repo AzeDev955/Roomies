@@ -2,7 +2,23 @@
 
 Base URL: `http://localhost:3000/api`
 
+En Docker Compose, la API queda publicada en `http://localhost:3001/api`.
+
 ---
+
+## Salud (`/`)
+
+### GET `/ping`
+
+Comprueba que el servidor Express esta vivo.
+
+**Auth requerida:** No
+
+**Respuesta `200`:**
+
+```text
+pong
+```
 
 ## Autenticación (`/auth`)
 

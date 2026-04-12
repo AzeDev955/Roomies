@@ -5,6 +5,7 @@
 - Node.js 20+
 - Expo Go o una build nativa para probar la app
 - Cuenta en `expo.dev` si vas a generar builds con EAS
+- Backend desplegado en Railway desarrollo para testeo funcional diario
 
 ## Variables de entorno
 
@@ -12,9 +13,9 @@ Copia `frontend/.env.example` a `frontend/.env`.
 
 | Entorno | URL |
 |---|---|
-| Desarrollo | `https://roomies-dev.up.railway.app/api` |
+| Testeo diario | `https://roomies-dev.up.railway.app/api` |
 | Produccion | `https://roomies-production-c884.up.railway.app/api` |
-| Local | `http://<TU_IP>:3001/api` |
+| Local auxiliar | `http://localhost:3001/api` o `http://<TU_IP>:3001/api` |
 
 ```env
 EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
@@ -27,25 +28,37 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<ios_client_id>
 
 > Las variables `EXPO_PUBLIC_*` se hornean en el bundle. Si cambian, reinicia Metro con `npx expo start --clear`.
 
-## Instalacion y arranque
+Variables obligatorias para flujos completos:
 
-### Desarrollo local
+| Variable | Obligatoria | Uso |
+|---|---|---|
+| `EXPO_PUBLIC_API_URL` | Si | Base URL de la API con sufijo `/api`. |
+| `EXPO_PUBLIC_MAPBOX_TOKEN` | Si para crear viviendas con autocompletado | Geocoding de Mapbox. |
+| `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | Si para Google OAuth | Client ID web compartido con backend. |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Recomendado | Client ID Android para builds nativas. |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Opcional | Client ID iOS si se genera build iOS. |
+
+## Instalacion y testeo con Expo Go
+
+El flujo habitual es levantar solo Expo y consumir Railway desarrollo:
 
 ```bash
 cd frontend
 npm install
-npx expo start
+npx expo start --clear
 ```
 
-### Con Docker Compose
+Abre el QR desde Expo Go. No hace falta levantar backend ni base de datos local para pruebas funcionales habituales.
 
-Desde la raiz del repo:
+### Docker Compose auxiliar
+
+Docker Compose no es el flujo habitual de testeo. Si se necesita revisar integracion local de contenedores, desde la raiz del repo:
 
 ```bash
 docker-compose up --build
 ```
 
-Metro queda accesible para Expo Go en el puerto configurado por el contenedor.
+Metro queda accesible para Expo Go en `http://localhost:8080`. El compose lee `EXPO_PUBLIC_API_URL` desde el `.env` raiz; para un movil fisico debe apuntar al host LAN, por ejemplo `http://192.168.1.50:3001/api`, no a `localhost`.
 
 ## Tests y calidad
 
@@ -53,6 +66,7 @@ Frontend usa Jest Expo 54 + React Native Testing Library.
 
 ```bash
 cd frontend
+npm install
 npm test
 npm run test:watch
 npm run test:coverage

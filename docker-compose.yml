@@ -19,10 +19,18 @@ services:
     build: ./backend
     ports:
       - "3001:3000"
+    command: sh -c "npx prisma generate && if [ \"${RESET_DB:-false}\" = \"true\" ]; then until npx prisma db push --force-reset; do echo 'DB not ready, retrying...'; sleep 3; done && npx prisma db seed; else until npx prisma db push --accept-data-loss; do echo 'DB not ready, retrying...'; sleep 3; done; fi && npm run dev"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:3001}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      RESET_DB: ${RESET_DB:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -36,9 +44,12 @@ services:
       - "8080:8080"
     command: npx expo start --host lan --port 8080 --clear
     environment:
-      EXPO_PUBLIC_API_URL: https://roomies-production-c884.up.railway.app/api
+      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-https://roomies-dev.up.railway.app/api}
       REACT_NATIVE_PACKAGER_HOSTNAME: ${HOST_IP}
       EXPO_PUBLIC_MAPBOX_TOKEN: ${EXPO_PUBLIC_MAPBOX_TOKEN}
+      EXPO_PUBLIC_GOOGLE_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_CLIENT_ID:-}
+      EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID:-}
+      EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID:-}
       EXPO_TOKEN: ${EXPO_TOKEN}
     depends_on:
       - backend
