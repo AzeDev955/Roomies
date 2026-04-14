@@ -12,7 +12,7 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { File, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useEffect } from 'react';
@@ -67,6 +67,13 @@ const ETIQUETA_ESFUERZO: Record<number, string> = { 3: 'Ligera', 6: 'Normal', 10
 
 const etiquetaEsfuerzo = (peso: number) =>
   ETIQUETA_ESFUERZO[peso] ? `Esfuerzo: ${ETIQUETA_ESFUERZO[peso]}` : `Peso: ${peso}`;
+
+const formatearFechaParam = (fecha: Date) => {
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, '0');
+  const day = String(fecha.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const QUICK_CHIPS = ['Cocina', 'Baño', 'Salón', 'Pasillo'];
 
@@ -211,7 +218,7 @@ export default function LimpiezaCaseroTab() {
     setLoadingTurnos(true);
     try {
       const base = fecha ?? fechaObjetivo;
-      const fechaParam = base.toISOString().split('T')[0];
+      const fechaParam = formatearFechaParam(base);
       const { data } = await api.get<Turno[]>(`/viviendas/${id}/limpieza/turnos?fecha=${fechaParam}`);
       setTurnos(data);
     } catch {
@@ -238,14 +245,32 @@ export default function LimpiezaCaseroTab() {
       return;
     }
 
-    const archivo = new File(Paths.cache, nombreArchivo);
-    archivo.create({ overwrite: true });
-    archivo.write(contenido);
+    if (Platform.OS === 'android') {
+      const permisos = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      if (!permisos.granted) {
+        throw new Error('Selecciona una carpeta para guardar el archivo.');
+      }
+
+      const nombreSinExtension = nombreArchivo.replace(/\.csv$/i, '');
+      const uri = await FileSystem.StorageAccessFramework.createFileAsync(
+        permisos.directoryUri,
+        nombreSinExtension,
+        'text/csv',
+      );
+      await FileSystem.writeAsStringAsync(uri, contenido, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      return;
+    }
+
+    const uri = `${FileSystem.cacheDirectory ?? ''}${nombreArchivo}`;
+    await FileSystem.writeAsStringAsync(uri, contenido, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
 
     await Share.share({
       title: nombreArchivo,
-      url: Platform.OS === 'android' ? archivo.contentUri : archivo.uri,
-      message: Platform.OS === 'android' ? archivo.contentUri : undefined,
+      url: uri,
     });
   };
 
@@ -260,7 +285,7 @@ export default function LimpiezaCaseroTab() {
       }
     }
 
-    return data?.error ?? 'No se pudieron exportar las limpiezas.';
+    return data?.error ?? error.message ?? 'No se pudieron exportar las limpiezas.';
   };
 
   const exportarTurnos = async () => {
@@ -281,7 +306,7 @@ export default function LimpiezaCaseroTab() {
 
     setExportando(true);
     try {
-      const fechaParam = fechaObjetivo.toISOString().split('T')[0];
+      const fechaParam = formatearFechaParam(fechaObjetivo);
       const { data, headers } = await api.get<string>(`/viviendas/${id}/limpieza/turnos/export`, {
         params: {
           fecha: fechaParam,
@@ -296,7 +321,7 @@ export default function LimpiezaCaseroTab() {
       Toast.show({
         type: 'success',
         text1: 'Exportacion lista',
-        text2: 'El archivo CSV se puede abrir con Excel.',
+        text2: Platform.OS === 'android' ? 'Archivo CSV guardado.' : 'El archivo CSV se puede abrir con Excel.',
       });
     } catch (err: any) {
       Toast.show({

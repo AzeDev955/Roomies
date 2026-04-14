@@ -17,3 +17,8 @@ Permitir exportar los turnos de limpieza visibles para el usuario en un archivo 
 
 - El formato elegido es CSV porque Excel lo abre correctamente y evita introducir una dependencia pesada de XLSX.
 - El modelo actual de limpieza no guarda observaciones ni fecha de validacion; esas columnas quedan preparadas en el CSV para mantener el contrato de exportacion estable.
+
+## Fix posterior
+
+- El frontend usa fechas locales `YYYY-MM-DD` al cargar y exportar turnos para evitar saltos de semana por conversion UTC.
+- En Android, el CSV se guarda mediante Storage Access Framework para que el usuario elija carpeta y el archivo quede accesible.
