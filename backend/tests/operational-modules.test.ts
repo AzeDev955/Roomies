@@ -289,7 +289,7 @@ describe('exportacion de limpieza', () => {
     assert.equal(response.statusCode, 200);
     assert.match(response.headers['content-type'], /text\/csv/);
     assert.match(response.headers['content-disposition'], /limpiezas-piso-centro-/);
-    assert.match(response.body as string, /"Vivienda";"Habitacion o zona";"Fecha inicio"/);
+    assert.match(response.body as string, /"Vivienda";"Habitación o zona";"Fecha inicio"/);
     assert.match(response.body as string, /"Piso Centro";"Habitacion A - Cocina"/);
     assert.equal((filtros as { where: { estado: string } }).where.estado, 'HECHO');
   });
