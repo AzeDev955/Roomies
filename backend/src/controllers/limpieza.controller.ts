@@ -6,15 +6,9 @@ type EstadoTurnoExport = 'PENDIENTE' | 'HECHO' | 'NO_HECHO';
 
 const ESTADOS_EXPORTABLES = new Set<EstadoTurnoExport>(['PENDIENTE', 'HECHO', 'NO_HECHO']);
 const CABECERAS_EXPORTACION = [
-  'Vivienda',
-  'Habitación o zona',
-  'Fecha inicio',
-  'Fecha fin',
-  'Estado',
-  'Responsable asignado',
-  'Completado por',
-  'Observaciones',
-  'Fecha de validación',
+  'Zona a limpiar',
+  'Inquilino',
+  'Fecha',
 ];
 
 const normalizarFechaDia = (valor: unknown, finalDia = false) => {
@@ -71,28 +65,18 @@ const limpiarNombreArchivo = (valor: string) =>
 
 const generarCsvLimpiezas = (
   filas: Array<{
-    vivienda: string;
-    zonaHabitacion: string;
-    fechaInicio: Date;
-    fechaFin: Date;
-    estado: string;
-    responsable: string;
-    completadoPor: string;
+    zona: string;
+    inquilino: string;
+    fecha: Date;
   }>,
 ) => {
   const lineas = [
     CABECERAS_EXPORTACION.map(escaparCsv).join(';'),
     ...filas.map((fila) =>
       [
-        fila.vivienda,
-        fila.zonaHabitacion,
-        formatearFechaCsv(fila.fechaInicio),
-        formatearFechaCsv(fila.fechaFin),
-        fila.estado,
-        fila.responsable,
-        fila.completadoPor,
-        '',
-        '',
+        fila.zona,
+        fila.inquilino,
+        formatearFechaCsv(fila.fecha),
       ]
         .map(escaparCsv)
         .join(';'),
@@ -404,7 +388,6 @@ export const exportarTurnos: express.RequestHandler = async (req, res) => {
         select: {
           nombre: true,
           apellidos: true,
-          habitacion: { select: { nombre: true, vivienda_id: true } },
         },
       },
     },
@@ -416,26 +399,25 @@ export const exportarTurnos: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const filas = turnos.map((turno) => {
-    const responsable = nombreCompleto(turno.usuario);
-    const habitacion =
-      turno.usuario.habitacion?.vivienda_id === viviendaId ? turno.usuario.habitacion.nombre : null;
-
-    return {
-      vivienda: vivienda.alias_nombre,
-      zonaHabitacion: habitacion ? `${habitacion} - ${turno.zona.nombre}` : turno.zona.nombre,
-      fechaInicio: turno.fecha_inicio,
-      fechaFin: turno.fecha_fin,
-      estado: turno.estado,
-      responsable,
-      completadoPor: turno.estado === 'HECHO' ? responsable : '',
-    };
-  });
+  const filas = turnos.map((turno) => ({
+    zona: turno.zona.nombre,
+    inquilino: nombreCompleto(turno.usuario),
+    fecha: turno.fecha_inicio,
+  }));
 
   const csv = generarCsvLimpiezas(filas);
   const fechaExportacion = new Date().toISOString().slice(0, 10);
   const viviendaSlug = limpiarNombreArchivo(vivienda.alias_nombre) || `vivienda-${vivienda.id}`;
   const nombreArchivo = `limpiezas-${viviendaSlug}-${fechaExportacion}.csv`;
+
+  if (req.query['formato'] === 'base64') {
+    res.status(200).json({
+      nombreArchivo,
+      mimeType: 'text/csv; charset=utf-8',
+      contenidoBase64: Buffer.from(csv, 'utf8').toString('base64'),
+    });
+    return;
+  }
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);

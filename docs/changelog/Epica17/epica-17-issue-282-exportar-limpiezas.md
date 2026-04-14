@@ -23,4 +23,5 @@ Permitir exportar los turnos de limpieza visibles para el usuario en un archivo 
 - El frontend usa fechas locales `YYYY-MM-DD` al cargar y exportar turnos para evitar saltos de semana por conversión UTC.
 - En Android, el CSV se guarda mediante Storage Access Framework para que el usuario elija carpeta y el archivo quede accesible.
 - La acción de exportar ya no se limita a la semana visible: exporta el calendario completo de la vivienda, aplicando solo el filtro de estado si el usuario lo selecciona.
-- Las cabeceras del CSV usan español con acentos, incluyendo `Habitación o zona` y `Fecha de validación`.
+- La vista exportada queda reducida a `Zona a limpiar`, `Inquilino` y `Fecha`.
+- El frontend descarga el archivo en base64 para escribir bytes UTF-8 exactos y evitar errores como `BaÃ±o`.

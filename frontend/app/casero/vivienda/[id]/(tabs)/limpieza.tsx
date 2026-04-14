@@ -128,6 +128,12 @@ type Turno = {
   usuario: { id: number; nombre: string; apellidos: string | null };
 };
 
+type ExportLimpiezasResponse = {
+  nombreArchivo: string;
+  mimeType: string;
+  contenidoBase64: string;
+};
+
 type EstadoFiltro = 'TODOS' | Turno['estado'];
 
 const FILTROS_ESTADO: { label: string; value: EstadoFiltro }[] = [
@@ -228,14 +234,10 @@ export default function LimpiezaCaseroTab() {
     }
   };
 
-  const obtenerNombreArchivoExport = (contentDisposition?: string) => {
-    const match = contentDisposition?.match(/filename="?([^";]+)"?/i);
-    return match?.[1] ?? `limpiezas-${new Date().toISOString().slice(0, 10)}.csv`;
-  };
-
-  const guardarArchivoCsv = async (contenido: string, nombreArchivo: string) => {
+  const guardarArchivoCsv = async (contenidoBase64: string, nombreArchivo: string, mimeType: string) => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
+      const bytes = Uint8Array.from(atob(contenidoBase64), (char) => char.charCodeAt(0));
+      const blob = new Blob([bytes], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const enlace = document.createElement('a');
       enlace.href = url;
@@ -255,17 +257,17 @@ export default function LimpiezaCaseroTab() {
       const uri = await FileSystem.StorageAccessFramework.createFileAsync(
         permisos.directoryUri,
         nombreSinExtension,
-        'text/csv',
+        mimeType,
       );
-      await FileSystem.writeAsStringAsync(uri, contenido, {
-        encoding: FileSystem.EncodingType.UTF8,
+      await FileSystem.writeAsStringAsync(uri, contenidoBase64, {
+        encoding: FileSystem.EncodingType.Base64,
       });
       return;
     }
 
     const uri = `${FileSystem.cacheDirectory ?? ''}${nombreArchivo}`;
-    await FileSystem.writeAsStringAsync(uri, contenido, {
-      encoding: FileSystem.EncodingType.UTF8,
+    await FileSystem.writeAsStringAsync(uri, contenidoBase64, {
+      encoding: FileSystem.EncodingType.Base64,
     });
 
     await Share.share({
@@ -293,16 +295,14 @@ export default function LimpiezaCaseroTab() {
 
     setExportando(true);
     try {
-      const { data, headers } = await api.get<string>(`/viviendas/${id}/limpieza/turnos/export`, {
+      const { data } = await api.get<ExportLimpiezasResponse>(`/viviendas/${id}/limpieza/turnos/export`, {
         params: {
+          formato: 'base64',
           ...(filtroEstado !== 'TODOS' ? { estado: filtroEstado } : {}),
         },
-        responseType: 'text',
-        transformResponse: [(response) => response],
       });
-      const nombreArchivo = obtenerNombreArchivoExport(headers['content-disposition'] as string | undefined);
 
-      await guardarArchivoCsv(data, nombreArchivo);
+      await guardarArchivoCsv(data.contenidoBase64, data.nombreArchivo, data.mimeType);
       Toast.show({
         type: 'success',
         text1: 'Calendario exportado',
