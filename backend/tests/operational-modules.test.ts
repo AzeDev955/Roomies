@@ -271,7 +271,6 @@ describe('exportacion de limpieza', () => {
           usuario: {
             nombre: 'Ada',
             apellidos: 'Lovelace',
-            habitacion: { nombre: 'Habitacion A', vivienda_id: 10 },
           },
         },
       ];
@@ -289,9 +288,38 @@ describe('exportacion de limpieza', () => {
     assert.equal(response.statusCode, 200);
     assert.match(response.headers['content-type'], /text\/csv/);
     assert.match(response.headers['content-disposition'], /limpiezas-piso-centro-/);
-    assert.match(response.body as string, /"Vivienda";"Habitación o zona";"Fecha inicio"/);
-    assert.match(response.body as string, /"Piso Centro";"Habitacion A - Cocina"/);
+    assert.match(response.body as string, /"Zona a limpiar";"Inquilino";"Fecha"/);
+    assert.match(response.body as string, /"Cocina";"Ada Lovelace";"13\/04\/2026"/);
     assert.equal((filtros as { where: { estado: string } }).where.estado, 'HECHO');
+  });
+
+  test('devuelve base64 para preservar acentos en movil', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 10, alias_nombre: 'Piso Centro' });
+    prisma.turnoLimpieza.findMany = async () => [
+      {
+        id: 1,
+        fecha_inicio: new Date('2026-04-13T00:00:00.000Z'),
+        fecha_fin: new Date('2026-04-19T23:59:59.999Z'),
+        estado: 'PENDIENTE',
+        zona: { nombre: 'Baño 1' },
+        usuario: { nombre: 'Ada', apellidos: 'Lovelace' },
+      },
+    ];
+
+    const response = await invoke(
+      exportarTurnos,
+      req({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { id: '10' },
+        query: { formato: 'base64' },
+      }),
+    );
+
+    assert.equal(response.statusCode, 200);
+    const body = response.body as { contenidoBase64: string; nombreArchivo: string };
+    const csv = Buffer.from(body.contenidoBase64, 'base64').toString('utf8');
+    assert.match(body.nombreArchivo, /limpiezas-piso-centro-/);
+    assert.match(csv, /"Baño 1";"Ada Lovelace";"13\/04\/2026"/);
   });
 
   test('responde claro si no hay turnos para los filtros actuales', async () => {
