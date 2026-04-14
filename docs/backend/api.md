@@ -1856,8 +1856,8 @@ Exporta los turnos de limpieza visibles para el usuario autenticado en CSV compa
 | Param | Tipo | Descripcion |
 |---|---|---|
 | `fecha` | `YYYY-MM-DD` | Exporta la semana de esa fecha (lunes a domingo). |
-| `fechaDesde` | `YYYY-MM-DD` | Inicio de rango historico. |
-| `fechaHasta` | `YYYY-MM-DD` | Fin de rango historico. |
+| `fechaDesde` | `YYYY-MM-DD` | Inicio de rango histórico. |
+| `fechaHasta` | `YYYY-MM-DD` | Fin de rango histórico. |
 | `estado` | `PENDIENTE` \| `HECHO` \| `NO_HECHO` | Filtra por estado. |
 
 **Respuestas:**
@@ -1865,13 +1865,13 @@ Exporta los turnos de limpieza visibles para el usuario autenticado en CSV compa
 | Código | Descripción |
 |---|---|
 | `200` | Devuelve `text/csv; charset=utf-8` con `Content-Disposition` de descarga. |
-| `400` | Filtros no validos. |
-| `403` | El usuario no pertenece a la vivienda o el modulo esta desactivado. |
+| `400` | Filtros no válidos. |
+| `403` | El usuario no pertenece a la vivienda o el módulo está desactivado. |
 | `404` | No hay limpiezas para exportar con los filtros actuales. |
 
 **Cabeceras del CSV:**
 
-`Vivienda`, `Habitacion o zona`, `Fecha inicio`, `Fecha fin`, `Estado`, `Responsable asignado`, `Completado por`, `Observaciones`, `Fecha de validacion`.
+`Vivienda`, `Habitación o zona`, `Fecha inicio`, `Fecha fin`, `Estado`, `Responsable asignado`, `Completado por`, `Observaciones`, `Fecha de validación`.
 
 ---
 

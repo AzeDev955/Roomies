@@ -291,25 +291,10 @@ export default function LimpiezaCaseroTab() {
   const exportarTurnos = async () => {
     if (!id) return;
 
-    const turnosFiltrados = turnos.filter((turno) =>
-      filtroEstado === 'TODOS' ? true : turno.estado === filtroEstado
-    );
-
-    if (turnosFiltrados.length === 0) {
-      Toast.show({
-        type: 'info',
-        text1: 'No hay limpiezas para exportar',
-        text2: 'Cambia la semana o el filtro de estado.',
-      });
-      return;
-    }
-
     setExportando(true);
     try {
-      const fechaParam = formatearFechaParam(fechaObjetivo);
       const { data, headers } = await api.get<string>(`/viviendas/${id}/limpieza/turnos/export`, {
         params: {
-          fecha: fechaParam,
           ...(filtroEstado !== 'TODOS' ? { estado: filtroEstado } : {}),
         },
         responseType: 'text',
@@ -320,7 +305,7 @@ export default function LimpiezaCaseroTab() {
       await guardarArchivoCsv(data, nombreArchivo);
       Toast.show({
         type: 'success',
-        text1: 'Exportacion lista',
+        text1: 'Calendario exportado',
         text2: Platform.OS === 'android' ? 'Archivo CSV guardado.' : 'El archivo CSV se puede abrir con Excel.',
       });
     } catch (err: any) {
@@ -553,10 +538,9 @@ export default function LimpiezaCaseroTab() {
               style={({ pressed }) => [
                 styles.calendarioBtnExport,
                 (pressed || exportando) && { opacity: 0.7 },
-                turnosFiltrados.length === 0 && styles.calendarioBtnDisabled,
               ]}
               onPress={exportarTurnos}
-              disabled={exportando || turnosFiltrados.length === 0}
+              disabled={exportando}
             >
               {exportando ? (
                 <ActivityIndicator size="small" color={Theme.colors.primary} />
@@ -564,7 +548,7 @@ export default function LimpiezaCaseroTab() {
                 <Ionicons name="download-outline" size={16} color={Theme.colors.primary} />
               )}
               <Text style={styles.calendarioBtnExportTexto}>
-                {exportando ? 'Exportando' : 'Exportar'}
+                {exportando ? 'Exportando' : 'Exportar todo'}
               </Text>
             </Pressable>
             <Pressable

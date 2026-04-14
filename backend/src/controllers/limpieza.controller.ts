@@ -7,14 +7,14 @@ type EstadoTurnoExport = 'PENDIENTE' | 'HECHO' | 'NO_HECHO';
 const ESTADOS_EXPORTABLES = new Set<EstadoTurnoExport>(['PENDIENTE', 'HECHO', 'NO_HECHO']);
 const CABECERAS_EXPORTACION = [
   'Vivienda',
-  'Habitacion o zona',
+  'Habitación o zona',
   'Fecha inicio',
   'Fecha fin',
   'Estado',
   'Responsable asignado',
   'Completado por',
   'Observaciones',
-  'Fecha de validacion',
+  'Fecha de validación',
 ];
 
 const normalizarFechaDia = (valor: unknown, finalDia = false) => {
@@ -359,7 +359,7 @@ export const exportarTurnos: express.RequestHandler = async (req, res) => {
 
   const estado = typeof req.query['estado'] === 'string' ? req.query['estado'].toUpperCase() : undefined;
   if (estado && !ESTADOS_EXPORTABLES.has(estado as EstadoTurnoExport)) {
-    res.status(400).json({ error: 'estado no valido para exportar limpiezas.' });
+    res.status(400).json({ error: 'estado no válido para exportar limpiezas.' });
     return;
   }
 
