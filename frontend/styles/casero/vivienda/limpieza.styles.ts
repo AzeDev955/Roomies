@@ -331,6 +331,29 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.primary,
   },
+  calendarioActions: {
+    alignItems: 'flex-end',
+    gap: Theme.spacing.sm,
+  },
+  calendarioBtnExport: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.xs,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: Theme.colors.surface,
+    borderRadius: Theme.radius.md,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary + '33',
+  },
+  calendarioBtnExportTexto: {
+    fontSize: Theme.typography.label,
+    fontWeight: '700',
+    color: Theme.colors.primary,
+  },
+  calendarioBtnDisabled: {
+    opacity: 0.45,
+  },
 
   // — Navegación de semana ──────────────────────────────────────────────────
   semanaNav: {
@@ -367,6 +390,33 @@ export const styles = StyleSheet.create({
   },
 
   // — Card de usuario (calendario) ──────────────────────────────────────────
+  filtroEstadoRow: {
+    flexDirection: 'row',
+    gap: Theme.spacing.sm,
+    marginBottom: Theme.spacing.lg,
+  },
+  filtroEstadoChip: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: Theme.spacing.sm,
+    borderRadius: Theme.radius.full,
+    backgroundColor: Theme.colors.surface,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  filtroEstadoChipActivo: {
+    backgroundColor: Theme.colors.primary + '18',
+    borderColor: Theme.colors.primary,
+  },
+  filtroEstadoTexto: {
+    fontSize: Theme.typography.label,
+    fontWeight: '700',
+    color: Theme.colors.textSecondary,
+  },
+  filtroEstadoTextoActivo: {
+    color: Theme.colors.primary,
+  },
   userCard: {
     backgroundColor: Theme.colors.surface,
     borderRadius: 24,

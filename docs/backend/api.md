@@ -1843,6 +1843,38 @@ Devuelve los turnos de la semana indicada (o de la semana actual si no se especi
 
 ---
 
+### GET `/viviendas/:id/limpieza/turnos/export`
+
+Exporta los turnos de limpieza visibles para el usuario autenticado en CSV compatible con Excel.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Acceso:** Casero de la vivienda **o** inquilino con habitación en ella.
+
+**Query params opcionales:**
+
+| Param | Tipo | Descripcion |
+|---|---|---|
+| `fecha` | `YYYY-MM-DD` | Exporta la semana de esa fecha (lunes a domingo). |
+| `fechaDesde` | `YYYY-MM-DD` | Inicio de rango historico. |
+| `fechaHasta` | `YYYY-MM-DD` | Fin de rango historico. |
+| `estado` | `PENDIENTE` \| `HECHO` \| `NO_HECHO` | Filtra por estado. |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Devuelve `text/csv; charset=utf-8` con `Content-Disposition` de descarga. |
+| `400` | Filtros no validos. |
+| `403` | El usuario no pertenece a la vivienda o el modulo esta desactivado. |
+| `404` | No hay limpiezas para exportar con los filtros actuales. |
+
+**Cabeceras del CSV:**
+
+`Vivienda`, `Habitacion o zona`, `Fecha inicio`, `Fecha fin`, `Estado`, `Responsable asignado`, `Completado por`, `Observaciones`, `Fecha de validacion`.
+
+---
+
 ### PATCH `/viviendas/:id/limpieza/turnos/:turnoId/hecho`
 
 Marca un turno como `HECHO`. No tiene body.

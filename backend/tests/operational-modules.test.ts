@@ -53,6 +53,11 @@ const prisma = vi.hoisted(() => ({
       throw new Error('Unexpected prisma call: incidencia.update');
     },
   },
+  turnoLimpieza: {
+    findMany: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: turnoLimpieza.findMany');
+    },
+  },
 }));
 
 const enviarNotificacionPush = vi.hoisted(() => vi.fn());
@@ -71,6 +76,7 @@ const {
 } = await import('../src/controllers/inventario.controller');
 const { crearAnuncio } = await import('../src/controllers/anuncio.controller');
 const { actualizarEstadoIncidencia } = await import('../src/controllers/incidencia.controller');
+const { exportarTurnos } = await import('../src/controllers/limpieza.controller');
 
 function resetPrisma() {
   enviarNotificacionPush.mockReset();
@@ -90,6 +96,7 @@ function resetPrisma() {
   });
   prisma.incidencia.findUnique = async () => null;
   prisma.incidencia.update = async (args: unknown) => ({ id: 1, ...(args as { data: unknown }).data });
+  prisma.turnoLimpieza.findMany = async () => [];
 }
 
 beforeEach(() => {
@@ -123,6 +130,11 @@ function res() {
     statusCode: 200,
     body: undefined as unknown,
     sent: false,
+    headers: {} as Record<string, string>,
+    setHeader(name: string, value: string) {
+      this.headers[name.toLowerCase()] = value;
+      return this;
+    },
     status(code: number) {
       this.statusCode = code;
       return this;
@@ -223,6 +235,76 @@ describe('inventario', () => {
 
     assert.equal(response.statusCode, 500);
     assert.match((response.body as { error: string }).error, /cloudinary/i);
+  });
+});
+
+describe('exportacion de limpieza', () => {
+  test('no exporta turnos de viviendas ajenas', async () => {
+    let findManyCalled = false;
+    prisma.vivienda.findFirst = async () => null;
+    prisma.turnoLimpieza.findMany = async () => {
+      findManyCalled = true;
+      return [];
+    };
+
+    const response = await invoke(
+      exportarTurnos,
+      req({ usuario: { id: 99, rol: 'CASERO' }, params: { id: '10' } }),
+    );
+
+    assert.equal(response.statusCode, 403);
+    assert.equal(findManyCalled, false);
+  });
+
+  test('genera csv con cabeceras, filtros y nombre descargable', async () => {
+    let filtros: unknown;
+    prisma.vivienda.findFirst = async () => ({ id: 10, alias_nombre: 'Piso Centro' });
+    prisma.turnoLimpieza.findMany = async (args: unknown) => {
+      filtros = args;
+      return [
+        {
+          id: 1,
+          fecha_inicio: new Date('2026-04-13T00:00:00.000Z'),
+          fecha_fin: new Date('2026-04-19T23:59:59.999Z'),
+          estado: 'HECHO',
+          zona: { nombre: 'Cocina' },
+          usuario: {
+            nombre: 'Ada',
+            apellidos: 'Lovelace',
+            habitacion: { nombre: 'Habitacion A', vivienda_id: 10 },
+          },
+        },
+      ];
+    };
+
+    const response = await invoke(
+      exportarTurnos,
+      req({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { id: '10' },
+        query: { fecha: '2026-04-14', estado: 'hecho' },
+      }),
+    );
+
+    assert.equal(response.statusCode, 200);
+    assert.match(response.headers['content-type'], /text\/csv/);
+    assert.match(response.headers['content-disposition'], /limpiezas-piso-centro-/);
+    assert.match(response.body as string, /"Vivienda";"Habitacion o zona";"Fecha inicio"/);
+    assert.match(response.body as string, /"Piso Centro";"Habitacion A - Cocina"/);
+    assert.equal((filtros as { where: { estado: string } }).where.estado, 'HECHO');
+  });
+
+  test('responde claro si no hay turnos para los filtros actuales', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 10, alias_nombre: 'Piso Centro' });
+    prisma.turnoLimpieza.findMany = async () => [];
+
+    const response = await invoke(
+      exportarTurnos,
+      req({ usuario: { id: 99, rol: 'CASERO' }, params: { id: '10' } }),
+    );
+
+    assert.equal(response.statusCode, 404);
+    assert.match((response.body as { error: string }).error, /no hay limpiezas/i);
   });
 });
 

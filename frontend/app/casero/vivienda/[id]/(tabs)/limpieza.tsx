@@ -9,8 +9,10 @@ import {
   Platform,
   Alert,
   ScrollView,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { File, Paths } from 'expo-file-system';
 import Toast from 'react-native-toast-message';
 import { Theme } from '@/constants/theme';
 import { useState, useEffect } from 'react';
@@ -119,6 +121,14 @@ type Turno = {
   usuario: { id: number; nombre: string; apellidos: string | null };
 };
 
+type EstadoFiltro = 'TODOS' | Turno['estado'];
+
+const FILTROS_ESTADO: { label: string; value: EstadoFiltro }[] = [
+  { label: 'Todos', value: 'TODOS' },
+  { label: 'Pendientes', value: 'PENDIENTE' },
+  { label: 'Hechos', value: 'HECHO' },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LimpiezaCaseroTab() {
@@ -148,6 +158,8 @@ export default function LimpiezaCaseroTab() {
   // — Calendario state —
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loadingTurnos, setLoadingTurnos] = useState(false);
+  const [exportando, setExportando] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState<EstadoFiltro>('TODOS');
   const [fechaObjetivo, setFechaObjetivo] = useState<Date>(() => {
     const hoy = new Date();
     const offset = (hoy.getDay() + 6) % 7;
@@ -206,6 +218,93 @@ export default function LimpiezaCaseroTab() {
       Toast.show({ type: 'error', text1: 'No se pudieron cargar los turnos.' });
     } finally {
       setLoadingTurnos(false);
+    }
+  };
+
+  const obtenerNombreArchivoExport = (contentDisposition?: string) => {
+    const match = contentDisposition?.match(/filename="?([^";]+)"?/i);
+    return match?.[1] ?? `limpiezas-${new Date().toISOString().slice(0, 10)}.csv`;
+  };
+
+  const guardarArchivoCsv = async (contenido: string, nombreArchivo: string) => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+      enlace.href = url;
+      enlace.download = nombreArchivo;
+      enlace.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    const archivo = new File(Paths.cache, nombreArchivo);
+    archivo.create({ overwrite: true });
+    archivo.write(contenido);
+
+    await Share.share({
+      title: nombreArchivo,
+      url: Platform.OS === 'android' ? archivo.contentUri : archivo.uri,
+      message: Platform.OS === 'android' ? archivo.contentUri : undefined,
+    });
+  };
+
+  const obtenerMensajeErrorExport = (error: any) => {
+    const data = error.response?.data;
+    if (typeof data === 'string') {
+      try {
+        const parseado = JSON.parse(data);
+        return parseado.error ?? 'No se pudieron exportar las limpiezas.';
+      } catch {
+        return 'No se pudieron exportar las limpiezas.';
+      }
+    }
+
+    return data?.error ?? 'No se pudieron exportar las limpiezas.';
+  };
+
+  const exportarTurnos = async () => {
+    if (!id) return;
+
+    const turnosFiltrados = turnos.filter((turno) =>
+      filtroEstado === 'TODOS' ? true : turno.estado === filtroEstado
+    );
+
+    if (turnosFiltrados.length === 0) {
+      Toast.show({
+        type: 'info',
+        text1: 'No hay limpiezas para exportar',
+        text2: 'Cambia la semana o el filtro de estado.',
+      });
+      return;
+    }
+
+    setExportando(true);
+    try {
+      const fechaParam = fechaObjetivo.toISOString().split('T')[0];
+      const { data, headers } = await api.get<string>(`/viviendas/${id}/limpieza/turnos/export`, {
+        params: {
+          fecha: fechaParam,
+          ...(filtroEstado !== 'TODOS' ? { estado: filtroEstado } : {}),
+        },
+        responseType: 'text',
+        transformResponse: [(response) => response],
+      });
+      const nombreArchivo = obtenerNombreArchivoExport(headers['content-disposition'] as string | undefined);
+
+      await guardarArchivoCsv(data, nombreArchivo);
+      Toast.show({
+        type: 'success',
+        text1: 'Exportacion lista',
+        text2: 'El archivo CSV se puede abrir con Excel.',
+      });
+    } catch (err: any) {
+      Toast.show({
+        type: 'error',
+        text1: obtenerMensajeErrorExport(err),
+      });
+    } finally {
+      setExportando(false);
     }
   };
 
@@ -405,7 +504,10 @@ export default function LimpiezaCaseroTab() {
       return <ActivityIndicator style={{ flex: 1, marginTop: 40 }} size="large" color={Theme.colors.primary} />;
     }
 
-    const turnosPorUsuario = turnos.reduce<
+    const turnosFiltrados = turnos.filter((turno) =>
+      filtroEstado === 'TODOS' ? true : turno.estado === filtroEstado
+    );
+    const turnosFiltradosPorUsuario = turnosFiltrados.reduce<
       Record<number, { usuario: Turno['usuario']; items: Turno[] }>
     >((acc, t) => {
       if (!acc[t.usuario_id]) acc[t.usuario_id] = { usuario: t.usuario, items: [] };
@@ -421,12 +523,32 @@ export default function LimpiezaCaseroTab() {
             <Text style={styles.calendarioGestion}>Gestión</Text>
             <Text style={styles.calendarioTitulo}>Limpieza</Text>
           </View>
-          <Pressable
-            style={({ pressed }) => [styles.calendarioBtnConfig, pressed && { opacity: 0.7 }]}
-            onPress={() => setVistaActual('CONFIG')}
-          >
-            <Text style={styles.calendarioBtnConfigTexto}>Configurar Zonas</Text>
-          </Pressable>
+          <View style={styles.calendarioActions}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.calendarioBtnExport,
+                (pressed || exportando) && { opacity: 0.7 },
+                turnosFiltrados.length === 0 && styles.calendarioBtnDisabled,
+              ]}
+              onPress={exportarTurnos}
+              disabled={exportando || turnosFiltrados.length === 0}
+            >
+              {exportando ? (
+                <ActivityIndicator size="small" color={Theme.colors.primary} />
+              ) : (
+                <Ionicons name="download-outline" size={16} color={Theme.colors.primary} />
+              )}
+              <Text style={styles.calendarioBtnExportTexto}>
+                {exportando ? 'Exportando' : 'Exportar'}
+              </Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.calendarioBtnConfig, pressed && { opacity: 0.7 }]}
+              onPress={() => setVistaActual('CONFIG')}
+            >
+              <Text style={styles.calendarioBtnConfigTexto}>Configurar</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* ── Navegación de semana ── */}
@@ -439,6 +561,29 @@ export default function LimpiezaCaseroTab() {
             <Text style={styles.semanaNavTexto}>›</Text>
           </Pressable>
         </View>
+
+        {turnos.length > 0 && (
+          <View style={styles.filtroEstadoRow}>
+            {FILTROS_ESTADO.map((filtro) => {
+              const activo = filtroEstado === filtro.value;
+              return (
+                <Pressable
+                  key={filtro.value}
+                  style={({ pressed }) => [
+                    styles.filtroEstadoChip,
+                    activo && styles.filtroEstadoChipActivo,
+                    pressed && { opacity: 0.75 },
+                  ]}
+                  onPress={() => setFiltroEstado(filtro.value)}
+                >
+                  <Text style={[styles.filtroEstadoTexto, activo && styles.filtroEstadoTextoActivo]}>
+                    {filtro.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         {turnos.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -455,8 +600,16 @@ export default function LimpiezaCaseroTab() {
               style={{ marginTop: Theme.spacing.md, minWidth: 180 }}
             />
           </View>
+        ) : turnosFiltrados.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="filter-outline" size={40} color={Theme.colors.success} />
+            </View>
+            <Text style={styles.emptyTitulo}>Sin resultados</Text>
+            <Text style={styles.emptySubtitulo}>No hay turnos de limpieza con el filtro seleccionado.</Text>
+          </View>
         ) : (
-          Object.values(turnosPorUsuario).map((grupo) => (
+          Object.values(turnosFiltradosPorUsuario).map((grupo) => (
             <View key={grupo.usuario.id} style={styles.userCard}>
               {/* Avatar + nombre */}
               <View style={styles.userCardHeader}>

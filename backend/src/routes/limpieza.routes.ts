@@ -1,7 +1,7 @@
 import express from 'express';
 import { verificarToken } from '../middlewares/auth.middleware';
 import { protegerModuloVivienda } from '../middlewares/module.guard';
-import { crearZona, listarZonas, actualizarZona, eliminarZona, asignarZonaFija, quitarAsignacionFija, generarTurnos, obtenerTurnos, marcarTurnoHecho } from '../controllers/limpieza.controller';
+import { crearZona, listarZonas, actualizarZona, eliminarZona, asignarZonaFija, quitarAsignacionFija, generarTurnos, obtenerTurnos, exportarTurnos, marcarTurnoHecho } from '../controllers/limpieza.controller';
 
 const router = express.Router();
 const limpiezaActiva = protegerModuloVivienda('limpieza');
@@ -14,6 +14,7 @@ router.post('/:id/limpieza/zonas/:zonaId/asignacion', verificarToken, limpiezaAc
 router.delete('/:id/limpieza/zonas/:zonaId/asignacion', verificarToken, limpiezaActiva, quitarAsignacionFija);
 router.post('/:id/limpieza/generar', verificarToken, limpiezaActiva, generarTurnos);
 router.get('/:id/limpieza/turnos', verificarToken, limpiezaActiva, obtenerTurnos);
+router.get('/:id/limpieza/turnos/export', verificarToken, limpiezaActiva, exportarTurnos);
 router.patch('/:id/limpieza/turnos/:turnoId/hecho', verificarToken, limpiezaActiva, marcarTurnoHecho);
 
 export default router;

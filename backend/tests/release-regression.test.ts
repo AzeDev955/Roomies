@@ -45,6 +45,7 @@ const rutasProtegidas: Array<{
   { metodo: 'get', ruta: '/api/viviendas/1/limpieza/zonas', flujo: 'limpieza listar zonas' },
   { metodo: 'post', ruta: '/api/viviendas/1/limpieza/zonas', flujo: 'limpieza crear zona' },
   { metodo: 'post', ruta: '/api/viviendas/1/limpieza/generar', flujo: 'limpieza generar turno' },
+  { metodo: 'get', ruta: '/api/viviendas/1/limpieza/turnos/export', flujo: 'limpieza exportar turnos' },
   { metodo: 'patch', ruta: '/api/viviendas/1/limpieza/turnos/1/hecho', flujo: 'limpieza marcar estado' },
   { metodo: 'get', ruta: '/api/viviendas/1/gastos', flujo: 'gastos listar' },
   { metodo: 'post', ruta: '/api/viviendas/1/gastos', flujo: 'gastos crear y repartir' },
