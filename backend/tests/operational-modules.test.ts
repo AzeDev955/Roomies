@@ -317,7 +317,7 @@ describe('exportacion de limpieza', () => {
 
     assert.equal(response.statusCode, 200);
     const body = response.body as { contenidoBase64: string; nombreArchivo: string };
-    const csv = Buffer.from(body.contenidoBase64, 'base64').toString('utf8');
+    const csv = Buffer.from(body.contenidoBase64, 'base64').subarray(2).toString('utf16le');
     assert.match(body.nombreArchivo, /limpiezas-piso-centro-/);
     assert.match(csv, /"Baño 1";"Ada Lovelace";"13\/04\/2026"/);
   });

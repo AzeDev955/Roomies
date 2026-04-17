@@ -1859,7 +1859,7 @@ Exporta los turnos de limpieza visibles para el usuario autenticado en CSV compa
 | `fechaDesde` | `YYYY-MM-DD` | Inicio de rango histórico. |
 | `fechaHasta` | `YYYY-MM-DD` | Fin de rango histórico. |
 | `estado` | `PENDIENTE` \| `HECHO` \| `NO_HECHO` | Filtra por estado. |
-| `formato` | `base64` | Devuelve JSON con el archivo codificado en base64 para preservar acentos en móvil. |
+| `formato` | `base64` | Devuelve JSON con el archivo CSV codificado en base64 y bytes compatibles con Excel para preservar acentos en móvil. |
 
 **Respuestas:**
 
