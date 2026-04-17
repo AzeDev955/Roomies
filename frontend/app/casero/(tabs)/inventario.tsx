@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,14 +19,12 @@ import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import {
-  ESTADO_ITEM_BG,
-  ESTADO_ITEM_BORDER,
-  ESTADO_ITEM_TEXT,
-  styles,
+  createEstadoItemStyles,
+  createStyles,
 } from '@/styles/casero/inventario.styles';
 
 type EstadoItem = 'NUEVO' | 'BUENO' | 'DESGASTADO' | 'ROTO';
@@ -86,6 +84,9 @@ const ETIQUETAS_ESTADO: Record<EstadoItem, string> = {
 
 export default function CaseroInventarioScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const estadoItemStyles = useMemo(() => createEstadoItemStyles(theme), [theme]);
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
   const [hayViviendas, setHayViviendas] = useState(false);
   const [viviendaSeleccionadaId, setViviendaSeleccionadaId] = useState<number | null>(null);
@@ -287,7 +288,7 @@ export default function CaseroInventarioScreen() {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="home-outline" size={44} color={Theme.colors.primary} />
+            <Ionicons name="home-outline" size={44} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>Primero añade una vivienda</Text>
           <Text style={styles.emptySubtitle}>
@@ -351,13 +352,13 @@ export default function CaseroInventarioScreen() {
             </View>
             <View style={styles.heroStats}>
               <View style={[styles.heroStat, styles.heroStatPrimary]}>
-                <Ionicons name="albums-outline" size={14} color={Theme.colors.primary} />
+                <Ionicons name="albums-outline" size={14} color={theme.colors.primary} />
                 <Text style={[styles.heroStatText, styles.heroStatTextPrimary]}>
                   {items.length} ítems
                 </Text>
               </View>
               <View style={[styles.heroStat, styles.heroStatNeutral]}>
-                <Ionicons name="grid-outline" size={14} color={Theme.colors.textMedium} />
+                <Ionicons name="grid-outline" size={14} color={theme.colors.textMedium} />
                 <Text style={[styles.heroStatText, styles.heroStatTextNeutral]}>
                   {viviendaSeleccionada.habitaciones.length} ubicaciones
                 </Text>
@@ -370,12 +371,12 @@ export default function CaseroInventarioScreen() {
 
         {loadingItems ? (
           <View style={styles.loaderBlock}>
-            <ActivityIndicator size="large" color={Theme.colors.primary} />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
         ) : grupos.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-              <Ionicons name="file-tray-outline" size={42} color={Theme.colors.primary} />
+              <Ionicons name="file-tray-outline" size={42} color={theme.colors.primary} />
             </View>
             <Text style={styles.emptyTitle}>Todavía no hay inventario</Text>
             <Text style={styles.emptySubtitle}>
@@ -406,7 +407,7 @@ export default function CaseroInventarioScreen() {
                             <Ionicons
                               name="image-outline"
                               size={28}
-                              color={Theme.colors.primary}
+                              color={theme.colors.primary}
                             />
                           </View>
                         )}
@@ -417,15 +418,15 @@ export default function CaseroInventarioScreen() {
                               style={[
                                 styles.itemMetaPill,
                                 {
-                                  backgroundColor: ESTADO_ITEM_BG[item.estado],
-                                  borderColor: ESTADO_ITEM_BORDER[item.estado],
+                                  backgroundColor: estadoItemStyles[item.estado].background,
+                                  borderColor: estadoItemStyles[item.estado].border,
                                 },
                               ]}
                             >
                               <Text
                                 style={[
                                   styles.itemMetaText,
-                                  { color: ESTADO_ITEM_TEXT[item.estado] },
+                                  { color: estadoItemStyles[item.estado].text },
                                 ]}
                               >
                                 {ETIQUETAS_ESTADO[item.estado]}
@@ -442,7 +443,7 @@ export default function CaseroInventarioScreen() {
                               <Ionicons
                                 name="images-outline"
                                 size={13}
-                                color={Theme.colors.textMedium}
+                                color={theme.colors.textMedium}
                               />
                               <Text style={styles.photoCountText}>
                                 {item.fotos.length} foto{item.fotos.length === 1 ? '' : 's'}
@@ -464,7 +465,7 @@ export default function CaseroInventarioScreen() {
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         onPress={abrirModal}
       >
-        <Ionicons name="add" size={24} color={Theme.colors.surface} />
+        <Ionicons name="add" size={24} color={theme.colors.surface} />
         <Text style={styles.fabText}>Añadir ítem</Text>
       </Pressable>
 
@@ -503,7 +504,7 @@ export default function CaseroInventarioScreen() {
                 <TextInput
                   style={styles.textArea}
                   placeholder="Añade notas útiles, desperfectos o detalles del modelo"
-                  placeholderTextColor={Theme.colors.textMuted}
+                  placeholderTextColor={theme.colors.textMuted}
                   value={descripcion}
                   onChangeText={setDescripcion}
                   multiline
@@ -580,7 +581,7 @@ export default function CaseroInventarioScreen() {
                     />
                   ) : (
                     <View style={styles.imagePlaceholder}>
-                      <Ionicons name="camera-outline" size={34} color={Theme.colors.primary} />
+                      <Ionicons name="camera-outline" size={34} color={theme.colors.primary} />
                       <Text style={styles.imagePlaceholderTitle}>Añade una foto</Text>
                       <Text style={styles.imagePlaceholderSubtitle}>
                         Se subirá justo después de crear el ítem para dejar trazabilidad visual.
