@@ -1,12 +1,12 @@
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { styles } from '@/styles/rol.styles';
+import { createStyles } from '@/styles/rol.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
 
@@ -14,6 +14,8 @@ type Rol = 'CASERO' | 'INQUILINO';
 
 export default function SeleccionRolScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +51,7 @@ export default function SeleccionRolScreen() {
         accessibilityState={{ selected: rolSeleccionado === 'CASERO' }}
       >
         <View style={styles.cardIconBox}>
-          <Ionicons name="home-outline" size={28} color={Theme.colors.primary} />
+          <Ionicons name="home-outline" size={28} color={theme.colors.primary} />
         </View>
         <Text style={styles.cardTitulo}>Casero</Text>
         <Text style={styles.cardDescripcion}>
@@ -65,7 +67,7 @@ export default function SeleccionRolScreen() {
         accessibilityState={{ selected: rolSeleccionado === 'INQUILINO' }}
       >
         <View style={styles.cardIconBox}>
-          <Ionicons name="people-outline" size={28} color={Theme.colors.primary} />
+          <Ionicons name="people-outline" size={28} color={theme.colors.primary} />
         </View>
         <Text style={styles.cardTitulo}>Inquilino</Text>
         <Text style={styles.cardDescripcion}>
@@ -82,7 +84,7 @@ export default function SeleccionRolScreen() {
         accessibilityState={{ disabled: !rolSeleccionado || loading, busy: loading }}
       >
         {loading ? (
-          <ActivityIndicator color={Theme.colors.surface} />
+          <ActivityIndicator color={theme.colors.background} />
         ) : (
           <Text style={styles.botonConfirmarTexto}>Confirmar</Text>
         )}

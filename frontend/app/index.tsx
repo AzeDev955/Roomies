@@ -1,17 +1,17 @@
 import { View, Text, Pressable } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 // import * as Linking from 'expo-linking'; // Deep link deshabilitado temporalmente — verificación SMTP pendiente
-import { styles } from '@/styles/index.styles';
+import { createStyles } from '@/styles/index.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
 
@@ -19,6 +19,8 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -136,7 +138,7 @@ export default function LoginScreen() {
         accessibilityLabel="Continuar con Google"
         accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <AntDesign name="google" size={20} color={Theme.colors.google} />
+        <AntDesign name="google" size={20} color={theme.colors.google} />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 

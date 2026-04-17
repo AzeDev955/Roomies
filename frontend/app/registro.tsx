@@ -1,16 +1,16 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { styles } from '@/styles/registro.styles';
+import { createStyles } from '@/styles/registro.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import { dniNieSchema, pasaporteSchema, passwordSchema } from '@/utils/schemas';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
@@ -22,6 +22,8 @@ type TipoDocumento = 'DNI/NIE' | 'PASAPORTE';
 
 export default function RegistroScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [documento_identidad, setDocumentoIdentidad] = useState('');
@@ -254,7 +256,7 @@ export default function RegistroScreen() {
         accessibilityLabel="Continuar con Google"
         accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <AntDesign name="google" size={20} color={Theme.colors.google} />
+        <AntDesign name="google" size={20} color={theme.colors.google} />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 

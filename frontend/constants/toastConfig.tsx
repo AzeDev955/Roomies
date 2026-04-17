@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ToastConfig, ToastConfigParams } from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme, ThemeColors } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
-function ToastBase({ text1, text2, accent }: { text1?: string; text2?: string; accent: string }) {
+function ToastBase({ text1, text2, accent }: { text1?: string; text2?: string; accent: keyof ThemeColors }) {
+  const { theme } = useAppTheme();
+  const styles = createStyles(theme);
+
   return (
-    <View style={[styles.base, { borderLeftColor: accent }]}>
+    <View style={[styles.base, { borderLeftColor: theme.colors[accent] }]}>
       {text1 ? <Text style={styles.title} numberOfLines={2}>{text1}</Text> : null}
       {text2 ? <Text style={styles.sub} numberOfLines={2}>{text2}</Text> : null}
     </View>
@@ -14,38 +18,38 @@ function ToastBase({ text1, text2, accent }: { text1?: string; text2?: string; a
 
 export const toastConfig: ToastConfig = {
   success: ({ text1, text2 }: ToastConfigParams<unknown>) => (
-    <ToastBase text1={text1} text2={text2} accent={Theme.colors.success} />
+    <ToastBase text1={text1} text2={text2} accent="success" />
   ),
   error: ({ text1, text2 }: ToastConfigParams<unknown>) => (
-    <ToastBase text1={text1} text2={text2} accent={Theme.colors.danger} />
+    <ToastBase text1={text1} text2={text2} accent="danger" />
   ),
   info: ({ text1, text2 }: ToastConfigParams<unknown>) => (
-    <ToastBase text1={text1} text2={text2} accent={Theme.colors.primary} />
+    <ToastBase text1={text1} text2={text2} accent="primary" />
   ),
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   base: {
     width: '90%',
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     borderLeftWidth: 4,
-    paddingVertical: Theme.spacing.md,
-    paddingHorizontal: Theme.spacing.base,
-    shadowColor: Theme.colors.shadow,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.base,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
+    shadowOpacity: theme.isDark ? 0.25 : 0.12,
     shadowRadius: 6,
     elevation: 4,
   },
   title: {
-    fontSize: Theme.typography.body,
+    fontSize: theme.typography.body,
     fontWeight: '600',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   sub: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
 });
