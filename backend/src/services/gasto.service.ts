@@ -1,8 +1,21 @@
 import { prisma } from '../lib/prisma';
 
+export const TIPOS_GASTO_CASERO = [
+  'FACTURA_PUNTUAL',
+  'FACTURA_MENSUAL',
+  'CARGO_RECURRENTE',
+] as const;
+
+export const TIPOS_GASTO_COMPANEROS = ['ENTRE_COMPANEROS'] as const;
+
+export type TipoGastoRoomies =
+  | (typeof TIPOS_GASTO_CASERO)[number]
+  | (typeof TIPOS_GASTO_COMPANEROS)[number];
+
 type CrearGastoDivididoInput = {
   concepto: string;
   importe: number;
+  tipo?: TipoGastoRoomies;
   viviendaId: number;
   pagadorId: number;
   implicadosIds?: number[];
@@ -64,6 +77,7 @@ export const repartirImporteEnCentimos = (importe: number, participantesIds: num
 export const crearGastoDividido = async ({
   concepto,
   importe,
+  tipo = 'ENTRE_COMPANEROS',
   viviendaId,
   pagadorId,
   implicadosIds,
@@ -136,6 +150,7 @@ export const crearGastoDividido = async ({
       data: {
         concepto,
         importe: importeNormalizado,
+        tipo,
         factura_url: facturaUrl ?? null,
         fecha_creacion: fecha,
         pagador_id: pagadorId,
@@ -171,6 +186,7 @@ export const crearGastoDividido = async ({
     data: {
       concepto,
       importe: importeNormalizado,
+      tipo,
       factura_url: facturaUrl ?? null,
       fecha_creacion: fecha,
       pagador_id: pagadorId,
