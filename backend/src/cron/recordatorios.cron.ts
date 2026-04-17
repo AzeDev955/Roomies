@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { EstadoDeuda } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
+import { TIPOS_GASTO_CASERO } from '../services/gasto.service';
 import { enviarNotificacion } from '../services/push.service';
 
 let cronRecordatoriosMorososIniciado = false;
@@ -41,6 +42,11 @@ export const enviarRecordatoriosMorosos = async () => {
           apellidos: true,
         },
       },
+      gasto: {
+        select: {
+          tipo: true,
+        },
+      },
     },
   });
 
@@ -59,12 +65,18 @@ export const enviarRecordatoriosMorosos = async () => {
     }
 
     const nombreAcreedor = formatearNombre(deuda.acreedor.nombre, deuda.acreedor.apellidos);
+    const categoria = TIPOS_GASTO_CASERO.includes(
+      deuda.gasto?.tipo as (typeof TIPOS_GASTO_CASERO)[number],
+    )
+      ? 'casero'
+      : 'companeros';
     const mensaje = `Tienes un pago de ${formatearImporte(deuda.importe)} con ${nombreAcreedor} pendiente de realizar`;
 
     try {
       await enviarNotificacion(token, 'Pago pendiente', mensaje, {
         deudaId: deuda.id,
         acreedorId: deuda.acreedor.id,
+        categoria,
         tipo: 'recordatorio_deuda_pendiente',
       });
     } catch (error) {

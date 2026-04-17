@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
+import { TIPOS_GASTO_CASERO } from '../services/gasto.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -55,6 +56,7 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
       acreedor_id: usuarioId,
       gasto: {
         vivienda_id: viviendaId,
+        tipo: { in: [...TIPOS_GASTO_CASERO] },
         fecha_creacion: {
           gte: inicioMes,
           lt: inicioMesSiguiente,
@@ -74,6 +76,7 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
           id: true,
           concepto: true,
           importe: true,
+          tipo: true,
           factura_url: true,
           fecha_creacion: true,
         },
@@ -112,6 +115,7 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
       importe: deuda.importe,
       estado: deuda.estado,
       justificante_url: deuda.justificante_url,
+      categoria: 'CASERO',
       gasto: deuda.gasto,
       deudor: {
         id: deuda.deudor.id,

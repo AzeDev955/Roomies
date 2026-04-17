@@ -63,10 +63,12 @@ type DeudaCobro = {
   importe: number;
   estado: 'PENDIENTE' | 'PAGADA';
   justificante_url: string | null;
+  categoria?: 'CASERO';
   gasto: {
     id: number;
     concepto: string;
     importe: number;
+    tipo?: 'FACTURA_PUNTUAL' | 'FACTURA_MENSUAL' | 'CARGO_RECURRENTE';
     factura_url: string | null;
     fecha_creacion: string;
   };

@@ -72,6 +72,7 @@ export const crearGastoRecurrente: express.RequestHandler = async (req, res) => 
     data: {
       concepto: concepto.trim(),
       importe,
+      tipo: 'FACTURA_MENSUAL',
       dia_del_mes,
       vivienda_id: viviendaId,
       pagador_id: pagadorId,
