@@ -1,9 +1,14 @@
 import { View, Text, Pressable } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { styles } from '../styles/home.styles';
+import { createStyles } from '../styles/home.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenido a Roomies - Home</Text>
