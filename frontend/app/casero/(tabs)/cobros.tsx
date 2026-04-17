@@ -21,15 +21,17 @@ import { AccordionSection } from '@/components/common/AccordionSection';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { Theme } from '@/constants/theme';
+import { AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import {
-  ESTADO_BADGE_BG,
-  ESTADO_BADGE_BORDER,
-  ESTADO_BADGE_TEXT,
-  styles,
+  createStyles,
+  getEstadoBadgeColors,
 } from '@/styles/casero/cobros.styles';
+
+type CobrosStyles = ReturnType<typeof createStyles>;
+type EstadoBadgeColors = ReturnType<typeof getEstadoBadgeColors>;
 
 type Vivienda = {
   id: number;
@@ -250,6 +252,9 @@ const recalcularResumenCobros = (deudas: DeudaCobro[]) => ({
 
 export default function CaseroCobrosScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const estadoBadgeColors = useMemo(() => getEstadoBadgeColors(theme), [theme]);
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
   const [hayViviendas, setHayViviendas] = useState(false);
   const [viviendaSeleccionadaId, setViviendaSeleccionadaId] = useState<number | null>(null);
@@ -895,7 +900,7 @@ export default function CaseroCobrosScreen() {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="home-outline" size={44} color={Theme.colors.primary} />
+            <Ionicons name="home-outline" size={44} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>Primero añade una vivienda</Text>
           <Text style={styles.emptySubtitle}>
@@ -994,7 +999,7 @@ export default function CaseroCobrosScreen() {
         {errorCobros && !loadingCobros && (
           <View style={styles.errorCard}>
             <View style={styles.errorIcon}>
-              <Ionicons name="alert-circle-outline" size={22} color={Theme.colors.danger} />
+              <Ionicons name="alert-circle-outline" size={22} color={theme.colors.danger} />
             </View>
             <View style={styles.errorTextBox}>
               <Text style={styles.errorTitle}>No se pudieron cargar los cobros</Text>
@@ -1015,7 +1020,7 @@ export default function CaseroCobrosScreen() {
             {facturasEmitidas.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconBox}>
-                  <Ionicons name="receipt-outline" size={40} color={Theme.colors.primary} />
+                  <Ionicons name="receipt-outline" size={40} color={theme.colors.primary} />
                 </View>
                 <Text style={styles.emptyTitle}>Sin facturas emitidas</Text>
                 <Text style={styles.emptySubtitle}>
@@ -1030,6 +1035,8 @@ export default function CaseroCobrosScreen() {
                       <FacturaCard
                         key={factura.id}
                         factura={factura}
+                        styles={styles}
+                        theme={theme}
                         onEditar={abrirEditorFactura}
                         onVerFactura={abrirFacturaEmitida}
                       />
@@ -1050,6 +1057,8 @@ export default function CaseroCobrosScreen() {
                       <FacturaCard
                         key={factura.id}
                         factura={factura}
+                        styles={styles}
+                        theme={theme}
                         onEditar={abrirEditorFactura}
                         onVerFactura={abrirFacturaEmitida}
                       />
@@ -1074,7 +1083,7 @@ export default function CaseroCobrosScreen() {
           ) : errorCobros ? null : deudasPendientes.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name="checkmark-done-outline" size={40} color={Theme.colors.success} />
+                <Ionicons name="checkmark-done-outline" size={40} color={theme.colors.success} />
               </View>
               <Text style={styles.emptyTitle}>Nada pendiente por ahora</Text>
               <Text style={styles.emptySubtitle}>
@@ -1087,6 +1096,9 @@ export default function CaseroCobrosScreen() {
                 <DeudaCard
                   key={deuda.id}
                   deuda={deuda}
+                  styles={styles}
+                  theme={theme}
+                  estadoBadgeColors={estadoBadgeColors}
                   onVerJustificante={setJustificanteSeleccionado}
                   onVerFactura={abrirUrlFactura}
                 />
@@ -1106,7 +1118,7 @@ export default function CaseroCobrosScreen() {
           {errorCobros ? null : deudasPagadas.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name="wallet-outline" size={40} color={Theme.colors.primary} />
+                <Ionicons name="wallet-outline" size={40} color={theme.colors.primary} />
               </View>
               <Text style={styles.emptyTitle}>Todavía no hay cobros cerrados</Text>
               <Text style={styles.emptySubtitle}>
@@ -1119,6 +1131,9 @@ export default function CaseroCobrosScreen() {
                 <DeudaCard
                   key={deuda.id}
                   deuda={deuda}
+                  styles={styles}
+                  theme={theme}
+                  estadoBadgeColors={estadoBadgeColors}
                   onVerJustificante={setJustificanteSeleccionado}
                   onVerFactura={abrirUrlFactura}
                 />
@@ -1191,7 +1206,7 @@ export default function CaseroCobrosScreen() {
                 <TextInput
                   style={styles.textInput}
                   placeholder="Ej. Factura de luz marzo"
-                  placeholderTextColor={Theme.colors.textMuted}
+                  placeholderTextColor={theme.colors.textMuted}
                   value={conceptoFacturaPuntual}
                   onChangeText={setConceptoFacturaPuntual}
                   maxLength={120}
@@ -1204,7 +1219,7 @@ export default function CaseroCobrosScreen() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="2026-04-11"
-                    placeholderTextColor={Theme.colors.textMuted}
+                    placeholderTextColor={theme.colors.textMuted}
                     value={fechaFacturaPuntual}
                     onChangeText={setFechaFacturaPuntual}
                   />
@@ -1214,7 +1229,7 @@ export default function CaseroCobrosScreen() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="0,00"
-                    placeholderTextColor={Theme.colors.textMuted}
+                    placeholderTextColor={theme.colors.textMuted}
                     value={importeFacturaPuntual}
                     onChangeText={setImporteFacturaPuntual}
                     keyboardType="decimal-pad"
@@ -1224,7 +1239,7 @@ export default function CaseroCobrosScreen() {
 
               <Pressable style={styles.attachmentButton} onPress={seleccionarFacturaPuntual}>
                 <View style={styles.attachmentIcon}>
-                  <Ionicons name="document-attach-outline" size={20} color={Theme.colors.info} />
+                  <Ionicons name="document-attach-outline" size={20} color={theme.colors.info} />
                 </View>
                 <View style={styles.attachmentTextBox}>
                   <Text style={styles.attachmentTitle}>
@@ -1238,7 +1253,7 @@ export default function CaseroCobrosScreen() {
                       : 'Puedes guardar la factura sin adjuntar archivo'}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Theme.colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
               </Pressable>
 
               <View style={styles.splitHeader}>
@@ -1277,7 +1292,7 @@ export default function CaseroCobrosScreen() {
                         )} en el reparto`}
                       >
                         {seleccionado && (
-                          <Ionicons name="checkmark" size={16} color={Theme.colors.surface} />
+                          <Ionicons name="checkmark" size={16} color={theme.colors.surface} />
                         )}
                       </Pressable>
                       <View style={styles.avatar}>
@@ -1302,7 +1317,7 @@ export default function CaseroCobrosScreen() {
                         placeholder={
                           repartoPuntualAutomatico ? formatearImporte(importeCalculado) : '0,00'
                         }
-                        placeholderTextColor={Theme.colors.textMuted}
+                        placeholderTextColor={theme.colors.textMuted}
                         value={repartoFacturaPuntual[inquilino.id] ?? ''}
                         onChangeText={(valor) => actualizarRepartoPuntual(inquilino.id, valor)}
                         keyboardType="decimal-pad"
@@ -1338,7 +1353,7 @@ export default function CaseroCobrosScreen() {
                   style={styles.modalAction}
                 />
               </View>
-              {guardandoFacturaPuntual && <ActivityIndicator color={Theme.colors.primary} />}
+              {guardandoFacturaPuntual && <ActivityIndicator color={theme.colors.primary} />}
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -1361,7 +1376,7 @@ export default function CaseroCobrosScreen() {
 
             {facturaTienePagos && (
               <View style={styles.warningBanner}>
-                <Ionicons name="alert-circle-outline" size={18} color={Theme.colors.warning} />
+                <Ionicons name="alert-circle-outline" size={18} color={theme.colors.warning} />
                 <Text style={styles.warningBannerText}>
                   El importe no puede modificarse porque ya existen pagos parciales. Cancela los cobros primero.
                 </Text>
@@ -1396,7 +1411,7 @@ export default function CaseroCobrosScreen() {
             <View style={styles.invoicePhotoBlock}>
               <View style={styles.invoicePhotoHeader}>
                 <View style={styles.invoicePhotoIcon}>
-                  <Ionicons name="image-outline" size={18} color={Theme.colors.info} />
+                  <Ionicons name="image-outline" size={18} color={theme.colors.info} />
                 </View>
                 <View style={styles.invoicePhotoCopy}>
                   <Text style={styles.invoicePhotoTitle}>Foto de la factura</Text>
@@ -1497,10 +1512,14 @@ export default function CaseroCobrosScreen() {
 
 function FacturaCard({
   factura,
+  styles,
+  theme,
   onEditar,
   onVerFactura,
 }: {
   factura: FacturaEmitida;
+  styles: CobrosStyles;
+  theme: AppTheme;
   onEditar: (factura: FacturaEmitida) => void;
   onVerFactura: (factura: FacturaEmitida) => void;
 }) {
@@ -1511,7 +1530,7 @@ function FacturaCard({
     <View style={styles.invoiceCard}>
       <View style={styles.invoiceHeader}>
         <View style={styles.invoiceIcon}>
-          <Ionicons name="receipt-outline" size={22} color={Theme.colors.primary} />
+          <Ionicons name="receipt-outline" size={22} color={theme.colors.primary} />
         </View>
         <View style={styles.invoiceBody}>
           <Text style={styles.invoiceConcept} numberOfLines={2}>
@@ -1534,7 +1553,7 @@ function FacturaCard({
           <Ionicons
             name={pagosRegistrados ? 'lock-closed-outline' : 'create-outline'}
             size={18}
-            color={pagosRegistrados ? Theme.colors.textMuted : Theme.colors.primary}
+            color={pagosRegistrados ? theme.colors.textMuted : theme.colors.primary}
           />
           <Text
             style={[
@@ -1556,7 +1575,7 @@ function FacturaCard({
 
       {factura.factura_url && (
         <Pressable style={styles.receiptLink} onPress={() => onVerFactura(factura)}>
-          <Ionicons name="image-outline" size={15} color={Theme.colors.info} />
+          <Ionicons name="image-outline" size={15} color={theme.colors.info} />
           <Text style={styles.receiptLinkText}>Ver factura</Text>
         </Pressable>
       )}
@@ -1573,10 +1592,16 @@ function FacturaCard({
 
 function DeudaCard({
   deuda,
+  styles,
+  theme,
+  estadoBadgeColors,
   onVerJustificante,
   onVerFactura,
 }: {
   deuda: DeudaCobro;
+  styles: CobrosStyles;
+  theme: AppTheme;
+  estadoBadgeColors: EstadoBadgeColors;
   onVerJustificante: (deuda: DeudaCobro) => void;
   onVerFactura: (url: string) => void;
 }) {
@@ -1605,15 +1630,15 @@ function DeudaCard({
             style={[
               styles.statusBadge,
               {
-                backgroundColor: ESTADO_BADGE_BG[deuda.estado],
-                borderColor: ESTADO_BADGE_BORDER[deuda.estado],
+                backgroundColor: estadoBadgeColors.bg[deuda.estado],
+                borderColor: estadoBadgeColors.border[deuda.estado],
               },
             ]}
           >
             <Text
               style={[
                 styles.statusBadgeText,
-                { color: ESTADO_BADGE_TEXT[deuda.estado] },
+                { color: estadoBadgeColors.text[deuda.estado] },
               ]}
             >
               {deuda.estado}
@@ -1624,14 +1649,14 @@ function DeudaCard({
 
       {deuda.estado === 'PAGADA' && deuda.justificante_url && (
         <Pressable style={styles.receiptLink} onPress={() => onVerJustificante(deuda)}>
-          <Ionicons name="image-outline" size={15} color={Theme.colors.info} />
+          <Ionicons name="image-outline" size={15} color={theme.colors.info} />
           <Text style={styles.receiptLinkText}>Ver justificante</Text>
         </Pressable>
       )}
 
       {deuda.gasto.factura_url && (
         <Pressable style={styles.invoiceLink} onPress={() => onVerFactura(deuda.gasto.factura_url!)}>
-          <Ionicons name="document-text-outline" size={15} color={Theme.colors.primary} />
+          <Ionicons name="document-text-outline" size={15} color={theme.colors.primary} />
           <Text style={styles.invoiceLinkText}>Ver factura original</Text>
         </Pressable>
       )}
