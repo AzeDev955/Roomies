@@ -26,11 +26,17 @@ const prisma = vi.hoisted(() => ({
     create: async (_args: unknown): Promise<unknown> => {
       throw new Error('Unexpected prisma call: gasto.create');
     },
+    findMany: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: gasto.findMany');
+    },
     findFirst: async (_args: unknown): Promise<unknown> => {
       throw new Error('Unexpected prisma call: gasto.findFirst');
     },
   },
   deuda: {
+    findMany: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: deuda.findMany');
+    },
     findFirst: async (_args: unknown): Promise<unknown> => {
       throw new Error('Unexpected prisma call: deuda.findFirst');
     },
@@ -46,15 +52,26 @@ const prisma = vi.hoisted(() => ({
 vi.mock('../src/lib/prisma', () => ({ prisma }));
 
 const { crearGastoDividido } = await import('../src/services/gasto.service');
-const { actualizarGasto, saldarDeuda } = await import('../src/controllers/gasto.controller');
+const {
+  actualizarGasto,
+  listarGastos,
+  saldarDeuda,
+} = await import('../src/controllers/gasto.controller');
+const { listarCobrosVivienda } = await import('../src/controllers/cobros.controller');
 
-let ultimoGastoCreate: { data: { deudas: { create: unknown[] }; importe: number } } | null = null;
+let ultimoGastoCreate: {
+  data: { deudas: { create: unknown[] }; importe: number; tipo?: string };
+} | null = null;
 let deudaUpdateCalls: unknown[] = [];
+let ultimoGastoFindMany: unknown = null;
+let ultimaDeudaFindMany: unknown = null;
 let transactionCalled = false;
 
 function resetPrisma() {
   ultimoGastoCreate = null;
   deudaUpdateCalls = [];
+  ultimoGastoFindMany = null;
+  ultimaDeudaFindMany = null;
   transactionCalled = false;
 
   prisma.vivienda.findUnique = async () => ({ casero_id: 99 });
@@ -79,7 +96,15 @@ function resetPrisma() {
       })),
     };
   };
+  prisma.gasto.findMany = async (args: unknown) => {
+    ultimoGastoFindMany = args;
+    return [];
+  };
   prisma.gasto.findFirst = async () => null;
+  prisma.deuda.findMany = async (args: unknown) => {
+    ultimaDeudaFindMany = args;
+    return [];
+  };
   prisma.deuda.findFirst = async () => null;
   prisma.deuda.update = async (args: unknown) => {
     deudaUpdateCalls.push(args);
@@ -163,6 +188,19 @@ describe('modulo economico', () => {
 
     assert.deepEqual(importesCreados(), [3.34, 3.33, 3.33]);
     assert.equal(suma(importesCreados()), 10);
+    assert.equal(ultimoGastoCreate?.data.tipo, 'ENTRE_COMPANEROS');
+  });
+
+  test('marca las facturas del casero con tipo explicito', async () => {
+    await crearGastoDividido({
+      concepto: 'Factura luz',
+      importe: 90,
+      tipo: 'FACTURA_PUNTUAL',
+      viviendaId: 1,
+      pagadorId: 99,
+    });
+
+    assert.equal(ultimoGastoCreate?.data.tipo, 'FACTURA_PUNTUAL');
   });
 
   test('acepta reparto manual correcto con cuota cero sin crear deuda de importe cero', async () => {
@@ -256,6 +294,72 @@ describe('modulo economico', () => {
 
     assert.equal(res.statusCode, 403);
     assert.deepEqual(deudaUpdateCalls, []);
+  });
+
+  test('el casero solo lista gastos de facturacion propia, no gastos entre companeros', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+
+    const res = await invoke(
+      listarGastos,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(
+      (ultimoGastoFindMany as { where: { tipo: { in: string[] } } }).where.tipo.in,
+      ['FACTURA_PUNTUAL', 'FACTURA_MENSUAL', 'CARGO_RECURRENTE'],
+    );
+  });
+
+  test('el inquilino solo recibe gastos y deudas donde participa', async () => {
+    prisma.habitacion.findFirst = async () => ({ id: 1 });
+
+    const res = await invoke(
+      listarGastos,
+      request({
+        usuario: { id: 2, rol: 'INQUILINO' },
+        params: { viviendaId: '1' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual((ultimoGastoFindMany as { where: unknown }).where, {
+      vivienda_id: 1,
+      OR: [
+        { pagador_id: 2 },
+        { deudas: { some: { OR: [{ deudor_id: 2 }, { acreedor_id: 2 }] } } },
+      ],
+    });
+    assert.deepEqual(
+      (ultimoGastoFindMany as { include: { deudas: { where: unknown } } }).include.deudas.where,
+      { OR: [{ deudor_id: 2 }, { acreedor_id: 2 }] },
+    );
+  });
+
+  test('el dashboard de cobros excluye gastos entre companeros por tipo', async () => {
+    prisma.vivienda.findUnique = async () => ({
+      id: 1,
+      alias_nombre: 'Piso Centro',
+      direccion: 'Calle Luna 1',
+      casero_id: 99,
+    });
+
+    const res = await invoke(
+      listarCobrosVivienda,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(
+      (ultimaDeudaFindMany as { where: { gasto: { tipo: { in: string[] } } } }).where.gasto.tipo.in,
+      ['FACTURA_PUNTUAL', 'FACTURA_MENSUAL', 'CARGO_RECURRENTE'],
+    );
   });
 
   test('el deudor puede saldar su propia deuda pendiente', async () => {

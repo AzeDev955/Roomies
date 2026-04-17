@@ -1086,12 +1086,14 @@ Todos los endpoints de esta seccion estan protegidos por `mod_gastos`. Si el mod
 
 ### GET `/viviendas/:viviendaId/gastos`
 
-Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generado para cada gasto.
+Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generado para cada gasto, filtrando por actor y origen del cobro.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
 **Reglas de acceso:**
 - Debes pertenecer a la vivienda (`CASERO` propietario o `INQUILINO` con habitacion asignada).
+- El casero solo recibe gastos de facturacion propia: `FACTURA_PUNTUAL`, `FACTURA_MENSUAL` y `CARGO_RECURRENTE`.
+- El inquilino solo recibe gastos donde participa como pagador, deudor o acreedor; las deudas embebidas se reducen a su relacion directa.
 
 **Respuestas:**
 
@@ -1103,6 +1105,7 @@ Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generad
 
 **Campos relevantes por gasto:**
 - `pagador { id, nombre, apellidos }`
+- `tipo`: `ENTRE_COMPANEROS`, `FACTURA_PUNTUAL`, `FACTURA_MENSUAL` o `CARGO_RECURRENTE`
 - `factura_url` cuando existe factura original subida a Cloudinary
 - `deudas[]` con `id`, `deudor_id`, `acreedor_id`, `importe`, `estado` y `justificante_url`
 
@@ -1110,7 +1113,7 @@ Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generad
 
 ### POST `/viviendas/:viviendaId/gastos`
 
-Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos activos de la vivienda. Tambien permite registrar facturas puntuales del casero con adjunto y reparto manual.
+Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos activos de la vivienda. Si lo crea un inquilino, se guarda como `ENTRE_COMPANEROS`; si lo crea el casero, se guarda como `FACTURA_PUNTUAL`.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
@@ -1145,7 +1148,7 @@ Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos ac
 
 ### PATCH `/viviendas/:viviendaId/gastos/:gastoId`
 
-Edita una factura mensual o gasto ya generado.
+Edita una factura mensual, factura puntual o cargo recurrente ya generado por el casero. No permite gestionar gastos `ENTRE_COMPANEROS`.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
@@ -1176,7 +1179,7 @@ Edita una factura mensual o gasto ya generado.
 
 ### POST `/viviendas/:viviendaId/gastos/:gastoId/factura`
 
-Sube o reemplaza la imagen de factura adjunta a un gasto.
+Sube o reemplaza la imagen de factura adjunta a una factura o cargo del casero. No permite adjuntar facturas a gastos `ENTRE_COMPANEROS`.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
@@ -1222,7 +1225,8 @@ Lista las deudas de la vivienda donde el usuario autenticado participa como deud
 **Incluye:**
 - `deudor { id, nombre, apellidos }`
 - `acreedor { id, nombre, apellidos }`
-- `gasto { concepto, factura_url }`
+- `categoria`: `CASERO` para facturas/cargos del propietario y `COMPANEROS` para gastos comunes entre inquilinos
+- `gasto { concepto, tipo, factura_url }`
 
 ---
 
@@ -1250,7 +1254,7 @@ Marca una deuda como `PAGADA`.
 
 ### GET `/viviendas/:viviendaId/gastos-recurrentes`
 
-Lista las mensualidades configuradas para una vivienda.
+Lista las mensualidades configuradas para una vivienda. Es un flujo exclusivo del casero.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
@@ -1275,7 +1279,7 @@ Lista las mensualidades configuradas para una vivienda.
 
 ### POST `/viviendas/:viviendaId/gastos-recurrentes`
 
-Crea una mensualidad recurrente para la vivienda. Es un flujo de casero; el inquilino no puede crear ni listar gastos recurrentes.
+Crea una mensualidad recurrente para la vivienda como `FACTURA_MENSUAL`. Es un flujo de casero; el inquilino no puede crear ni listar gastos recurrentes.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
@@ -1307,9 +1311,9 @@ Devuelve el dashboard financiero mensual del casero para una vivienda.
 - Solo el `CASERO` propietario de la vivienda puede consultar este endpoint.
 
 **Comportamiento:**
-- Filtra deudas del mes actual donde el usuario autenticado es el acreedor.
+- Filtra deudas del mes actual donde el usuario autenticado es el acreedor y el gasto pertenece al flujo del casero (`FACTURA_PUNTUAL`, `FACTURA_MENSUAL`, `CARGO_RECURRENTE`).
 - Calcula `total_pagado_mes`, `total_pendiente` y `total_deudas`.
-- Devuelve detalle por deuda con `deudor`, `gasto` (`id`, `concepto`, `importe`, `factura_url`, `fecha_creacion`) y `justificante_url`.
+- Devuelve detalle por deuda con `deudor`, `categoria: CASERO`, `gasto` (`id`, `concepto`, `importe`, `tipo`, `factura_url`, `fecha_creacion`) y `justificante_url`.
 
 **Respuestas:**
 

@@ -36,15 +36,21 @@ type Deuda = {
   importe: number;
   estado: 'PENDIENTE' | 'PAGADA';
   justificante_url: string | null;
+  categoria?: 'CASERO' | 'COMPANEROS';
   deudor: UsuarioBasico;
   acreedor: UsuarioBasico;
-  gasto: { concepto: string; factura_url: string | null };
+  gasto: {
+    concepto: string;
+    tipo?: 'ENTRE_COMPANEROS' | 'FACTURA_PUNTUAL' | 'FACTURA_MENSUAL' | 'CARGO_RECURRENTE';
+    factura_url: string | null;
+  };
 };
 
 type Gasto = {
   id: number;
   concepto: string;
   importe: number;
+  tipo?: 'ENTRE_COMPANEROS' | 'FACTURA_PUNTUAL' | 'FACTURA_MENSUAL' | 'CARGO_RECURRENTE';
   fecha_creacion: string;
   pagador_id: number;
   pagador: UsuarioBasico;
@@ -195,8 +201,18 @@ export default function GastosInquilinoTab() {
   const esDeudaMia = (deuda: Deuda) =>
     miId !== null && (deuda.deudor_id === miId || deuda.acreedor_id === miId);
   const esDeudaEntreCompaneros = (deuda: Deuda) =>
-    idsCompaneros.has(deuda.deudor_id) && idsCompaneros.has(deuda.acreedor_id);
+    deuda.categoria
+      ? deuda.categoria === 'COMPANEROS'
+      : deuda.gasto.tipo
+        ? deuda.gasto.tipo === 'ENTRE_COMPANEROS'
+        : idsCompaneros.has(deuda.deudor_id) && idsCompaneros.has(deuda.acreedor_id);
 
+  const gastosEntreCompaneros = gastos.filter(
+    (gasto) =>
+      gasto.tipo !== 'FACTURA_PUNTUAL' &&
+      gasto.tipo !== 'FACTURA_MENSUAL' &&
+      gasto.tipo !== 'CARGO_RECURRENTE',
+  );
   const deudasRelacionadas = deudas.filter(esDeudaMia);
   const deudasPendientes = deudasRelacionadas.filter((deuda) => deuda.estado === 'PENDIENTE');
   const deudasPendientesCompaneros = deudasPendientes.filter(esDeudaEntreCompaneros);
@@ -790,7 +806,7 @@ export default function GastosInquilinoTab() {
           </>
         )}
 
-        {!errorCarga && (gastos.length === 0 ? (
+        {!errorCarga && (gastosEntreCompaneros.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
               <Ionicons name="wallet-outline" size={40} color={Theme.colors.primary} />
@@ -804,7 +820,7 @@ export default function GastosInquilinoTab() {
         ) : (
           <>
             <Text style={[styles.seccionTitulo, styles.seccionTituloSolo]}>Movimientos</Text>
-            {gastos.map((gasto) => (
+            {gastosEntreCompaneros.map((gasto) => (
               <View key={gasto.id} style={styles.gastoCard}>
                 <AvatarInitials nombre={gasto.pagador.nombre} apellidos={gasto.pagador.apellidos} size={46} />
                 <View style={styles.gastoInfo}>

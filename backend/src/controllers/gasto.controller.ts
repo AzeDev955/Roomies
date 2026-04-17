@@ -5,6 +5,7 @@ import {
   crearGastoDividido,
   normalizarImporteMonetario,
   repartirImporteEnCentimos,
+  TIPOS_GASTO_CASERO,
   usuarioEsCaseroDeVivienda,
   usuarioPerteneceAVivienda,
 } from '../services/gasto.service';
@@ -75,7 +76,11 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const pertenece = await usuarioPuedeAccederAVivienda(viviendaId, usuarioId);
+  const [habitacion, viviendaCasero] = await Promise.all([
+    usuarioPerteneceAVivienda(viviendaId, usuarioId),
+    usuarioEsCaseroDeVivienda(viviendaId, usuarioId),
+  ]);
+  const pertenece = Boolean(habitacion || viviendaCasero);
 
   if (!pertenece) {
     res.status(403).json({ error: 'No perteneces a esta vivienda.' });
@@ -83,11 +88,27 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
   }
 
   const gastos = await prisma.gasto.findMany({
-    where: { vivienda_id: viviendaId },
+    where: {
+      vivienda_id: viviendaId,
+      ...(viviendaCasero
+        ? { tipo: { in: [...TIPOS_GASTO_CASERO] } }
+        : {
+            OR: [
+              { pagador_id: usuarioId },
+              { deudas: { some: { OR: [{ deudor_id: usuarioId }, { acreedor_id: usuarioId }] } } },
+            ],
+          }),
+    },
     orderBy: { fecha_creacion: 'desc' },
     include: {
       pagador: { select: { id: true, nombre: true, apellidos: true } },
-      deudas: true,
+      deudas: viviendaCasero
+        ? true
+        : {
+            where: {
+              OR: [{ deudor_id: usuarioId }, { acreedor_id: usuarioId }],
+            },
+          },
     },
   });
 
@@ -118,12 +139,19 @@ export const listarDeudas: express.RequestHandler = async (req, res) => {
     include: {
       deudor:   { select: { id: true, nombre: true, apellidos: true } },
       acreedor: { select: { id: true, nombre: true, apellidos: true } },
-      gasto:    { select: { concepto: true, factura_url: true } },
+      gasto:    { select: { concepto: true, tipo: true, factura_url: true } },
     },
     orderBy: { id: 'desc' },
   });
 
-  res.status(200).json(deudas);
+  res.status(200).json(
+    deudas.map((deuda) => ({
+      ...deuda,
+      categoria: TIPOS_GASTO_CASERO.includes(deuda.gasto.tipo as (typeof TIPOS_GASTO_CASERO)[number])
+        ? 'CASERO'
+        : 'COMPANEROS',
+    })),
+  );
 };
 
 export const saldarDeuda: express.RequestHandler = async (req, res) => {
@@ -246,6 +274,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
 
   try {
     const facturaUrl = obtenerUrlArchivo(req.file);
+    const tipoGasto = req.usuario!.rol === 'CASERO' ? 'FACTURA_PUNTUAL' : 'ENTRE_COMPANEROS';
 
     if (req.file && !facturaUrl) {
       res.status(500).json({ error: 'No se pudo obtener la URL de la factura subida.' });
@@ -255,6 +284,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
     const gasto = await crearGastoDividido({
       concepto,
       importe: importeNormalizado,
+      tipo: tipoGasto,
       viviendaId,
       pagadorId,
       implicadosIds,
@@ -341,12 +371,12 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
   }
 
   const gasto = await prisma.gasto.findFirst({
-    where: { id: gastoId, vivienda_id: viviendaId },
+    where: { id: gastoId, vivienda_id: viviendaId, tipo: { in: [...TIPOS_GASTO_CASERO] } },
     include: { deudas: true },
   });
 
   if (!gasto) {
-    res.status(404).json({ error: 'Gasto no encontrado.' });
+    res.status(404).json({ error: 'Factura no encontrada para esta vivienda.' });
     return;
   }
 
@@ -431,12 +461,12 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
   }
 
   const gasto = await prisma.gasto.findFirst({
-    where: { id: gastoId, vivienda_id: viviendaId },
+    where: { id: gastoId, vivienda_id: viviendaId, tipo: { in: [...TIPOS_GASTO_CASERO] } },
     include: { deudas: true },
   });
 
   if (!gasto) {
-    res.status(404).json({ error: 'Gasto no encontrado.' });
+    res.status(404).json({ error: 'Factura no encontrada para esta vivienda.' });
     return;
   }
 

@@ -26,6 +26,7 @@ export const procesarMensualidadesDelDia = async () => {
       await crearGastoDividido({
         concepto: gastoRecurrente.concepto,
         importe: gastoRecurrente.importe,
+        tipo: gastoRecurrente.tipo,
         viviendaId: gastoRecurrente.vivienda_id,
         pagadorId: gastoRecurrente.pagador_id,
       });

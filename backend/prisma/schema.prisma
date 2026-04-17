@@ -48,6 +48,13 @@ enum EstadoDeuda {
   PAGADA
 }
 
+enum TipoGasto {
+  ENTRE_COMPANEROS
+  FACTURA_PUNTUAL
+  FACTURA_MENSUAL
+  CARGO_RECURRENTE
+}
+
 enum EstadoItem {
   NUEVO
   BUENO
@@ -152,6 +159,7 @@ model Gasto {
   id                 Int       @id @default(autoincrement())
   concepto           String
   importe            Float
+  tipo               TipoGasto @default(ENTRE_COMPANEROS)
   factura_url        String?
   fecha_creacion     DateTime  @default(now())
   fecha_modificacion DateTime?
@@ -168,6 +176,7 @@ model GastoRecurrente {
   id          Int      @id @default(autoincrement())
   concepto    String
   importe     Float
+  tipo        TipoGasto @default(FACTURA_MENSUAL)
   dia_del_mes Int
   vivienda_id Int
   vivienda    Vivienda @relation(fields: [vivienda_id], references: [id])

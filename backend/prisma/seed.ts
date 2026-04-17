@@ -3,6 +3,7 @@ import {
   RolUsuario,
   TipoHabitacion,
   EstadoDeuda,
+  TipoGasto,
 } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcrypt";
@@ -64,6 +65,7 @@ async function crearGastoConDeudas({
   fechaCreacion,
   pagadorId,
   viviendaId,
+  tipo,
   deudas,
 }: {
   concepto: string;
@@ -71,12 +73,14 @@ async function crearGastoConDeudas({
   fechaCreacion: Date;
   pagadorId: number;
   viviendaId: number;
+  tipo: TipoGasto;
   deudas: ParticipanteDeuda[];
 }) {
   return prisma.gasto.create({
     data: {
       concepto,
       importe,
+      tipo,
       fecha_creacion: fechaCreacion,
       pagador_id: pagadorId,
       vivienda_id: viviendaId,
@@ -320,6 +324,7 @@ async function main() {
     fechaCreacion: dayOfMonth(3),
     pagadorId: ana.id,
     viviendaId: vivienda.id,
+    tipo: TipoGasto.ENTRE_COMPANEROS,
     deudas: [
       { deudorId: bruno.id, importe: 30 },
       { deudorId: carmen.id, importe: 30, estado: EstadoDeuda.PAGADA },
@@ -340,6 +345,7 @@ async function main() {
     fechaCreacion: dayOfMonth(8),
     pagadorId: bruno.id,
     viviendaId: vivienda.id,
+    tipo: TipoGasto.ENTRE_COMPANEROS,
     deudas: [
       { deudorId: ana.id, importe: 18, estado: EstadoDeuda.PAGADA },
       { deudorId: carmen.id, importe: 18 },
@@ -353,6 +359,7 @@ async function main() {
     fechaCreacion: dayOfMonth(5),
     pagadorId: casero.id,
     viviendaId: vivienda.id,
+    tipo: TipoGasto.FACTURA_PUNTUAL,
     deudas: [
       {
         deudorId: ana.id,
@@ -374,6 +381,7 @@ async function main() {
     fechaCreacion: dayOfMonth(9),
     pagadorId: casero.id,
     viviendaId: vivienda.id,
+    tipo: TipoGasto.FACTURA_PUNTUAL,
     deudas: [
       { deudorId: ana.id, importe: 22 },
       { deudorId: bruno.id, importe: 22 },
@@ -389,6 +397,7 @@ async function main() {
     fechaCreacion: dayOfMonth(16, 1),
     pagadorId: casero.id,
     viviendaId: vivienda.id,
+    tipo: TipoGasto.FACTURA_PUNTUAL,
     deudas: [
       { deudorId: ana.id, importe: 16, estado: EstadoDeuda.PAGADA },
       { deudorId: bruno.id, importe: 16, estado: EstadoDeuda.PAGADA },
@@ -403,6 +412,7 @@ async function main() {
       {
         concepto: "Alquiler mensual",
         importe: 1800,
+        tipo: TipoGasto.FACTURA_MENSUAL,
         dia_del_mes: 1,
         vivienda_id: vivienda.id,
         pagador_id: casero.id,
@@ -411,6 +421,7 @@ async function main() {
       {
         concepto: "Internet fibra",
         importe: 60,
+        tipo: TipoGasto.FACTURA_MENSUAL,
         dia_del_mes: 5,
         vivienda_id: vivienda.id,
         pagador_id: casero.id,
@@ -419,6 +430,7 @@ async function main() {
       {
         concepto: "Cuota limpieza portal",
         importe: 35,
+        tipo: TipoGasto.CARGO_RECURRENTE,
         dia_del_mes: 15,
         vivienda_id: vivienda.id,
         pagador_id: casero.id,
