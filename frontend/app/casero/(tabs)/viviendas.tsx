@@ -4,10 +4,10 @@ import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { CustomButton } from '@/components/common/CustomButton';
 import { Card } from '@/components/common/Card';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { styles } from '@/styles/casero/viviendas.styles';
-import { Theme } from '@/constants/theme';
+import { createStyles } from '@/styles/casero/viviendas.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import api from '@/services/api';
 
 type Habitacion = {
@@ -27,6 +27,8 @@ type Vivienda = {
 
 export default function ViviendasScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +67,7 @@ export default function ViviendasScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-              <Ionicons name="home-outline" size={48} color={Theme.colors.primary} />
+              <Ionicons name="home-outline" size={48} color={theme.colors.primary} />
             </View>
             <Text style={styles.emptyTitulo}>¡Añade tu primera vivienda!</Text>
             <Text style={styles.emptySubtitulo}>
@@ -94,7 +96,7 @@ export default function ViviendasScreen() {
             >
               <Card style={styles.card}>
                 <View style={styles.cardImagePlaceholder}>
-                  <Ionicons name="business-outline" size={48} color={Theme.colors.primary} />
+                  <Ionicons name="business-outline" size={48} color={theme.colors.primary} />
                 </View>
 
                 <View style={styles.cardBody}>
@@ -102,25 +104,25 @@ export default function ViviendasScreen() {
                     <View style={styles.cardInfo}>
                       <Text style={styles.cardTitulo}>{item.alias_nombre}</Text>
                       <View style={styles.cardDireccionFila}>
-                        <Ionicons name="location-outline" size={14} color={Theme.colors.textSecondary} />
+                        <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
                         <Text style={styles.cardDireccion}>{item.direccion}</Text>
                       </View>
                       <View style={styles.chips}>
                         <View style={styles.chipHabitaciones}>
-                          <Ionicons name="bed-outline" size={12} color={Theme.colors.primary} />
+                          <Ionicons name="bed-outline" size={12} color={theme.colors.primary} />
                           <Text style={styles.chipHabitacionesTexto}>
                             {habitacionesHabitables.length} Habitaciones
                           </Text>
                         </View>
                         <View style={styles.chipInquilinos}>
-                          <Ionicons name="people-outline" size={12} color={Theme.colors.success} />
+                          <Ionicons name="people-outline" size={12} color={theme.colors.success} />
                           <Text style={styles.chipInquilinosTexto}>
                             {inquilinosActuales} Inquilinos
                           </Text>
                         </View>
                       </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={24} color={Theme.colors.textTertiary} />
+                    <Ionicons name="chevron-forward" size={24} color={theme.colors.textTertiary} />
                   </View>
                 </View>
               </Card>
@@ -134,7 +136,7 @@ export default function ViviendasScreen() {
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
           onPress={() => router.push('/casero/nueva-vivienda')}
         >
-          <Ionicons name="add" size={24} color={Theme.colors.surface} />
+          <Ionicons name="add" size={24} color={theme.colors.surface} />
           <Text style={styles.fabTexto}>Nueva Vivienda</Text>
         </Pressable>
       )}
