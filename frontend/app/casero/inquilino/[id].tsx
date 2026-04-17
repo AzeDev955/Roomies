@@ -5,10 +5,10 @@ import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
-import { useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import api from '@/services/api';
-import { styles } from '@/styles/casero/inquilino/perfil.styles';
-import { Theme } from '@/constants/theme';
+import { createStyles } from '@/styles/casero/inquilino/perfil.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import { parsePositiveIntParam } from '@/utils/routeParams';
 
 type PerfilInquilino = {
@@ -23,6 +23,8 @@ type PerfilInquilino = {
 
 export default function PerfilInquilinoScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const inquilinoId = parsePositiveIntParam(id);
   const [perfil, setPerfil] = useState<PerfilInquilino | null>(null);
@@ -71,13 +73,16 @@ export default function PerfilInquilinoScreen() {
           options={{
             headerShown: true,
             title: 'Perfil de inquilino',
-            headerTintColor: Theme.colors.primary,
+            headerStyle: { backgroundColor: theme.colors.surface },
+            headerTitleStyle: { color: theme.colors.text, fontWeight: '600' },
+            headerTintColor: theme.colors.primary,
+            headerShadowVisible: false,
           }}
         />
         <View style={styles.container}>
           <View style={styles.errorState}>
             <View style={styles.errorIconBox}>
-              <Ionicons name="person-circle-outline" size={44} color={Theme.colors.primary} />
+              <Ionicons name="person-circle-outline" size={44} color={theme.colors.primary} />
             </View>
             <Text style={styles.errorTitle}>Perfil no disponible</Text>
             <Text style={styles.errorText}>
@@ -101,9 +106,9 @@ export default function PerfilInquilinoScreen() {
         options={{
           headerShown: true,
           title: 'Perfil de inquilino',
-          headerStyle: { backgroundColor: Theme.colors.surface },
-          headerTitleStyle: { color: Theme.colors.text, fontWeight: '600' },
-          headerTintColor: Theme.colors.primary,
+          headerStyle: { backgroundColor: theme.colors.surface },
+          headerTitleStyle: { color: theme.colors.text, fontWeight: '600' },
+          headerTintColor: theme.colors.primary,
           headerShadowVisible: false,
         }}
       />
@@ -121,7 +126,7 @@ export default function PerfilInquilinoScreen() {
           <Text style={styles.cardTitulo}>Datos de contacto</Text>
 
           <View style={styles.fila}>
-            <Ionicons name="mail-outline" size={20} color={Theme.colors.primary} />
+            <Ionicons name="mail-outline" size={20} color={theme.colors.primary} />
             <Text style={styles.filaTexto}>{perfil.email}</Text>
           </View>
 
@@ -129,7 +134,7 @@ export default function PerfilInquilinoScreen() {
             <>
               <View style={styles.separador} />
               <View style={styles.fila}>
-                <Ionicons name="call-outline" size={20} color={Theme.colors.primary} />
+                <Ionicons name="call-outline" size={20} color={theme.colors.primary} />
                 <Text style={styles.filaTexto}>{perfil.telefono}</Text>
               </View>
             </>
