@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Redirect, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
-import { styles } from '@/styles/tablon/tablon.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from '@/styles/tablon/tablon.styles';
 
 type Anuncio = {
   id: number;
@@ -28,6 +28,8 @@ type Anuncio = {
 };
 
 export default function TablonScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { viviendaId, esCasero, miUsuarioId } = useLocalSearchParams<{
     viviendaId: string;
     esCasero?: string;
@@ -173,7 +175,7 @@ export default function TablonScreen() {
   return (
     <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} />
+        <ActivityIndicator style={styles.loader} size="large" color={theme.colors.primary} />
       ) : (
         <FlatList
           contentContainerStyle={styles.content}
@@ -184,7 +186,7 @@ export default function TablonScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name="megaphone-outline" size={44} color={Theme.colors.primary} />
+                <Ionicons name="megaphone-outline" size={44} color={theme.colors.primary} />
               </View>
               <Text style={styles.emptyTitulo}>¡Rompe el hielo!</Text>
               <Text style={styles.emptySubtitulo}>
@@ -201,7 +203,7 @@ export default function TablonScreen() {
         accessibilityLabel="Nuevo anuncio"
         accessibilityRole="button"
       >
-        <Ionicons name="add" size={28} color={Theme.colors.surface} />
+        <Ionicons name="add" size={28} color={theme.colors.surface} />
       </Pressable>
 
       <Modal
@@ -214,7 +216,7 @@ export default function TablonScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <Pressable style={{ flex: 1 }} onPress={cerrarModal} />
+          <Pressable style={styles.modalBackdrop} onPress={cerrarModal} />
           <View style={styles.modalContainer}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitulo}>Nuevo anuncio</Text>
@@ -222,10 +224,10 @@ export default function TablonScreen() {
             <TextInput
               style={[
                 styles.inputTitulo,
-                tituloFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                tituloFocused && styles.inputFocused,
               ]}
               placeholder="Título"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
               value={titulo}
               onChangeText={setTitulo}
               onFocus={() => setTituloFocused(true)}
@@ -235,10 +237,10 @@ export default function TablonScreen() {
             <TextInput
               style={[
                 styles.inputContenido,
-                contenidoFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                contenidoFocused && styles.inputFocused,
               ]}
               placeholder="¿Qué quieres comunicar?"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
               value={contenido}
               onChangeText={setContenido}
               onFocus={() => setContenidoFocused(true)}
@@ -265,7 +267,7 @@ export default function TablonScreen() {
                 disabled={!puedePublicar || publicando}
               >
                 {publicando ? (
-                  <ActivityIndicator color={Theme.colors.surface} />
+                  <ActivityIndicator color={theme.colors.surface} />
                 ) : (
                   <Text style={styles.botonPublicarTexto}>Publicar</Text>
                 )}
