@@ -86,6 +86,12 @@ const generarCsvLimpiezas = (
   return `\uFEFF${lineas.join('\r\n')}`;
 };
 
+const generarBufferCsvExcel = (csv: string) =>
+  Buffer.concat([
+    Buffer.from([0xff, 0xfe]),
+    Buffer.from(csv.replace(/^\uFEFF/, ''), 'utf16le'),
+  ]);
+
 const verificarPropiedadVivienda = async (viviendaId: number, caseroId: number) => {
   const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
   if (!vivienda || vivienda.casero_id !== caseroId) return null;
@@ -413,8 +419,8 @@ export const exportarTurnos: express.RequestHandler = async (req, res) => {
   if (req.query['formato'] === 'base64') {
     res.status(200).json({
       nombreArchivo,
-      mimeType: 'text/csv; charset=utf-8',
-      contenidoBase64: Buffer.from(csv, 'utf8').toString('base64'),
+      mimeType: 'text/csv',
+      contenidoBase64: generarBufferCsvExcel(csv).toString('base64'),
     });
     return;
   }
