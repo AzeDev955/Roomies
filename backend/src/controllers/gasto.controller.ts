@@ -325,6 +325,8 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     concepto?: string;
     importe?: number;
     fecha_creacion?: Date;
+    fecha_modificacion?: Date;
+    modificado_por_id?: number;
   } = {};
 
   if (concepto !== undefined) {
@@ -378,17 +380,21 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const importeCambia =
-    datosActualizacion.importe !== undefined &&
-    Number(datosActualizacion.importe.toFixed(2)) !== Number(gasto.importe.toFixed(2));
   const hayPagosRegistrados = gasto.deudas.some((deuda) => deuda.estado === 'PAGADA');
 
-  if (importeCambia && hayPagosRegistrados) {
+  if (hayPagosRegistrados) {
     res.status(400).json({
-      error: 'El importe no puede modificarse porque ya existen pagos registrados.',
+      error: 'Esta factura no puede modificarse porque ya existen pagos registrados.',
     });
     return;
   }
+
+  datosActualizacion.fecha_modificacion = new Date();
+  datosActualizacion.modificado_por_id = usuarioId;
+
+  const importeCambia =
+    datosActualizacion.importe !== undefined &&
+    Number(datosActualizacion.importe.toFixed(2)) !== Number(gasto.importe.toFixed(2));
 
   const gastoActualizado = await prisma.$transaction(async (tx) => {
     if (importeCambia && gasto.deudas.length > 0) {
@@ -413,6 +419,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
       data: datosActualizacion,
       include: {
         pagador: { select: { id: true, nombre: true, apellidos: true } },
+        modificado_por: { select: { id: true, nombre: true, apellidos: true } },
         deudas: true,
       },
     });
@@ -455,10 +462,18 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
 
   const gasto = await prisma.gasto.findFirst({
     where: { id: gastoId, vivienda_id: viviendaId, tipo: { in: [...TIPOS_GASTO_CASERO] } },
+    include: { deudas: true },
   });
 
   if (!gasto) {
     res.status(404).json({ error: 'Factura no encontrada para esta vivienda.' });
+    return;
+  }
+
+  if (gasto.deudas.some((deuda) => deuda.estado === 'PAGADA')) {
+    res.status(400).json({
+      error: 'Esta factura no puede modificarse porque ya existen pagos registrados.',
+    });
     return;
   }
 
@@ -471,9 +486,14 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
 
   const gastoActualizado = await prisma.gasto.update({
     where: { id: gasto.id },
-    data: { factura_url: secureUrl },
+    data: {
+      factura_url: secureUrl,
+      fecha_modificacion: new Date(),
+      modificado_por_id: usuarioId,
+    },
     include: {
       pagador: { select: { id: true, nombre: true, apellidos: true } },
+      modificado_por: { select: { id: true, nombre: true, apellidos: true } },
       deudas: true,
     },
   });

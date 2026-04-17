@@ -84,6 +84,7 @@ model Usuario {
   turnos_limpieza    TurnoLimpieza[]
   asignaciones_fijas AsignacionLimpiezaFija[]
   gastos_pagados     Gasto[]
+  gastos_modificados Gasto[]                  @relation("ModificadorGasto")
   gastos_recurrentes_pagados GastoRecurrente[]
   deudas_a_pagar     Deuda[]                  @relation("DeudorDeuda")
   deudas_a_cobrar    Deuda[]                  @relation("AcreedorDeuda")
@@ -155,17 +156,20 @@ model Anuncio {
 // ── Módulo de gastos y balances ───────────────────────────────────────────────
 
 model Gasto {
-  id             Int      @id @default(autoincrement())
-  concepto       String
-  importe        Float
-  tipo           TipoGasto @default(ENTRE_COMPANEROS)
-  factura_url    String?
-  fecha_creacion DateTime @default(now())
-  pagador_id     Int
-  pagador        Usuario  @relation(fields: [pagador_id], references: [id])
-  vivienda_id    Int
-  vivienda       Vivienda @relation(fields: [vivienda_id], references: [id])
-  deudas         Deuda[]
+  id                 Int       @id @default(autoincrement())
+  concepto           String
+  importe            Float
+  tipo               TipoGasto @default(ENTRE_COMPANEROS)
+  factura_url        String?
+  fecha_creacion     DateTime  @default(now())
+  fecha_modificacion DateTime?
+  pagador_id         Int
+  pagador            Usuario   @relation(fields: [pagador_id], references: [id])
+  modificado_por_id  Int?
+  modificado_por     Usuario?  @relation("ModificadorGasto", fields: [modificado_por_id], references: [id], onDelete: SetNull)
+  vivienda_id        Int
+  vivienda           Vivienda  @relation(fields: [vivienda_id], references: [id])
+  deudas             Deuda[]
 }
 
 model GastoRecurrente {

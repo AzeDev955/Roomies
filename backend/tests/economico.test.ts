@@ -404,6 +404,30 @@ describe('modulo economico', () => {
     assert.equal(transactionCalled, false);
   });
 
+  test('bloquea editar cualquier dato de una factura con pagos registrados', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+    prisma.gasto.findFirst = async () => ({
+      id: 12,
+      importe: 100,
+      deudas: [{ id: 20, deudor_id: 2, estado: 'PAGADA' }],
+    });
+
+    const res = await invoke(
+      actualizarGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1', gastoId: '12' },
+        body: { concepto: 'Mensualidad revisada' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.deepEqual(res.body, {
+      error: 'Esta factura no puede modificarse porque ya existen pagos registrados.',
+    });
+    assert.equal(transactionCalled, false);
+  });
+
   test('edita importes abiertos redistribuyendo en centimos exactos', async () => {
     prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
     prisma.gasto.findFirst = async () => ({
@@ -429,5 +453,7 @@ describe('modulo economico', () => {
       { where: { id: 20 }, data: { importe: 5.01 } },
       { where: { id: 21 }, data: { importe: 5 } },
     ]);
+    assert.equal((res.body as { modificado_por_id: number }).modificado_por_id, 99);
+    assert.ok((res.body as { fecha_modificacion: Date }).fecha_modificacion instanceof Date);
   });
 });

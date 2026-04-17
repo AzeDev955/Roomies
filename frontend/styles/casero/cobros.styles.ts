@@ -213,10 +213,16 @@ export const styles = StyleSheet.create({
     gap: Theme.spacing.xs,
     flexShrink: 0,
   },
+  invoiceEditButtonDisabled: {
+    backgroundColor: Theme.colors.surface2,
+  },
   invoiceEditText: {
     fontSize: Theme.typography.caption,
     fontWeight: '800',
     color: Theme.colors.primary,
+  },
+  invoiceEditTextDisabled: {
+    color: Theme.colors.textMuted,
   },
   invoiceFooter: {
     flexDirection: 'row',
@@ -238,6 +244,12 @@ export const styles = StyleSheet.create({
     color: Theme.colors.textSecondary,
     textAlign: 'right',
     flexShrink: 1,
+  },
+  invoiceTrace: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.textTertiary,
+    lineHeight: 18,
   },
   debtCard: {
     backgroundColor: Theme.colors.surface,
