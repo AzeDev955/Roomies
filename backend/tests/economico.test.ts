@@ -52,6 +52,7 @@ const prisma = vi.hoisted(() => ({
 vi.mock('../src/lib/prisma', () => ({ prisma }));
 
 const { crearGastoDividido } = await import('../src/services/gasto.service');
+const { crearCargosMensualesHabitacion } = await import('../src/services/gasto.service');
 const {
   actualizarGasto,
   listarGastos,
@@ -64,6 +65,7 @@ let ultimoGastoCreate: {
 } | null = null;
 let deudaUpdateCalls: unknown[] = [];
 let ultimoGastoFindMany: unknown = null;
+let ultimoGastoFindFirst: unknown = null;
 let ultimaDeudaFindMany: unknown = null;
 let transactionCalled = false;
 
@@ -71,6 +73,7 @@ function resetPrisma() {
   ultimoGastoCreate = null;
   deudaUpdateCalls = [];
   ultimoGastoFindMany = null;
+  ultimoGastoFindFirst = null;
   ultimaDeudaFindMany = null;
   transactionCalled = false;
 
@@ -100,7 +103,10 @@ function resetPrisma() {
     ultimoGastoFindMany = args;
     return [];
   };
-  prisma.gasto.findFirst = async () => null;
+  prisma.gasto.findFirst = async (args: unknown) => {
+    ultimoGastoFindFirst = args;
+    return null;
+  };
   prisma.deuda.findMany = async (args: unknown) => {
     ultimaDeudaFindMany = args;
     return [];
@@ -310,7 +316,7 @@ describe('modulo economico', () => {
     assert.equal(res.statusCode, 200);
     assert.deepEqual(
       (ultimoGastoFindMany as { where: { tipo: { in: string[] } } }).where.tipo.in,
-      ['FACTURA_PUNTUAL', 'FACTURA_MENSUAL', 'CARGO_RECURRENTE'],
+      ['FACTURA_PUNTUAL', 'FACTURA_MENSUAL', 'CARGO_RECURRENTE', 'ALQUILER_HABITACION'],
     );
   });
 
@@ -358,8 +364,99 @@ describe('modulo economico', () => {
     assert.equal(res.statusCode, 200);
     assert.deepEqual(
       (ultimaDeudaFindMany as { where: { gasto: { tipo: { in: string[] } } } }).where.gasto.tipo.in,
-      ['FACTURA_PUNTUAL', 'FACTURA_MENSUAL', 'CARGO_RECURRENTE'],
+      ['FACTURA_PUNTUAL', 'FACTURA_MENSUAL', 'CARGO_RECURRENTE', 'ALQUILER_HABITACION'],
     );
+  });
+
+  test('genera alquiler mensual de habitacion como deuda del inquilino con el casero', async () => {
+    prisma.habitacion.findMany = async (args: unknown) => {
+      if ((args as { select?: { precio?: boolean } }).select?.precio) {
+        return [
+          {
+            id: 7,
+            nombre: 'Habitacion azul',
+            precio: 450,
+            inquilino_id: 2,
+            vivienda_id: 1,
+            vivienda: { casero_id: 99, alias_nombre: 'Piso Centro' },
+          },
+        ];
+      }
+
+      return [{ inquilino_id: 2 }];
+    };
+
+    const resultado = await crearCargosMensualesHabitacion(new Date(2026, 3, 1));
+
+    assert.deepEqual(resultado, {
+      periodo: '2026-04',
+      creados: 1,
+      omitidosExistentes: 0,
+      omitidosSinPrecio: 0,
+      omitidosSinInquilino: 0,
+    });
+    assert.deepEqual((ultimoGastoFindFirst as { where: unknown }).where, {
+      tipo: 'ALQUILER_HABITACION',
+      periodo_facturacion: '2026-04',
+      habitacion_cargo_id: 7,
+      inquilino_cargo_id: 2,
+    });
+    assert.equal(ultimoGastoCreate?.data.tipo, 'ALQUILER_HABITACION');
+    assert.equal(ultimoGastoCreate?.data.importe, 450);
+    assert.deepEqual(ultimoGastoCreate?.data.deudas.create, [
+      { deudor_id: 2, acreedor_id: 99, importe: 450 },
+    ]);
+  });
+
+  test('no duplica alquiler mensual si ya existe para el mismo periodo habitacion e inquilino', async () => {
+    prisma.habitacion.findMany = async (args: unknown) => {
+      if ((args as { select?: { precio?: boolean } }).select?.precio) {
+        return [
+          {
+            id: 7,
+            nombre: 'Habitacion azul',
+            precio: 450,
+            inquilino_id: 2,
+            vivienda_id: 1,
+            vivienda: { casero_id: 99, alias_nombre: 'Piso Centro' },
+          },
+        ];
+      }
+
+      return [{ inquilino_id: 2 }];
+    };
+    prisma.gasto.findFirst = async (args: unknown) => {
+      ultimoGastoFindFirst = args;
+      return { id: 20 };
+    };
+
+    const resultado = await crearCargosMensualesHabitacion(new Date(2026, 3, 1));
+
+    assert.equal(resultado.creados, 0);
+    assert.equal(resultado.omitidosExistentes, 1);
+    assert.equal(ultimoGastoCreate, null);
+  });
+
+  test('omite alquiler mensual sin precio y deja traza en consola', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    prisma.habitacion.findMany = async () => [
+      {
+        id: 8,
+        nombre: 'Habitacion sin precio',
+        precio: null,
+        inquilino_id: 2,
+        vivienda_id: 1,
+        vivienda: { casero_id: 99, alias_nombre: 'Piso Centro' },
+      },
+    ];
+
+    const resultado = await crearCargosMensualesHabitacion(new Date(2026, 3, 1));
+
+    assert.equal(resultado.creados, 0);
+    assert.equal(resultado.omitidosSinPrecio, 1);
+    assert.equal(ultimoGastoCreate, null);
+    assert.match(warn.mock.calls[0]?.[0] ?? '', /sin precio valido/i);
+    warn.mockRestore();
   });
 
   test('el deudor puede saldar su propia deuda pendiente', async () => {
