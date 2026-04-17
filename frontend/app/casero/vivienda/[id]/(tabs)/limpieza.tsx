@@ -14,14 +14,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import Toast from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
-import { useState, useEffect } from 'react';
+import type { AppTheme } from '@/constants/theme';
+import { useState, useEffect, useMemo } from 'react';
 import api from '@/services/api';
 import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
-import { styles } from '@/styles/casero/vivienda/limpieza.styles';
+import { createStyles } from '@/styles/casero/vivienda/limpieza.styles';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
 // ── Helpers UI ────────────────────────────────────────────────────────────────
 
@@ -37,19 +38,21 @@ const zonaIcon = (nombre: string) =>
 const AvatarInitials = ({
   nombre,
   apellidos,
+  theme,
   size = 48,
 }: {
   nombre: string;
   apellidos: string | null;
+  theme: AppTheme;
   size?: number;
 }) => {
   const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: Theme.colors.primary + '22', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: theme.colors.primaryLight, alignItems: 'center', justifyContent: 'center',
     }}>
-      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: theme.colors.primary }}>
         {initials}
       </Text>
     </View>
@@ -82,18 +85,6 @@ const ZONAS_BASE = [
   { nombre: 'Salón', peso: 6 },
   { nombre: 'Baño', peso: 6 },
 ];
-
-const ESTADO_LABEL: Record<string, string> = {
-  PENDIENTE: 'Pendiente',
-  HECHO: '✓ Hecho',
-  NO_HECHO: '✗ No hecho',
-};
-
-const ESTADO_COLOR: Record<string, string> = {
-  PENDIENTE: Theme.colors.textTertiary,
-  HECHO: Theme.colors.success,
-  NO_HECHO: Theme.colors.danger,
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -146,6 +137,8 @@ const FILTROS_ESTADO: { label: string; value: EstadoFiltro }[] = [
 
 export default function LimpiezaCaseroTab() {
   const id = useViviendaIdParam();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // — Vista activa —
   const [vistaActual, setVistaActual] = useState<'CONFIG' | 'CALENDARIO'>('CONFIG');
@@ -464,7 +457,7 @@ export default function LimpiezaCaseroTab() {
         : null;
 
     return (
-      <Card style={{ marginBottom: Theme.spacing.md }}>
+      <Card style={{ marginBottom: theme.spacing.md }}>
         <View style={styles.cardRow}>
           <Text style={styles.zonaNombre}>{item.nombre}</Text>
           <View style={[styles.badge, item.activa ? styles.badgeActiva : styles.badgeInactiva]}>
@@ -493,7 +486,7 @@ export default function LimpiezaCaseroTab() {
   const emptyComponent = (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconBox}>
-        <Ionicons name="sparkles-outline" size={40} color={Theme.colors.success} />
+        <Ionicons name="sparkles-outline" size={40} color={theme.colors.success} />
       </View>
       <Text style={styles.emptyTitulo}>Sin zonas todavía</Text>
       <Text style={styles.emptySubtitulo}>Genera las zonas básicas para empezar a repartir las tareas de limpieza.</Text>
@@ -502,7 +495,7 @@ export default function LimpiezaCaseroTab() {
         variant="outline"
         onPress={handleGenerarZonasBasicas}
         disabled={creandoBase}
-        style={{ marginTop: Theme.spacing.md }}
+        style={{ marginTop: theme.spacing.md }}
       />
     </View>
   );
@@ -511,7 +504,7 @@ export default function LimpiezaCaseroTab() {
 
   const renderCalendario = () => {
     if (loadingTurnos) {
-      return <ActivityIndicator style={{ flex: 1, marginTop: 40 }} size="large" color={Theme.colors.primary} />;
+      return <ActivityIndicator style={{ flex: 1, marginTop: 40 }} size="large" color={theme.colors.primary} />;
     }
 
     const turnosFiltrados = turnos.filter((turno) =>
@@ -543,9 +536,9 @@ export default function LimpiezaCaseroTab() {
               disabled={exportando}
             >
               {exportando ? (
-                <ActivityIndicator size="small" color={Theme.colors.primary} />
+                <ActivityIndicator size="small" color={theme.colors.primary} />
               ) : (
-                <Ionicons name="download-outline" size={16} color={Theme.colors.primary} />
+                <Ionicons name="download-outline" size={16} color={theme.colors.primary} />
               )}
               <Text style={styles.calendarioBtnExportTexto}>
                 {exportando ? 'Exportando' : 'Exportar todo'}
@@ -597,7 +590,7 @@ export default function LimpiezaCaseroTab() {
         {turnos.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-              <Ionicons name="calendar-outline" size={40} color={Theme.colors.success} />
+              <Ionicons name="calendar-outline" size={40} color={theme.colors.success} />
             </View>
             <Text style={styles.emptyTitulo}>Sin turnos esta semana</Text>
             <Text style={styles.emptySubtitulo}>Genera los turnos para asignar las tareas de limpieza de esta semana.</Text>
@@ -606,13 +599,13 @@ export default function LimpiezaCaseroTab() {
               variant="primary"
               onPress={handleGenerarTurnos}
               disabled={generando}
-              style={{ marginTop: Theme.spacing.md, minWidth: 180 }}
+              style={{ marginTop: theme.spacing.md, minWidth: 180 }}
             />
           </View>
         ) : turnosFiltrados.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-              <Ionicons name="filter-outline" size={40} color={Theme.colors.success} />
+              <Ionicons name="filter-outline" size={40} color={theme.colors.success} />
             </View>
             <Text style={styles.emptyTitulo}>Sin resultados</Text>
             <Text style={styles.emptySubtitulo}>No hay turnos de limpieza con el filtro seleccionado.</Text>
@@ -622,7 +615,7 @@ export default function LimpiezaCaseroTab() {
             <View key={grupo.usuario.id} style={styles.userCard}>
               {/* Avatar + nombre */}
               <View style={styles.userCardHeader}>
-                <AvatarInitials nombre={grupo.usuario.nombre} apellidos={grupo.usuario.apellidos} />
+                <AvatarInitials nombre={grupo.usuario.nombre} apellidos={grupo.usuario.apellidos} theme={theme} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.userNombre}>
                     {grupo.usuario.nombre}{grupo.usuario.apellidos ? ` ${grupo.usuario.apellidos}` : ''}
@@ -637,7 +630,7 @@ export default function LimpiezaCaseroTab() {
               {grupo.items.map((t) => (
                 <View key={t.id} style={styles.turnoRow}>
                   <View style={styles.turnoIconWrapper}>
-                    <Ionicons name={zonaIcon(t.zona.nombre)} size={15} color={Theme.colors.primary} />
+                    <Ionicons name={zonaIcon(t.zona.nombre)} size={15} color={theme.colors.primary} />
                   </View>
                   <Text style={styles.turnoZona}>{t.zona.nombre}</Text>
                   <View style={[
@@ -694,7 +687,7 @@ export default function LimpiezaCaseroTab() {
             style={styles.botonGenerar}
           />
           {loading ? (
-            <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />
+            <ActivityIndicator style={{ flex: 1 }} size="large" color={theme.colors.primary} />
           ) : (
             <FlatList
               contentContainerStyle={styles.content}
@@ -783,7 +776,7 @@ export default function LimpiezaCaseroTab() {
                 disabled={!puedeGuardar || guardando}
               >
                 {guardando ? (
-                  <ActivityIndicator color={Theme.colors.surface} />
+                  <ActivityIndicator color={theme.colors.surface} />
                 ) : (
                   <Text style={styles.botonGuardarTexto}>Guardar</Text>
                 )}
@@ -807,7 +800,7 @@ export default function LimpiezaCaseroTab() {
               <Text style={styles.modalSubtitulo}>{zonaSeleccionada.nombre}</Text>
             )}
             {inquilinos.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: Theme.colors.textTertiary, fontSize: Theme.typography.body, paddingVertical: Theme.spacing.md }}>
+              <Text style={{ textAlign: 'center', color: theme.colors.textTertiary, fontSize: theme.typography.body, paddingVertical: theme.spacing.md }}>
                 No hay inquilinos en esta vivienda.
               </Text>
             ) : (
@@ -832,7 +825,7 @@ export default function LimpiezaCaseroTab() {
                 );
               })
             )}
-            <View style={[styles.modalAcciones, { marginTop: Theme.spacing.md }]}>
+            <View style={[styles.modalAcciones, { marginTop: theme.spacing.md }]}>
               <Pressable
                 style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
                 onPress={cerrarModalAsignacion}
@@ -846,7 +839,7 @@ export default function LimpiezaCaseroTab() {
                 disabled={asignando}
               >
                 {asignando ? (
-                  <ActivityIndicator color={Theme.colors.surface} />
+                  <ActivityIndicator color={theme.colors.surface} />
                 ) : (
                   <Text style={styles.botonGuardarTexto}>Guardar</Text>
                 )}
