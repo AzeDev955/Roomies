@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
+import { AccordionSection } from '@/components/common/AccordionSection';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
@@ -140,6 +141,13 @@ type RepartoFacturaPuntualLinea = {
   automatico: boolean;
 };
 
+type GrupoFacturas = {
+  key: string;
+  titulo: string;
+  total: number;
+  facturas: FacturaEmitida[];
+};
+
 const formatearImporte = (importe: number) =>
   importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -149,6 +157,53 @@ const formatearFecha = (fechaIso: string) =>
     month: 'short',
     year: 'numeric',
   });
+
+const formatearMesFacturas = (fechaIso: string) => {
+  const fecha = new Date(fechaIso);
+
+  return fecha.toLocaleDateString('es-ES', {
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
+const obtenerClaveMes = (fechaIso: string) => {
+  const fecha = new Date(fechaIso);
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+
+  return `${fecha.getFullYear()}-${mes}`;
+};
+
+const perteneceAlMesActual = (fechaIso: string) => {
+  const fecha = new Date(fechaIso);
+  const ahora = new Date();
+
+  return fecha.getMonth() === ahora.getMonth() && fecha.getFullYear() === ahora.getFullYear();
+};
+
+const agruparFacturasPorMes = (facturas: FacturaEmitida[]) => {
+  const grupos = new Map<string, GrupoFacturas>();
+
+  facturas.forEach((factura) => {
+    const key = obtenerClaveMes(factura.fecha_creacion);
+    const grupo = grupos.get(key);
+
+    if (grupo) {
+      grupo.facturas.push(factura);
+      grupo.total += factura.importe;
+      return;
+    }
+
+    grupos.set(key, {
+      key,
+      titulo: formatearMesFacturas(factura.fecha_creacion),
+      total: factura.importe,
+      facturas: [factura],
+    });
+  });
+
+  return Array.from(grupos.values()).sort((a, b) => b.key.localeCompare(a.key));
+};
 
 const obtenerIniciales = (nombre: string, apellidos: string | null) =>
   `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
@@ -222,6 +277,7 @@ export default function CaseroCobrosScreen() {
   const [facturaAdjuntaPuntual, setFacturaAdjuntaPuntual] =
     useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [guardandoFacturaPuntual, setGuardandoFacturaPuntual] = useState(false);
+  const [gruposFacturasExpandidos, setGruposFacturasExpandidos] = useState<Record<string, boolean>>({});
 
   const deudasPendientes = useMemo(
     () => resumen?.deudas.filter((deuda) => deuda.estado === 'PENDIENTE') ?? [],
@@ -377,6 +433,26 @@ export default function CaseroCobrosScreen() {
       (a, b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime(),
     );
   }, [resumen]);
+  const facturasPrioritarias = useMemo(
+    () =>
+      facturasEmitidas.filter(
+        (factura) =>
+          perteneceAlMesActual(factura.fecha_creacion) ||
+          factura.deudas.some((deuda) => deuda.estado === 'PENDIENTE'),
+      ),
+    [facturasEmitidas],
+  );
+  const gruposFacturasPasadas = useMemo(
+    () =>
+      agruparFacturasPorMes(
+        facturasEmitidas.filter(
+          (factura) =>
+            !perteneceAlMesActual(factura.fecha_creacion) &&
+            factura.deudas.every((deuda) => deuda.estado === 'PAGADA'),
+        ),
+      ),
+    [facturasEmitidas],
+  );
 
   const facturaTienePagos = facturaEditando?.deudas.some((deuda) => deuda.estado === 'PAGADA') ?? false;
 
@@ -625,6 +701,13 @@ export default function CaseroCobrosScreen() {
     setConceptoEditado(factura.concepto);
     setImporteEditado(String(factura.importe).replace('.', ','));
     setFechaEditada(factura.fecha_creacion.slice(0, 10));
+  };
+
+  const alternarGrupoFacturas = (grupoKey: string) => {
+    setGruposFacturasExpandidos((actual) => ({
+      ...actual,
+      [grupoKey]: !actual[grupoKey],
+    }));
   };
 
   const cerrarEditorFactura = () => {
@@ -925,7 +1008,7 @@ export default function CaseroCobrosScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Facturas emitidas</Text>
               <Text style={styles.sectionSubtitle}>
-                Ajusta el concepto o el importe de los recibos mensuales generados.
+                Revisa primero las facturas actuales o pendientes y consulta el histórico por mes.
               </Text>
             </View>
 
@@ -941,13 +1024,37 @@ export default function CaseroCobrosScreen() {
               </View>
             ) : (
               <View style={styles.invoiceList}>
-                {facturasEmitidas.map((factura) => (
-                  <FacturaCard
-                    key={factura.id}
-                    factura={factura}
-                    onEditar={abrirEditorFactura}
-                    onVerFactura={abrirFacturaEmitida}
-                  />
+                {facturasPrioritarias.length > 0 && (
+                  <View style={styles.currentInvoiceList}>
+                    {facturasPrioritarias.map((factura) => (
+                      <FacturaCard
+                        key={factura.id}
+                        factura={factura}
+                        onEditar={abrirEditorFactura}
+                        onVerFactura={abrirFacturaEmitida}
+                      />
+                    ))}
+                  </View>
+                )}
+
+                {gruposFacturasPasadas.map((grupo) => (
+                  <AccordionSection
+                    key={grupo.key}
+                    title={grupo.titulo}
+                    subtitle={`${grupo.facturas.length} facturas cerradas`}
+                    meta={formatearImporte(grupo.total)}
+                    expanded={!!gruposFacturasExpandidos[grupo.key]}
+                    onToggle={() => alternarGrupoFacturas(grupo.key)}
+                  >
+                    {grupo.facturas.map((factura) => (
+                      <FacturaCard
+                        key={factura.id}
+                        factura={factura}
+                        onEditar={abrirEditorFactura}
+                        onVerFactura={abrirFacturaEmitida}
+                      />
+                    ))}
+                  </AccordionSection>
                 ))}
               </View>
             )}

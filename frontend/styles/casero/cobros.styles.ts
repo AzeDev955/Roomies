@@ -168,6 +168,9 @@ export const styles = StyleSheet.create({
   invoiceList: {
     gap: Theme.spacing.base,
   },
+  currentInvoiceList: {
+    gap: Theme.spacing.base,
+  },
   invoiceCard: {
     backgroundColor: Theme.colors.surface,
     borderRadius: Theme.radius.lg,
