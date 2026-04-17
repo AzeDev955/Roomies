@@ -2,20 +2,20 @@ import { View, Text, FlatList, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { Theme } from '@/constants/theme';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import {
-  styles,
-  PRIORIDAD_BG,
-  PRIORIDAD_TEXT,
-  COLORES_PRIORIDAD,
+  createStyles,
+  getPrioridadBg,
+  getPrioridadText,
+  getColorPrioridad,
   ETIQUETAS_PRIORIDAD,
   ETIQUETAS_ESTADO,
-  ESTADO_PILL_BG,
-  ESTADO_PILL_TEXT,
+  getEstadoPillBg,
+  getEstadoPillText,
 } from '@/styles/casero/vivienda/incidencias.styles';
 
 type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
@@ -37,11 +37,13 @@ const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
 export default function IncidenciasCaseroTab() {
   const id = useViviendaIdParam();
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [loading, setLoading] = useState(true);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
-  const cargarIncidencias = async () => {
+  const cargarIncidencias = useCallback(async () => {
     if (!id) return;
 
     setLoading(true);
@@ -53,12 +55,12 @@ export default function IncidenciasCaseroTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useFocusEffect(
     useCallback(() => {
       cargarIncidencias();
-    }, [id])
+    }, [cargarIncidencias])
   );
 
   const actualizarEstado = async (incidenciaId: number, nuevoEstado: Estado) => {
@@ -81,13 +83,23 @@ export default function IncidenciasCaseroTab() {
 
   const renderCard = (item: Incidencia) => (
     <View key={item.id} style={styles.card}>
-      <View style={[styles.cardStripe, { backgroundColor: COLORES_PRIORIDAD[item.prioridad] }]} />
+      <View style={[styles.cardStripe, { backgroundColor: getColorPrioridad(theme, item.prioridad) }]} />
       <View style={styles.cardBody}>
         <Pressable onPress={() => router.push(`/incidencia/${item.id}?puedeGestionar=true`)}>
           <View style={styles.cardTopRow}>
             <Text style={styles.cardTitulo}>{item.titulo}</Text>
-            <View style={[styles.prioridadBadge, { backgroundColor: PRIORIDAD_BG[item.prioridad] }]}>
-              <Text style={[styles.prioridadBadgeTexto, { color: PRIORIDAD_TEXT[item.prioridad] }]}>
+            <View
+              style={[
+                styles.prioridadBadge,
+                { backgroundColor: getPrioridadBg(theme, item.prioridad) },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.prioridadBadgeTexto,
+                  { color: getPrioridadText(theme, item.prioridad) },
+                ]}
+              >
                 {ETIQUETAS_PRIORIDAD[item.prioridad]}
               </Text>
             </View>
@@ -115,14 +127,14 @@ export default function IncidenciasCaseroTab() {
                 key={e}
                 style={[
                   styles.estadoPill,
-                  activo && { backgroundColor: ESTADO_PILL_BG[e] },
+                  activo && { backgroundColor: getEstadoPillBg(theme, e) },
                 ]}
                 onPress={() => actualizarEstado(item.id, e)}
               >
                 <Text
                   style={[
                     styles.estadoPillTexto,
-                    activo && { color: ESTADO_PILL_TEXT[e] },
+                    activo && { color: getEstadoPillText(theme, e) },
                   ]}
                 >
                   {ETIQUETAS_ESTADO[e]}
@@ -147,7 +159,7 @@ export default function IncidenciasCaseroTab() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-              <Ionicons name="checkmark-circle-outline" size={40} color={Theme.colors.success} />
+              <Ionicons name="checkmark-circle-outline" size={40} color={theme.colors.success} />
             </View>
             <Text style={styles.emptyTitulo}>Todo en orden</Text>
             <Text style={styles.emptySubtitulo}>

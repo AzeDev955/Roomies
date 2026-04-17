@@ -1,202 +1,203 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { DefaultAppTheme, type AppTheme } from '@/constants/theme';
 
-// — Indicador de prioridad (soft tints) —
-export const PRIORIDAD_BG: Record<string, string> = {
-  VERDE:    Theme.colors.successLight,
-  AMARILLO: Theme.colors.warningLight,
-  ROJO:     Theme.colors.dangerLight,
-};
+type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
+type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
 
-export const PRIORIDAD_TEXT: Record<string, string> = {
-  VERDE:    Theme.colors.successText,
-  AMARILLO: Theme.colors.warningText,
-  ROJO:     Theme.colors.dangerText,
-};
+export const getPrioridadBg = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.successLight,
+  AMARILLO: theme.colors.warningLight,
+  ROJO: theme.colors.dangerLight,
+})[prioridad];
 
-export const COLORES_PRIORIDAD: Record<string, string> = {
-  VERDE:    Theme.colors.success,
-  AMARILLO: Theme.colors.warning,
-  ROJO:     Theme.colors.danger,
-};
+export const getPrioridadText = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.successText,
+  AMARILLO: theme.colors.warningText,
+  ROJO: theme.colors.dangerText,
+})[prioridad];
 
-export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
-  VERDE:    'Baja',
+export const getColorPrioridad = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.success,
+  AMARILLO: theme.colors.warning,
+  ROJO: theme.colors.danger,
+})[prioridad];
+
+export const ETIQUETAS_PRIORIDAD: Record<Prioridad, string> = {
+  VERDE: 'Baja',
   AMARILLO: 'Media',
-  ROJO:     'Alta',
+  ROJO: 'Alta',
 };
 
-export const ETIQUETAS_ESTADO: Record<string, string> = {
-  PENDIENTE:  'Pendiente',
+export const ETIQUETAS_ESTADO: Record<Estado, string> = {
+  PENDIENTE: 'Pendiente',
   EN_PROCESO: 'En curso',
-  RESUELTA:   'Resuelta',
+  RESUELTA: 'Resuelta',
 };
 
-// — Colores activos por estado (pills) —
-export const ESTADO_PILL_BG: Record<string, string> = {
-  PENDIENTE:  Theme.colors.warningLight,
-  EN_PROCESO: Theme.colors.primary + '20',
-  RESUELTA:   Theme.colors.successLight,
-};
+export const getEstadoPillBg = (theme: AppTheme, estado: Estado) => ({
+  PENDIENTE: theme.colors.warningLight,
+  EN_PROCESO: theme.colors.primaryLight,
+  RESUELTA: theme.colors.successLight,
+})[estado];
 
-export const ESTADO_PILL_TEXT: Record<string, string> = {
-  PENDIENTE:  Theme.colors.warningText,
-  EN_PROCESO: Theme.colors.primary,
-  RESUELTA:   Theme.colors.successText,
-};
+export const getEstadoPillText = (theme: AppTheme, estado: Estado) => ({
+  PENDIENTE: theme.colors.warningText,
+  EN_PROCESO: theme.colors.primary,
+  RESUELTA: theme.colors.successText,
+})[estado];
 
-export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
   content: {
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
   },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // — Empty state —
   emptyContainer: {
     alignItems: 'center',
-    paddingTop: Theme.spacing.xxl,
-    paddingHorizontal: Theme.spacing.xl,
-    gap: Theme.spacing.md,
+    paddingTop: theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.xl,
+    gap: theme.spacing.md,
   },
   emptyIconBox: {
     width: 80,
     height: 80,
-    borderRadius: Theme.radius.xl,
-    backgroundColor: Theme.colors.success + '18',
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.successLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   emptyTitulo: {
-    fontSize: Theme.typography.title,
+    fontSize: theme.typography.title,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: 0,
   },
   emptySubtitulo: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
 
-  // — Tarjeta —
   card: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    marginBottom: Theme.spacing.base,
-    shadowColor: Theme.colors.shadow,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    marginBottom: theme.spacing.base,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
     shadowRadius: 10,
     elevation: 3,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   cardStripe: {
     height: 4,
     width: '100%',
   },
   cardBody: {
-    padding: Theme.spacing.base,
+    padding: theme.spacing.base,
   },
   cardTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: Theme.spacing.xs,
-    gap: Theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+    gap: theme.spacing.sm,
   },
   cardTitulo: {
     flex: 1,
-    fontSize: Theme.typography.subtitle,
+    fontSize: theme.typography.subtitle,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     lineHeight: 24,
   },
   prioridadBadge: {
-    borderRadius: Theme.radius.full,
+    borderRadius: theme.radius.full,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: theme.spacing.xs,
     alignSelf: 'flex-start',
   },
   prioridadBadgeTexto: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '700',
   },
   cardDescripcion: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
     lineHeight: 20,
-    marginBottom: Theme.spacing.md,
+    marginBottom: theme.spacing.md,
   },
   cardMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.md,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
     alignItems: 'center',
   },
   cardCreador: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textMedium,
+    fontSize: theme.typography.caption,
+    color: theme.colors.textMedium,
     fontWeight: '600',
   },
   cardSeparador: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.border,
+    fontSize: theme.typography.caption,
+    color: theme.colors.textTertiary,
   },
   cardHabitacion: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.primary,
+    fontSize: theme.typography.caption,
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   cardFecha: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textMuted,
+    fontSize: theme.typography.caption,
+    color: theme.colors.textMuted,
   },
 
-  // — Selector de estado (pills por color) —
   estadoSelector: {
     flexDirection: 'row',
-    gap: 6,
-    paddingTop: Theme.spacing.sm,
+    gap: theme.spacing.xs,
+    paddingTop: theme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Theme.colors.border,
+    borderTopColor: theme.colors.border,
   },
   estadoPill: {
     flex: 1,
-    borderRadius: Theme.radius.full,
-    paddingVertical: 8,
+    borderRadius: theme.radius.full,
+    paddingVertical: theme.spacing.sm,
     alignItems: 'center',
-    backgroundColor: Theme.colors.surface2,
+    backgroundColor: theme.colors.surface2,
     minHeight: 36,
     justifyContent: 'center',
   },
   estadoPillTexto: {
-    fontSize: 11,
+    fontSize: theme.typography.caption,
     fontWeight: '600',
-    color: Theme.colors.textMedium,
+    color: theme.colors.textMedium,
   },
 
-  // — Historial —
   historialToggle: {
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: theme.spacing.md,
     alignItems: 'center',
-    marginTop: Theme.spacing.xs,
-    marginBottom: Theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
   },
   historialToggleTexto: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.primary,
+    fontSize: theme.typography.label,
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   historialSeparador: {
     height: 1,
-    backgroundColor: Theme.colors.surface2,
-    marginBottom: Theme.spacing.md,
+    backgroundColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
   },
 });
+
+export const styles = createStyles();
