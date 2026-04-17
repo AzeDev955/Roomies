@@ -12,14 +12,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Clipboard from 'expo-clipboard';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
-import { styles } from '@/styles/casero/vivienda/detalle.styles';
-import { COLORES_PRIORIDAD } from '@/styles/casero/vivienda/incidencias.styles';
+import type { AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from '@/styles/casero/vivienda/detalle.styles';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
@@ -90,13 +90,25 @@ const HAB_ICONS: Record<string, any> = {
 const formatearImporte = (importe: number) =>
   importe.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
+const getColorPrioridad = (theme: AppTheme, prioridad: Prioridad) => {
+  const colores: Record<Prioridad, string> = {
+    VERDE: theme.colors.success,
+    AMARILLO: theme.colors.warning,
+    ROJO: theme.colors.danger,
+  };
+
+  return colores[prioridad];
+};
+
 const AvatarInitials = ({
   nombre,
   apellidos,
+  theme,
   size = 36,
 }: {
   nombre: string;
   apellidos: string | null;
+  theme: AppTheme;
   size?: number;
 }) => {
   const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
@@ -106,13 +118,13 @@ const AvatarInitials = ({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: Theme.colors.primary,
+        backgroundColor: theme.colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
       }}
     >
-      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.surface }}>
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: theme.colors.surface }}>
         {initials}
       </Text>
     </View>
@@ -122,6 +134,8 @@ const AvatarInitials = ({
 export default function ResumenViviendaTab() {
   const id = useViviendaIdParam();
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
   const [gastosRecurrentes, setGastosRecurrentes] = useState<GastoRecurrente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -361,7 +375,7 @@ export default function ResumenViviendaTab() {
             onPress={() => router.push(`/casero/vivienda/${id}/incidencias`)}
           >
             <View style={styles.accionIconIncidencias}>
-              <Ionicons name="warning-outline" size={22} color={Theme.colors.warning} />
+              <Ionicons name="warning-outline" size={22} color={theme.colors.warning} />
             </View>
             <Text style={styles.accionLabel}>Incidencias</Text>
           </Pressable>
@@ -378,7 +392,7 @@ export default function ResumenViviendaTab() {
             }
           >
             <View style={styles.accionIconNuevaInc}>
-              <Ionicons name="add-circle-outline" size={22} color={Theme.colors.success} />
+              <Ionicons name="add-circle-outline" size={22} color={theme.colors.success} />
             </View>
             <Text style={styles.accionLabel}>Nueva Incidencia</Text>
           </Pressable>
@@ -399,7 +413,7 @@ export default function ResumenViviendaTab() {
             accessibilityRole="button"
             accessibilityLabel="Crear nuevo gasto fijo"
           >
-            <Ionicons name="repeat-outline" size={16} color={Theme.colors.primary} />
+            <Ionicons name="repeat-outline" size={16} color={theme.colors.primary} />
             <Text style={styles.secondaryButtonText}>Nuevo</Text>
           </Pressable>
         </View>
@@ -407,7 +421,7 @@ export default function ResumenViviendaTab() {
         {mensualidadesActivas.length === 0 ? (
           <View style={styles.recurringEmptyCard}>
             <View style={styles.recurringEmptyIcon}>
-              <Ionicons name="calendar-outline" size={22} color={Theme.colors.primary} />
+              <Ionicons name="calendar-outline" size={22} color={theme.colors.primary} />
             </View>
             <View style={styles.recurringEmptyContent}>
               <Text style={styles.recurringEmptyTitle}>Aún no hay gastos fijos activos</Text>
@@ -421,7 +435,7 @@ export default function ResumenViviendaTab() {
           mensualidadesActivas.map((gasto) => (
             <View key={gasto.id} style={styles.recurringCard}>
               <View style={styles.recurringIcon}>
-                <Ionicons name="repeat" size={18} color={Theme.colors.primary} />
+                <Ionicons name="repeat" size={18} color={theme.colors.primary} />
               </View>
               <View style={styles.recurringBody}>
                 <Text style={styles.recurringTitle}>{gasto.concepto}</Text>
@@ -454,7 +468,7 @@ export default function ResumenViviendaTab() {
                     <Ionicons
                       name={HAB_ICONS[habitacion.tipo] ?? 'grid-outline'}
                       size={20}
-                      color={Theme.colors.textSecondary}
+                      color={theme.colors.textSecondary}
                     />
                   </View>
                   <View>
@@ -474,6 +488,7 @@ export default function ResumenViviendaTab() {
                     <AvatarInitials
                       nombre={habitacion.inquilino.nombre}
                       apellidos={habitacion.inquilino.apellidos}
+                      theme={theme}
                       size={36}
                     />
                   </Pressable>
@@ -518,7 +533,7 @@ export default function ResumenViviendaTab() {
                       <Ionicons
                         name="lock-closed-outline"
                         size={14}
-                        color={Theme.colors.textTertiary}
+                        color={theme.colors.textTertiary}
                       />
                       <Text style={styles.revelarTexto}>Toca para revelar código de invitación</Text>
                     </Pressable>
@@ -537,7 +552,7 @@ export default function ResumenViviendaTab() {
                       <View
                         style={[
                           styles.incidenciaDot,
-                          { backgroundColor: COLORES_PRIORIDAD[inc.prioridad] },
+                          { backgroundColor: getColorPrioridad(theme, inc.prioridad) },
                         ]}
                       />
                       <Text style={styles.incidenciaTitulo} numberOfLines={1}>
@@ -577,7 +592,7 @@ export default function ResumenViviendaTab() {
             </Text>
 
             <View style={styles.infoBanner}>
-              <Ionicons name="time-outline" size={16} color={Theme.colors.primary} />
+              <Ionicons name="time-outline" size={16} color={theme.colors.primary} />
               <Text style={styles.infoBannerTexto}>
                 Roomies generará el gasto de forma automática la madrugada del día elegido y
                 notificará a los inquilinos.
