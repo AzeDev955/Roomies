@@ -69,6 +69,12 @@ type DeudaCobro = {
     importe: number;
     factura_url: string | null;
     fecha_creacion: string;
+    fecha_modificacion: string | null;
+    modificado_por: {
+      id: number;
+      nombre: string;
+      apellidos: string | null;
+    } | null;
   };
   deudor: {
     id: number;
@@ -98,6 +104,12 @@ type FacturaEmitida = {
   importe: number;
   factura_url: string | null;
   fecha_creacion: string;
+  fecha_modificacion: string | null;
+  modificado_por: {
+    id: number;
+    nombre: string;
+    apellidos: string | null;
+  } | null;
   deudas: DeudaCobro[];
 };
 
@@ -107,6 +119,12 @@ type GastoActualizadoResponse = {
   importe: number;
   factura_url: string | null;
   fecha_creacion: string;
+  fecha_modificacion: string | null;
+  modificado_por: {
+    id: number;
+    nombre: string;
+    apellidos: string | null;
+  } | null;
   deudas: {
     id: number;
     importe: number;
@@ -187,6 +205,7 @@ export default function CaseroCobrosScreen() {
   const [facturaVisualizando, setFacturaVisualizando] = useState<FacturaEmitida | null>(null);
   const [conceptoEditado, setConceptoEditado] = useState('');
   const [importeEditado, setImporteEditado] = useState('');
+  const [fechaEditada, setFechaEditada] = useState('');
   const [guardandoFactura, setGuardandoFactura] = useState(false);
   const [subiendoFactura, setSubiendoFactura] = useState(false);
   const [inquilinosActivos, setInquilinosActivos] = useState<InquilinoActivo[]>([]);
@@ -346,6 +365,8 @@ export default function CaseroCobrosScreen() {
         importe: deuda.gasto.importe,
         factura_url: deuda.gasto.factura_url,
         fecha_creacion: deuda.gasto.fecha_creacion,
+        fecha_modificacion: deuda.gasto.fecha_modificacion,
+        modificado_por: deuda.gasto.modificado_por,
         deudas: [deuda],
       });
     });
@@ -587,9 +608,21 @@ export default function CaseroCobrosScreen() {
   };
 
   const abrirEditorFactura = (factura: FacturaEmitida) => {
+    const pagosRegistrados = factura.deudas.some((deuda) => deuda.estado === 'PAGADA');
+
+    if (pagosRegistrados) {
+      Toast.show({
+        type: 'info',
+        text1: 'Factura bloqueada',
+        text2: 'Ya hay pagos registrados y no se puede modificar.',
+      });
+      return;
+    }
+
     setFacturaEditando(factura);
     setConceptoEditado(factura.concepto);
     setImporteEditado(String(factura.importe).replace('.', ','));
+    setFechaEditada(factura.fecha_creacion.slice(0, 10));
   };
 
   const cerrarEditorFactura = () => {
@@ -600,6 +633,7 @@ export default function CaseroCobrosScreen() {
     setFacturaEditando(null);
     setConceptoEditado('');
     setImporteEditado('');
+    setFechaEditada('');
   };
 
   const guardarFactura = async () => {
@@ -609,6 +643,7 @@ export default function CaseroCobrosScreen() {
 
     const conceptoNormalizado = conceptoEditado.trim();
     const importeNormalizado = Number(importeEditado.replace(',', '.'));
+    const fechaNormalizada = fechaEditada.trim();
 
     if (!conceptoNormalizado) {
       Toast.show({ type: 'error', text1: 'El concepto no puede estar vacío.' });
@@ -620,10 +655,16 @@ export default function CaseroCobrosScreen() {
       return;
     }
 
+    if (!fechaNormalizada || Number.isNaN(new Date(fechaNormalizada).getTime())) {
+      Toast.show({ type: 'error', text1: 'Introduce una fecha válida.' });
+      return;
+    }
+
     setGuardandoFactura(true);
     try {
-      const payload: { concepto: string; importe?: number } = {
+      const payload: { concepto: string; fecha: string; importe?: number } = {
         concepto: conceptoNormalizado,
+        fecha: fechaNormalizada,
       };
 
       if (!facturaTienePagos) {
@@ -640,6 +681,7 @@ export default function CaseroCobrosScreen() {
       setFacturaEditando(null);
       setConceptoEditado('');
       setImporteEditado('');
+      setFechaEditada('');
       Toast.show({ type: 'success', text1: 'Factura actualizada.' });
     } catch (error: any) {
       Toast.show({
@@ -674,6 +716,8 @@ export default function CaseroCobrosScreen() {
             importe: gasto.importe,
             factura_url: gasto.factura_url,
             fecha_creacion: gasto.fecha_creacion,
+            fecha_modificacion: gasto.fecha_modificacion,
+            modificado_por: gasto.modificado_por,
           },
         };
       });
@@ -741,6 +785,8 @@ export default function CaseroCobrosScreen() {
           ? {
               ...facturaActual,
               factura_url: data.factura_url,
+              fecha_modificacion: data.fecha_modificacion,
+              modificado_por: data.modificado_por,
             }
           : facturaActual,
       );
@@ -1229,6 +1275,13 @@ export default function CaseroCobrosScreen() {
                 keyboardType="decimal-pad"
                 editable={!facturaTienePagos}
               />
+              <CustomInput
+                label="Periodo / fecha"
+                value={fechaEditada}
+                onChangeText={setFechaEditada}
+                placeholder="2026-04-11"
+                editable={!facturaTienePagos}
+              />
             </View>
 
             <View style={styles.invoicePhotoBlock}>
@@ -1360,13 +1413,28 @@ function FacturaCard({
           </Text>
         </View>
         <Pressable
-          style={styles.invoiceEditButton}
+          style={[
+            styles.invoiceEditButton,
+            pagosRegistrados && styles.invoiceEditButtonDisabled,
+          ]}
           onPress={() => onEditar(factura)}
           accessibilityRole="button"
           accessibilityLabel={`Editar factura ${factura.concepto}`}
+          accessibilityState={{ disabled: pagosRegistrados }}
         >
-          <Ionicons name="create-outline" size={18} color={Theme.colors.primary} />
-          <Text style={styles.invoiceEditText}>Editar</Text>
+          <Ionicons
+            name={pagosRegistrados ? 'lock-closed-outline' : 'create-outline'}
+            size={18}
+            color={pagosRegistrados ? Theme.colors.textMuted : Theme.colors.primary}
+          />
+          <Text
+            style={[
+              styles.invoiceEditText,
+              pagosRegistrados && styles.invoiceEditTextDisabled,
+            ]}
+          >
+            {pagosRegistrados ? 'Bloqueada' : 'Editar'}
+          </Text>
         </Pressable>
       </View>
 
@@ -1382,6 +1450,13 @@ function FacturaCard({
           <Ionicons name="image-outline" size={15} color={Theme.colors.info} />
           <Text style={styles.receiptLinkText}>Ver factura</Text>
         </Pressable>
+      )}
+
+      {factura.fecha_modificacion && factura.modificado_por && (
+        <Text style={styles.invoiceTrace}>
+          Editada el {formatearFecha(factura.fecha_modificacion)} por{' '}
+          {nombreCompleto(factura.modificado_por.nombre, factura.modificado_por.apellidos)}
+        </Text>
       )}
     </View>
   );
