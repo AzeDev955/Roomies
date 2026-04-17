@@ -4,6 +4,7 @@ export const TIPOS_GASTO_CASERO = [
   'FACTURA_PUNTUAL',
   'FACTURA_MENSUAL',
   'CARGO_RECURRENTE',
+  'ALQUILER_HABITACION',
 ] as const;
 
 export const TIPOS_GASTO_COMPANEROS = ['ENTRE_COMPANEROS'] as const;
@@ -25,7 +26,24 @@ type CrearGastoDivididoInput = {
     usuario_id: number;
     importe: number;
   }[];
+  periodoFacturacion?: string | null;
+  habitacionCargoId?: number | null;
+  inquilinoCargoId?: number | null;
 };
+
+type CrearCargosMensualesHabitacionResultado = {
+  periodo: string;
+  creados: number;
+  omitidosExistentes: number;
+  omitidosSinPrecio: number;
+  omitidosSinInquilino: number;
+};
+
+const esErrorDuplicadoPrisma = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: string }).code === 'P2002';
 
 export const usuarioPerteneceAVivienda = async (viviendaId: number, usuarioId: number) => {
   return prisma.habitacion.findFirst({
@@ -84,6 +102,9 @@ export const crearGastoDividido = async ({
   facturaUrl,
   fecha,
   repartoManual,
+  periodoFacturacion,
+  habitacionCargoId,
+  inquilinoCargoId,
 }: CrearGastoDivididoInput) => {
   const vivienda = await prisma.vivienda.findUnique({
     where: { id: viviendaId },
@@ -154,6 +175,9 @@ export const crearGastoDividido = async ({
         factura_url: facturaUrl ?? null,
         fecha_creacion: fecha,
         pagador_id: pagadorId,
+        periodo_facturacion: periodoFacturacion ?? null,
+        habitacion_cargo_id: habitacionCargoId ?? null,
+        inquilino_cargo_id: inquilinoCargoId ?? null,
         vivienda_id: viviendaId,
         deudas: {
           create: repartoManual
@@ -190,6 +214,9 @@ export const crearGastoDividido = async ({
       factura_url: facturaUrl ?? null,
       fecha_creacion: fecha,
       pagador_id: pagadorId,
+      periodo_facturacion: periodoFacturacion ?? null,
+      habitacion_cargo_id: habitacionCargoId ?? null,
+      inquilino_cargo_id: inquilinoCargoId ?? null,
       vivienda_id: viviendaId,
       deudas: {
         create: deudoresIds
@@ -203,4 +230,100 @@ export const crearGastoDividido = async ({
     },
     include: { deudas: true },
   });
+};
+
+export const obtenerPeriodoMensual = (fecha = new Date()) => {
+  const mes = `${fecha.getMonth() + 1}`.padStart(2, '0');
+  return `${fecha.getFullYear()}-${mes}`;
+};
+
+export const crearCargosMensualesHabitacion = async (
+  fecha = new Date(),
+): Promise<CrearCargosMensualesHabitacionResultado> => {
+  const periodo = obtenerPeriodoMensual(fecha);
+  const fechaCargo = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+  const resultado: CrearCargosMensualesHabitacionResultado = {
+    periodo,
+    creados: 0,
+    omitidosExistentes: 0,
+    omitidosSinPrecio: 0,
+    omitidosSinInquilino: 0,
+  };
+
+  const habitaciones = await prisma.habitacion.findMany({
+    where: {
+      es_habitable: true,
+      inquilino_id: { not: null },
+      inquilino: { estado_presencia: 'ACTIVO' },
+    },
+    select: {
+      id: true,
+      nombre: true,
+      precio: true,
+      inquilino_id: true,
+      vivienda_id: true,
+      vivienda: {
+        select: {
+          casero_id: true,
+          alias_nombre: true,
+        },
+      },
+    },
+  });
+
+  for (const habitacion of habitaciones) {
+    if (!habitacion.inquilino_id) {
+      resultado.omitidosSinInquilino += 1;
+      continue;
+    }
+
+    if (habitacion.precio == null || !Number.isFinite(habitacion.precio) || habitacion.precio <= 0) {
+      resultado.omitidosSinPrecio += 1;
+      console.warn(
+        `[cron] Habitacion ${habitacion.id} sin precio valido para el periodo ${periodo}; no se genera alquiler.`,
+      );
+      continue;
+    }
+
+    const existente = await prisma.gasto.findFirst({
+      where: {
+        tipo: 'ALQUILER_HABITACION',
+        periodo_facturacion: periodo,
+        habitacion_cargo_id: habitacion.id,
+        inquilino_cargo_id: habitacion.inquilino_id,
+      },
+      select: { id: true },
+    });
+
+    if (existente) {
+      resultado.omitidosExistentes += 1;
+      continue;
+    }
+
+    try {
+      await crearGastoDividido({
+        concepto: `Alquiler ${periodo} - ${habitacion.nombre}`,
+        importe: habitacion.precio,
+        tipo: 'ALQUILER_HABITACION',
+        viviendaId: habitacion.vivienda_id,
+        pagadorId: habitacion.vivienda.casero_id,
+        implicadosIds: [habitacion.inquilino_id],
+        fecha: fechaCargo,
+        periodoFacturacion: periodo,
+        habitacionCargoId: habitacion.id,
+        inquilinoCargoId: habitacion.inquilino_id,
+      });
+    } catch (error) {
+      if (esErrorDuplicadoPrisma(error)) {
+        resultado.omitidosExistentes += 1;
+        continue;
+      }
+
+      throw error;
+    }
+
+    resultado.creados += 1;
+  }
+
+  return resultado;
 };

@@ -53,6 +53,7 @@ enum TipoGasto {
   FACTURA_PUNTUAL
   FACTURA_MENSUAL
   CARGO_RECURRENTE
+  ALQUILER_HABITACION
 }
 
 enum EstadoItem {
@@ -86,6 +87,7 @@ model Usuario {
   gastos_pagados     Gasto[]
   gastos_modificados Gasto[]                  @relation("ModificadorGasto")
   gastos_recurrentes_pagados GastoRecurrente[]
+  cargos_habitacion Gasto[]                  @relation("InquilinoCargoHabitacion")
   deudas_a_pagar     Deuda[]                  @relation("DeudorDeuda")
   deudas_a_cobrar    Deuda[]                  @relation("AcreedorDeuda")
 }
@@ -125,6 +127,7 @@ model Habitacion {
   codigo_invitacion String?          @unique
   incidencias       Incidencia[]
   items_inventario  ItemInventario[]
+  cargos_alquiler   Gasto[]          @relation("CargoHabitacion")
 }
 
 model Incidencia {
@@ -167,9 +170,16 @@ model Gasto {
   pagador            Usuario   @relation(fields: [pagador_id], references: [id])
   modificado_por_id  Int?
   modificado_por     Usuario?  @relation("ModificadorGasto", fields: [modificado_por_id], references: [id], onDelete: SetNull)
+  periodo_facturacion String?
+  habitacion_cargo_id Int?
+  habitacion_cargo    Habitacion? @relation("CargoHabitacion", fields: [habitacion_cargo_id], references: [id], onDelete: SetNull)
+  inquilino_cargo_id  Int?
+  inquilino_cargo     Usuario? @relation("InquilinoCargoHabitacion", fields: [inquilino_cargo_id], references: [id], onDelete: SetNull)
   vivienda_id        Int
   vivienda           Vivienda  @relation(fields: [vivienda_id], references: [id])
   deudas             Deuda[]
+
+  @@unique([tipo, periodo_facturacion, habitacion_cargo_id, inquilino_cargo_id])
 }
 
 model GastoRecurrente {

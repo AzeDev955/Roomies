@@ -1,11 +1,19 @@
 import cron from 'node-cron';
 import { prisma } from '../lib/prisma';
-import { crearGastoDividido } from '../services/gasto.service';
+import { crearCargosMensualesHabitacion, crearGastoDividido } from '../services/gasto.service';
 
 let cronMensualidadesIniciado = false;
 
 export const procesarMensualidadesDelDia = async () => {
-  const diaActual = new Date().getDate();
+  const hoy = new Date();
+  const diaActual = hoy.getDate();
+
+  if (diaActual === 1) {
+    const resultadoCargosHabitacion = await crearCargosMensualesHabitacion(hoy);
+    console.log(
+      `[cron] Alquileres ${resultadoCargosHabitacion.periodo}: ${resultadoCargosHabitacion.creados} creado(s), ${resultadoCargosHabitacion.omitidosExistentes} existente(s), ${resultadoCargosHabitacion.omitidosSinPrecio} sin precio.`,
+    );
+  }
 
   const gastosRecurrentes = await prisma.gastoRecurrente.findMany({
     where: {
