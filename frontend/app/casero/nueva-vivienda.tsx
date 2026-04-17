@@ -1,10 +1,10 @@
 import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
-import { styles } from '@/styles/casero/nueva-vivienda.styles';
+import { createStyles } from '@/styles/casero/nueva-vivienda.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
 type MapboxFeature = {
   id: string;
@@ -41,6 +41,8 @@ type HabitacionLocal = {
 
 export default function NuevaViviendaScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   // Buscador Mapbox
   const [queryBusqueda, setQueryBusqueda] = useState('');
@@ -166,7 +168,7 @@ export default function NuevaViviendaScreen() {
           <TextInput
             style={styles.buscadorInput}
             placeholder="Ej: Calle Mayor 10, Madrid"
-            placeholderTextColor={Theme.colors.textMuted}
+            placeholderTextColor={theme.colors.textMuted}
             value={queryBusqueda}
             onChangeText={setQueryBusqueda}
             autoCapitalize="none"
@@ -180,7 +182,7 @@ export default function NuevaViviendaScreen() {
             disabled={buscandoDireccion}
           >
             {buscandoDireccion ? (
-                <ActivityIndicator color={Theme.colors.surface} size="small" />
+                <ActivityIndicator color={theme.colors.surface} size="small" />
             ) : (
               <Text style={styles.buscadorBotonTexto}>Buscar</Text>
             )}
@@ -210,7 +212,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Piso Centro"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={aliasNombre}
           onChangeText={setAliasNombre}
           autoCapitalize="words"
@@ -220,7 +222,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Calle Mayor 10, 3ºB"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={direccion}
           onChangeText={setDireccion}
           autoCapitalize="words"
@@ -230,7 +232,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: 28001"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={codigoPostal}
           onChangeText={setCodigoPostal}
           keyboardType="numeric"
@@ -241,7 +243,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Madrid"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={ciudad}
           onChangeText={setCiudad}
           autoCapitalize="words"
@@ -251,7 +253,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Madrid"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={provincia}
           onChangeText={setProvincia}
           autoCapitalize="words"
@@ -264,7 +266,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: Habitación 1"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={habNombre}
           onChangeText={setHabNombre}
           autoCapitalize="words"
@@ -295,8 +297,8 @@ export default function NuevaViviendaScreen() {
               <Switch
                 value={habEsHabitable}
                 onValueChange={setHabEsHabitable}
-                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
-                  thumbColor={Theme.colors.surface}
+                trackColor={{ false: theme.colors.border, true: theme.colors.success }}
+                thumbColor={theme.colors.surface}
               />
             </View>
           </>
@@ -308,7 +310,7 @@ export default function NuevaViviendaScreen() {
             <TextInput
               style={styles.input}
               placeholder="Ej: 450"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
               value={habPrecio}
               onChangeText={setHabPrecio}
               keyboardType="decimal-pad"
@@ -320,7 +322,7 @@ export default function NuevaViviendaScreen() {
         <TextInput
           style={styles.input}
           placeholder="Ej: 12.5"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={habMetros}
           onChangeText={setHabMetros}
           keyboardType="decimal-pad"
@@ -355,7 +357,7 @@ export default function NuevaViviendaScreen() {
           disabled={!puedeGuardar || loading}
         >
           {loading ? (
-            <ActivityIndicator color={Theme.colors.surface} />
+            <ActivityIndicator color={theme.colors.surface} />
           ) : (
             <Text style={styles.botonTexto}>Guardar vivienda</Text>
           )}
