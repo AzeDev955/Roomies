@@ -1,15 +1,15 @@
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import {
-  styles,
+  createStyles,
   ETIQUETAS_PRIORIDAD,
-  PRIORIDAD_BG,
-  PRIORIDAD_TEXT,
-  PRIORIDAD_BORDER,
+  getPrioridadBg,
+  getPrioridadText,
+  getPrioridadBorder,
 } from '@/styles/inquilino/nueva-incidencia.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -35,6 +35,9 @@ const parseHabitaciones = (habitacionesJson?: string): HabitacionResumen[] => {
 
 export default function NuevaIncidenciaScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const keyboardAppearance = theme.isDark ? 'dark' : 'light';
   const { viviendaId, habitacionesJson, miHabitacionId } = useLocalSearchParams<{
     viviendaId: string;
     habitacionesJson: string;
@@ -109,7 +112,8 @@ export default function NuevaIncidenciaScreen() {
           value={titulo}
           onChangeText={setTitulo}
           placeholder="¿Qué ha ocurrido?"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           onFocus={() => setFocusedInput('titulo')}
           onBlur={() => setFocusedInput(null)}
         />
@@ -120,7 +124,8 @@ export default function NuevaIncidenciaScreen() {
           value={descripcion}
           onChangeText={setDescripcion}
           placeholder="Describe el problema con detalle..."
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           multiline
           onFocus={() => setFocusedInput('descripcion')}
           onBlur={() => setFocusedInput(null)}
@@ -155,14 +160,14 @@ export default function NuevaIncidenciaScreen() {
               style={[
                 styles.selectorBtn,
                 {
-                  backgroundColor: PRIORIDAD_BG[p],
-                  borderColor: prioridad === p ? PRIORIDAD_BORDER[p] : 'transparent',
+                  backgroundColor: getPrioridadBg(theme, p),
+                  borderColor: prioridad === p ? getPrioridadBorder(theme, p) : theme.colors.background,
                   opacity: prioridad === p ? 1 : 0.55,
                 },
               ]}
               onPress={() => setPrioridad(p)}
             >
-              <Text style={[styles.selectorBtnTexto, { color: PRIORIDAD_TEXT[p] }]}>
+              <Text style={[styles.selectorBtnTexto, { color: getPrioridadText(theme, p) }]}>
                 {ETIQUETAS_PRIORIDAD[p]}
               </Text>
             </Pressable>
@@ -175,7 +180,7 @@ export default function NuevaIncidenciaScreen() {
           disabled={!puedeEnviar || loading}
         >
           {loading ? (
-            <ActivityIndicator color={Theme.colors.surface} />
+            <ActivityIndicator color={theme.colors.surface} />
           ) : (
             <Text style={styles.botonEnviarTexto}>Enviar Incidencia</Text>
           )}
