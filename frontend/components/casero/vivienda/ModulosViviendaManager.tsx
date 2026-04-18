@@ -1,10 +1,10 @@
 import { Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
-import { Theme } from '@/constants/theme';
+import { useMemo, useState } from 'react';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import api from '@/services/api';
-import { styles } from '@/styles/casero/vivienda/detalle.styles';
+import { createStyles } from '@/styles/casero/vivienda/detalle.styles';
 import {
   ModulosVivienda,
   notificarModulosViviendaActualizados,
@@ -51,6 +51,8 @@ export function ModulosViviendaManager<T extends ViviendaConModulos>({
   vivienda,
   onViviendaChange,
 }: Props<T>) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [actualizandoModulo, setActualizandoModulo] = useState<ModuloViviendaKey | null>(null);
 
   const actualizarModulo = async (key: ModuloViviendaKey, value: boolean) => {
@@ -97,11 +99,12 @@ export function ModulosViviendaManager<T extends ViviendaConModulos>({
         {MODULOS_VIVIENDA.map((modulo) => {
           const activo = vivienda[modulo.key];
           const actualizando = actualizandoModulo === modulo.key;
+          const switchesBloqueados = actualizandoModulo !== null;
 
           return (
             <View key={modulo.key} style={styles.moduloCard}>
               <View style={styles.moduloIconBox}>
-                <Ionicons name={modulo.icono} size={20} color={Theme.colors.primary} />
+                <Ionicons name={modulo.icono} size={20} color={theme.colors.primary} />
               </View>
               <View style={styles.moduloBody}>
                 <Text style={styles.moduloTitulo}>{modulo.titulo}</Text>
@@ -109,10 +112,14 @@ export function ModulosViviendaManager<T extends ViviendaConModulos>({
               </View>
               <Switch
                 value={activo}
-                disabled={actualizandoModulo !== null}
+                disabled={switchesBloqueados}
                 onValueChange={(value) => actualizarModulo(modulo.key, value)}
-                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
-                thumbColor={Theme.colors.surface}
+                trackColor={{
+                  false: theme.colors.border,
+                  true: switchesBloqueados ? theme.colors.successDisabled : theme.colors.success,
+                }}
+                thumbColor={switchesBloqueados ? theme.colors.surface2 : theme.colors.surface}
+                ios_backgroundColor={theme.colors.border}
                 accessibilityLabel={`${activo ? 'Desactivar' : 'Activar'} ${modulo.titulo}`}
               />
               {actualizando && <View style={styles.moduloUpdatingOverlay} />}

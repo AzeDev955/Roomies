@@ -1,11 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useFocusEffect } from 'expo-router';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { ModulosViviendaManager } from '@/components/casero/vivienda/ModulosViviendaManager';
 import api from '@/services/api';
-import { styles } from '@/styles/casero/vivienda/detalle.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from '@/styles/casero/vivienda/detalle.styles';
 import { ModulosVivienda } from '@/utils/viviendaModules';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
 
@@ -17,6 +18,8 @@ type Vivienda = ModulosVivienda & {
 
 export default function OpcionesViviendaTab() {
   const id = useViviendaIdParam();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [vivienda, setVivienda] = useState<Vivienda | null>(null);
   const [loading, setLoading] = useState(true);
 
