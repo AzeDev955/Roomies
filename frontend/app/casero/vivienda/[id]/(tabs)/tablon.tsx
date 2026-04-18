@@ -16,7 +16,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Redirect, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { createStyles } from '@/styles/tablon/tablon.styles';
+import { createStyles, getPrimaryActionContentColor } from '@/styles/tablon/tablon.styles';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
 
 type Anuncio = {
@@ -32,6 +32,7 @@ export default function CaseroTablonTab() {
   const id = useViviendaIdParam();
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const primaryActionContentColor = getPrimaryActionContentColor(theme);
   const viviendaId = Number(id);
   const viviendaIdValido = !!id && !Number.isNaN(viviendaId);
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
@@ -119,7 +120,7 @@ export default function CaseroTablonTab() {
           accessibilityLabel="Eliminar anuncio"
           accessibilityRole="button"
         >
-          <Text style={styles.eliminarBtnTexto}>✕</Text>
+          <Ionicons name="close" size={16} color={theme.colors.dangerText} />
         </Pressable>
       </View>
       <Text style={styles.cardContenido}>{item.contenido}</Text>
@@ -164,7 +165,7 @@ export default function CaseroTablonTab() {
         accessibilityLabel="Nuevo anuncio"
         accessibilityRole="button"
       >
-        <Ionicons name="add" size={28} color={theme.colors.surface} />
+        <Ionicons name="add" size={28} color={primaryActionContentColor} />
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={cerrarModal}>
@@ -177,6 +178,9 @@ export default function CaseroTablonTab() {
               style={[styles.inputTitulo, tituloFocused && styles.inputFocused]}
               placeholder="Título"
               placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={titulo}
               onChangeText={setTitulo}
               onFocus={() => setTituloFocused(true)}
@@ -187,6 +191,9 @@ export default function CaseroTablonTab() {
               style={[styles.inputContenido, contenidoFocused && styles.inputFocused]}
               placeholder="¿Qué quieres comunicar?"
               placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={contenido}
               onChangeText={setContenido}
               onFocus={() => setContenidoFocused(true)}
@@ -204,7 +211,7 @@ export default function CaseroTablonTab() {
                 onPress={handlePublicar}
                 disabled={!puedePublicar || publicando}
               >
-                {publicando ? <ActivityIndicator color={theme.colors.surface} /> : <Text style={styles.botonPublicarTexto}>Publicar</Text>}
+                {publicando ? <ActivityIndicator color={primaryActionContentColor} /> : <Text style={styles.botonPublicarTexto}>Publicar</Text>}
               </Pressable>
             </View>
           </View>

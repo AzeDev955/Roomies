@@ -16,7 +16,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Redirect, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { createStyles } from '@/styles/tablon/tablon.styles';
+import { createStyles, getPrimaryActionContentColor } from '@/styles/tablon/tablon.styles';
 
 type Anuncio = {
   id: number;
@@ -35,6 +35,7 @@ type ContextoInquilino = {
 export default function InquilinoTablonScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const primaryActionContentColor = getPrimaryActionContentColor(theme);
   const [contexto, setContexto] = useState<ContextoInquilino>(null);
   const [loadingCtx, setLoadingCtx] = useState(true);
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
@@ -201,7 +202,7 @@ export default function InquilinoTablonScreen() {
         accessibilityLabel="Nuevo anuncio"
         accessibilityRole="button"
       >
-        <Ionicons name="add" size={28} color={theme.colors.surface} />
+        <Ionicons name="add" size={28} color={primaryActionContentColor} />
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={cerrarModal}>
@@ -214,6 +215,9 @@ export default function InquilinoTablonScreen() {
               style={[styles.inputTitulo, tituloFocused && styles.inputFocused]}
               placeholder="Título"
               placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={titulo}
               onChangeText={setTitulo}
               onFocus={() => setTituloFocused(true)}
@@ -224,6 +228,9 @@ export default function InquilinoTablonScreen() {
               style={[styles.inputContenido, contenidoFocused && styles.inputFocused]}
               placeholder="¿Qué quieres comunicar?"
               placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={contenido}
               onChangeText={setContenido}
               onFocus={() => setContenidoFocused(true)}
@@ -241,7 +248,7 @@ export default function InquilinoTablonScreen() {
                 onPress={handlePublicar}
                 disabled={!puedePublicar || publicando}
               >
-                {publicando ? <ActivityIndicator color={theme.colors.surface} /> : <Text style={styles.botonPublicarTexto}>Publicar</Text>}
+                {publicando ? <ActivityIndicator color={primaryActionContentColor} /> : <Text style={styles.botonPublicarTexto}>Publicar</Text>}
               </Pressable>
             </View>
           </View>

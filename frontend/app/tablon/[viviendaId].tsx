@@ -16,7 +16,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Redirect, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { useAppTheme } from '@/contexts/ThemeContext';
-import { createStyles } from '@/styles/tablon/tablon.styles';
+import { createStyles, getPrimaryActionContentColor } from '@/styles/tablon/tablon.styles';
 
 type Anuncio = {
   id: number;
@@ -30,6 +30,7 @@ type Anuncio = {
 export default function TablonScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const primaryActionContentColor = getPrimaryActionContentColor(theme);
   const { viviendaId, esCasero, miUsuarioId } = useLocalSearchParams<{
     viviendaId: string;
     esCasero?: string;
@@ -151,7 +152,7 @@ export default function TablonScreen() {
             accessibilityLabel="Eliminar anuncio"
             accessibilityRole="button"
           >
-            <Text style={styles.eliminarBtnTexto}>✕</Text>
+            <Ionicons name="close" size={16} color={theme.colors.dangerText} />
           </Pressable>
         )}
       </View>
@@ -203,7 +204,7 @@ export default function TablonScreen() {
         accessibilityLabel="Nuevo anuncio"
         accessibilityRole="button"
       >
-        <Ionicons name="add" size={28} color={theme.colors.surface} />
+        <Ionicons name="add" size={28} color={primaryActionContentColor} />
       </Pressable>
 
       <Modal
@@ -273,7 +274,7 @@ export default function TablonScreen() {
                 disabled={!puedePublicar || publicando}
               >
                 {publicando ? (
-                  <ActivityIndicator color={theme.colors.surface} />
+                  <ActivityIndicator color={primaryActionContentColor} />
                 ) : (
                   <Text style={styles.botonPublicarTexto}>Publicar</Text>
                 )}

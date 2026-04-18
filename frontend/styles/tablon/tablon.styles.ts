@@ -1,6 +1,9 @@
 import { StyleSheet } from 'react-native';
 import { DefaultAppTheme, type AppTheme } from '@/constants/theme';
 
+export const getPrimaryActionContentColor = (theme: AppTheme = DefaultAppTheme) =>
+  theme.isDark ? theme.colors.backgroundDark : theme.colors.text;
+
 export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   loader: { flex: 1 },
@@ -46,7 +49,7 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     marginBottom: theme.spacing.base,
     shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07,
+    shadowOpacity: theme.isDark ? 0.18 : 0.07,
     shadowRadius: 10,
     elevation: 3,
     borderWidth: 1,
@@ -73,6 +76,8 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     backgroundColor: theme.colors.dangerLight,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.dangerText,
   },
   eliminarBtnTexto: {
     fontSize: 12,
@@ -127,12 +132,12 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     alignItems: 'center',
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: theme.isDark ? 0.24 : 0.28,
     shadowRadius: 8,
     elevation: 8,
   },
   fabTexto: {
-    color: theme.colors.surface,
+    color: getPrimaryActionContentColor(theme),
     fontSize: theme.typography.hero,
     lineHeight: 36,
     fontWeight: '300',
@@ -158,6 +163,8 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     paddingTop: theme.spacing.xl,
     paddingBottom: 40,
     gap: theme.spacing.md,
+    borderTopWidth: 1,
+    borderColor: theme.colors.border,
   },
   modalHandle: {
     width: 40,
@@ -174,7 +181,7 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     letterSpacing: 0,
   },
   inputTitulo: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface2,
     borderRadius: theme.radius.md,
     borderWidth: 2,
     borderColor: theme.colors.border,
@@ -189,7 +196,7 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     backgroundColor: theme.colors.primaryLight,
   },
   inputContenido: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.surface2,
     borderRadius: theme.radius.md,
     borderWidth: 2,
     borderColor: theme.colors.border,
@@ -233,7 +240,7 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     backgroundColor: theme.colors.primaryDisabled,
   },
   botonPublicarTexto: {
-    color: theme.colors.surface,
+    color: getPrimaryActionContentColor(theme),
     fontSize: theme.typography.body,
     fontWeight: '700',
   },
