@@ -1,142 +1,144 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { DefaultAppTheme, type AppTheme } from '@/constants/theme';
 
-// — Soft tints por prioridad —
-export const PRIORIDAD_BG: Record<string, string> = {
-  VERDE:    Theme.colors.successLight,
-  AMARILLO: Theme.colors.warningLight,
-  ROJO:     Theme.colors.dangerLight,
-};
+type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
+type Estado = 'PENDIENTE' | 'EN_PROCESO' | 'RESUELTA';
 
-export const PRIORIDAD_TEXT: Record<string, string> = {
-  VERDE:    Theme.colors.successText,
-  AMARILLO: Theme.colors.warningText,
-  ROJO:     Theme.colors.dangerText,
-};
+export const getPrioridadBg = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.successLight,
+  AMARILLO: theme.colors.warningLight,
+  ROJO: theme.colors.dangerLight,
+})[prioridad];
 
-export const COLORES_PRIORIDAD: Record<string, string> = {
-  VERDE:    Theme.colors.success,
-  AMARILLO: Theme.colors.warning,
-  ROJO:     Theme.colors.danger,
-};
+export const getPrioridadText = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.successText,
+  AMARILLO: theme.colors.warningText,
+  ROJO: theme.colors.dangerText,
+})[prioridad];
 
-export const ETIQUETAS_ESTADO: Record<string, string> = {
-  PENDIENTE:  'Pendiente',
+export const getColorPrioridad = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.success,
+  AMARILLO: theme.colors.warning,
+  ROJO: theme.colors.danger,
+})[prioridad];
+
+export const ETIQUETAS_ESTADO: Record<Estado, string> = {
+  PENDIENTE: 'Pendiente',
   EN_PROCESO: 'En curso',
-  RESUELTA:   'Resuelta',
+  RESUELTA: 'Resuelta',
 };
 
-export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
-  VERDE:    'Baja',
+export const ETIQUETAS_PRIORIDAD: Record<Prioridad, string> = {
+  VERDE: 'Baja',
   AMARILLO: 'Media',
-  ROJO:     'Alta',
+  ROJO: 'Alta',
 };
 
-// — Colores activos por estado —
-export const ESTADO_PILL_BG: Record<string, string> = {
-  PENDIENTE:  Theme.colors.warningLight,
-  EN_PROCESO: Theme.colors.primary + '20',
-  RESUELTA:   Theme.colors.successLight,
-};
+export const getEstadoPillBg = (theme: AppTheme, estado: Estado) => ({
+  PENDIENTE: theme.colors.warningLight,
+  EN_PROCESO: theme.colors.primaryLight,
+  RESUELTA: theme.colors.successLight,
+})[estado];
 
-export const ESTADO_PILL_TEXT: Record<string, string> = {
-  PENDIENTE:  Theme.colors.warningText,
-  EN_PROCESO: Theme.colors.primary,
-  RESUELTA:   Theme.colors.successText,
-};
+export const getEstadoPillText = (theme: AppTheme, estado: Estado) => ({
+  PENDIENTE: theme.colors.warningText,
+  EN_PROCESO: theme.colors.primary,
+  RESUELTA: theme.colors.successText,
+})[estado];
 
-export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
   content: {
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorTexto: { textAlign: 'center', marginTop: 40, color: Theme.colors.textTertiary },
+  errorTexto: { textAlign: 'center', marginTop: 40, color: theme.colors.textTertiary },
 
-  // — Cabecera (hero card del ticket) —
   cabeceraCard: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.base,
-    shadowColor: Theme.colors.shadow,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.base,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
     shadowRadius: 10,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   cabeceraStripe: {
     height: 4,
-    borderRadius: Theme.radius.full,
-    marginBottom: Theme.spacing.base,
+    borderRadius: theme.radius.full,
+    marginBottom: theme.spacing.base,
     alignSelf: 'flex-start',
     width: 40,
   },
   cabeceraBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.sm,
-    marginBottom: Theme.spacing.sm,
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   prioridadBadge: {
-    borderRadius: Theme.radius.full,
+    borderRadius: theme.radius.full,
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
   prioridadBadgeTexto: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '700',
   },
   titulo: {
-    fontSize: Theme.typography.heading,
+    fontSize: theme.typography.heading,
     fontWeight: '800',
-    color: Theme.colors.text,
-    letterSpacing: -0.5,
+    color: theme.colors.text,
+    letterSpacing: 0,
     lineHeight: 32,
   },
   subtitulo: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textTertiary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textTertiary,
     marginTop: 4,
   },
 
-  // — Tarjeta de sección —
   seccion: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.base,
-    shadowColor: Theme.colors.shadow,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.base,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   etiqueta: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textTertiary,
+    fontSize: theme.typography.caption,
+    color: theme.colors.textTertiary,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: Theme.spacing.sm,
+    letterSpacing: 0,
+    marginBottom: theme.spacing.sm,
   },
   valor: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.text,
+    fontSize: theme.typography.body,
+    color: theme.colors.text,
     lineHeight: 24,
   },
 
-  // — Edición inline —
   inputTexto: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.text,
+    fontSize: theme.typography.body,
+    color: theme.colors.text,
     borderWidth: 2,
-    borderColor: Theme.colors.primary,
-    borderRadius: Theme.radius.md,
-    padding: Theme.spacing.base,
-    backgroundColor: Theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.base,
+    backgroundColor: theme.colors.primaryLight,
     lineHeight: 22,
   },
   inputDescripcion: {
@@ -144,48 +146,46 @@ export const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
 
-  // — Selector de estado —
   estadoSelector: {
     flexDirection: 'row',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   estadoPill: {
     flex: 1,
-    borderRadius: Theme.radius.full,
+    borderRadius: theme.radius.full,
     paddingVertical: 12,
     alignItems: 'center',
-    backgroundColor: Theme.colors.surface2,
+    backgroundColor: theme.colors.surface2,
     minHeight: 44,
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   estadoPillTexto: {
-    fontSize: 12,
+    fontSize: theme.typography.caption,
     fontWeight: '600',
-    color: Theme.colors.textMedium,
+    color: theme.colors.textMedium,
   },
   estadoSoloLectura: {
     alignSelf: 'flex-start',
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.sm,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
   },
   estadoSoloLecturaTexto: {
-    fontSize: Theme.typography.label,
+    fontSize: theme.typography.label,
     fontWeight: '800',
   },
 
-  // — Acciones —
   accionFila: {
     flexDirection: 'row',
-    gap: Theme.spacing.md,
-    marginTop: Theme.spacing.base,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.base,
   },
   botonEditar: {
     flex: 1,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
     alignItems: 'center',
     minHeight: 52,
@@ -193,8 +193,8 @@ export const styles = StyleSheet.create({
   },
   botonGuardar: {
     flex: 1,
-    backgroundColor: Theme.colors.success,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.success,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
     alignItems: 'center',
     minHeight: 52,
@@ -205,39 +205,41 @@ export const styles = StyleSheet.create({
   },
   botonCancelar: {
     flex: 1,
-    backgroundColor: Theme.colors.surface2,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.surface2,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
     alignItems: 'center',
     minHeight: 52,
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Theme.colors.border,
+    borderColor: theme.colors.border,
   },
   botonEliminar: {
     flex: 1,
-    backgroundColor: Theme.colors.danger + '18',
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.dangerLight,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
     alignItems: 'center',
     minHeight: 52,
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Theme.colors.danger + '40',
+    borderColor: theme.colors.dangerText,
   },
   botonTextoClaro: {
-    color: Theme.colors.surface,
-    fontSize: Theme.typography.body,
+    color: theme.colors.surface,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
   botonTextoOscuro: {
-    color: Theme.colors.textMedium,
-    fontSize: Theme.typography.body,
+    color: theme.colors.textMedium,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
   botonTextoEliminar: {
-    color: Theme.colors.danger,
-    fontSize: Theme.typography.body,
+    color: theme.colors.dangerText,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
 });
+
+export const styles = createStyles();
