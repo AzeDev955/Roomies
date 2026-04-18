@@ -1,13 +1,21 @@
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
-import { useState, useCallback } from 'react';
+import type { AppTheme } from '@/constants/theme';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { Card } from '@/components/common/Card';
-import { styles, ETIQUETAS_ESTADO } from '@/styles/inquilino/inicio.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import {
+  createAvatarInitialsStyle,
+  createStyles,
+  emptyIncidenciasStyles,
+  ETIQUETAS_ESTADO,
+  getEstadoBadgeBg,
+  getEstadoBadgeColor,
+} from '@/styles/inquilino/inicio.styles';
 
 // ── Helpers UI ────────────────────────────────────────────────────────────────
 
@@ -18,38 +26,22 @@ const ZONA_ICONS: Record<string, any> = {
   OTRO:    'grid-outline',
 };
 
-const ESTADO_BADGE_BG: Record<string, string> = {
-  PENDIENTE:  Theme.colors.warning + '18',
-  EN_PROCESO: Theme.colors.primary + '18',
-  RESUELTA:   Theme.colors.success + '18',
-};
-
-const ESTADO_BADGE_COLOR: Record<string, string> = {
-  PENDIENTE:  Theme.colors.warning,
-  EN_PROCESO: Theme.colors.primary,
-  RESUELTA:   Theme.colors.success,
-};
-
 const AvatarInitials = ({
   nombre,
   apellidos,
+  theme,
   size = 56,
 }: {
   nombre: string;
   apellidos: string | null;
+  theme: AppTheme;
   size?: number;
 }) => {
   const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
+  const avatarStyles = createAvatarInitialsStyle(theme, size);
   return (
-    <View style={{
-      width: size, height: size, borderRadius: size / 2,
-      backgroundColor: Theme.colors.primary + '22',
-      alignItems: 'center', justifyContent: 'center',
-      borderWidth: 2, borderColor: Theme.colors.surface,
-      shadowColor: Theme.colors.shadow, shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08, shadowRadius: 6, elevation: 2,
-    }}>
-      <Text style={{ fontSize: size * 0.32, fontWeight: '700', color: Theme.colors.primary }}>
+    <View style={avatarStyles.container}>
+      <Text style={avatarStyles.text}>
         {initials}
       </Text>
     </View>
@@ -104,6 +96,11 @@ type DatosCasa = {
 
 export default function InquilinoInicioScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const estadoBadgeBg = useMemo(() => getEstadoBadgeBg(theme), [theme]);
+  const estadoBadgeColor = useMemo(() => getEstadoBadgeColor(theme), [theme]);
+  const emptyStyles = useMemo(() => emptyIncidenciasStyles(theme), [theme]);
   const [tieneCasa, setTieneCasa] = useState(false);
   const [sufijo, setSufijo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -261,7 +258,7 @@ export default function InquilinoInicioScreen() {
             value={sufijo}
             onChangeText={(text) => setSufijo(text.replace(/[^a-z0-9]/gi, '').toUpperCase())}
             placeholder="XXXXXX"
-            placeholderTextColor={Theme.colors.textMuted}
+            placeholderTextColor={theme.colors.textMuted}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={6}
@@ -273,7 +270,7 @@ export default function InquilinoInicioScreen() {
           disabled={!codigoInvitacionValido || loading}
         >
           {loading ? (
-            <ActivityIndicator color={Theme.colors.surface} />
+            <ActivityIndicator color={theme.colors.surface} />
           ) : (
             <Text style={styles.botonCanjearTexto}>Canjear Código</Text>
           )}
@@ -319,14 +316,14 @@ export default function InquilinoInicioScreen() {
         onPress={() => router.push(`/incidencia/${item.id}?puedeGestionar=${puedeGestionar}`)}
       >
         <View style={styles.incidenciaHeader}>
-          <View style={{ flex: 1, marginRight: Theme.spacing.sm }}>
+          <View style={{ flex: 1, marginRight: theme.spacing.sm }}>
             <Text style={styles.incidenciaTitulo}>{item.titulo}</Text>
             <Text style={styles.incidenciaReporter}>
               {esPropia ? 'Tú' : 'Compañero'} · {formatearFechaCorta(item.fecha_creacion)}
             </Text>
           </View>
-          <View style={[styles.estadoBadge, { backgroundColor: ESTADO_BADGE_BG[item.estado] }]}>
-            <Text style={[styles.estadoBadgeTexto, { color: ESTADO_BADGE_COLOR[item.estado] }]}>
+          <View style={[styles.estadoBadge, { backgroundColor: estadoBadgeBg[item.estado] }]}>
+            <Text style={[styles.estadoBadgeTexto, { color: estadoBadgeColor[item.estado] }]}>
               {item.estado === 'EN_PROCESO' ? 'EN CURSO' : item.estado}
             </Text>
           </View>
@@ -371,13 +368,13 @@ export default function InquilinoInicioScreen() {
           </Text>
           {!!datosCasa?.nombreVivienda && (
             <View style={styles.greetingViviendaPill}>
-              <Ionicons name="home-outline" size={12} color={Theme.colors.primary} />
+              <Ionicons name="home-outline" size={12} color={theme.colors.primary} />
               <Text style={styles.greetingViviendaPillTexto}>{datosCasa.nombreVivienda}</Text>
             </View>
           )}
           {miHabitacion?.precio !== null && miHabitacion?.precio !== undefined && (
             <View style={styles.precioHabitacionPill}>
-              <Ionicons name="card-outline" size={14} color={Theme.colors.success} />
+              <Ionicons name="card-outline" size={14} color={theme.colors.success} />
               <Text style={styles.precioHabitacionLabel}>Precio mensual</Text>
               <Text style={styles.precioHabitacionValor}>{formatearPrecio(miHabitacion.precio)}</Text>
             </View>
@@ -399,7 +396,7 @@ export default function InquilinoInicioScreen() {
                   style={({ pressed }) => [styles.companeroItem, pressed && { opacity: 0.75 }]}
                   onPress={() => abrirCompañero(h.inquilino!)}
                 >
-                  <AvatarInitials nombre={h.inquilino!.nombre} apellidos={h.inquilino!.apellidos} />
+                  <AvatarInitials nombre={h.inquilino!.nombre} apellidos={h.inquilino!.apellidos} theme={theme} />
                   <Text style={styles.companeroNombreCorto} numberOfLines={1}>
                     {h.inquilino!.nombre}
                   </Text>
@@ -419,11 +416,11 @@ export default function InquilinoInicioScreen() {
                   <Ionicons
                     name={ZONA_ICONS[h.tipo] ?? 'grid-outline'}
                     size={18}
-                    color={Theme.colors.primary}
+                    color={theme.colors.primary}
                   />
                 </View>
                 <Text style={styles.zonaRowNombre}>{h.nombre}</Text>
-                <Ionicons name="chevron-forward" size={18} color={Theme.colors.textTertiary} />
+                <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
               </View>
             ))}
           </View>
@@ -434,16 +431,16 @@ export default function InquilinoInicioScreen() {
           <Text style={styles.seccionLabel}>Incidencias Recientes</Text>
 
           {loadingIncidencias ? (
-            <ActivityIndicator color={Theme.colors.primary} style={styles.loaderIncidencias} />
+            <ActivityIndicator color={theme.colors.primary} style={styles.loaderIncidencias} />
           ) : (
             <>
               {activas.length === 0 && (
-                <View style={{ alignItems: 'center', paddingVertical: Theme.spacing.xl, gap: Theme.spacing.md }}>
-                  <View style={{ width: 64, height: 64, borderRadius: Theme.radius.xl, backgroundColor: Theme.colors.success + '18', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="checkmark-circle-outline" size={32} color={Theme.colors.success} />
+                <View style={emptyStyles.container}>
+                  <View style={emptyStyles.iconBox}>
+                    <Ionicons name="checkmark-circle-outline" size={32} color={theme.colors.success} />
                   </View>
-                  <Text style={{ fontSize: Theme.typography.subtitle, fontWeight: '700', color: Theme.colors.text, textAlign: 'center' }}>¡Todo tranquilo!</Text>
-                  <Text style={{ fontSize: Theme.typography.body, color: Theme.colors.textSecondary, textAlign: 'center', lineHeight: 22 }}>No hay incidencias activas en tu vivienda.</Text>
+                  <Text style={emptyStyles.title}>¡Todo tranquilo!</Text>
+                  <Text style={emptyStyles.description}>No hay incidencias activas en tu vivienda.</Text>
                 </View>
               )}
               {activas.map((item) => renderIncidencia(item))}
@@ -467,7 +464,7 @@ export default function InquilinoInicioScreen() {
             style={({ pressed }) => [styles.botonReportar, pressed && { opacity: 0.7 }]}
             onPress={irAReportarIncidencia}
           >
-            <Ionicons name="warning-outline" size={16} color={Theme.colors.textMedium} />
+            <Ionicons name="warning-outline" size={16} color={theme.colors.textMedium} />
             <Text style={styles.botonReportarTexto}>Reportar problema</Text>
           </Pressable>
         </View>
@@ -505,6 +502,7 @@ export default function InquilinoInicioScreen() {
                   <AvatarInitials
                     nombre={companeroModal.nombre}
                     apellidos={companeroModal.apellidos}
+                    theme={theme}
                     size={72}
                   />
                   <Text style={styles.modalNombre}>
@@ -512,18 +510,18 @@ export default function InquilinoInicioScreen() {
                   </Text>
 
                   {loadingCompañero ? (
-                    <ActivityIndicator color={Theme.colors.primary} style={styles.modalCargando} />
+                    <ActivityIndicator color={theme.colors.primary} style={styles.modalCargando} />
                   ) : (
                     <>
                       {!!companeroModal.email && (
                         <View style={styles.modalDato}>
-                          <Ionicons name="mail-outline" size={16} color={Theme.colors.textSecondary} />
+                          <Ionicons name="mail-outline" size={16} color={theme.colors.textSecondary} />
                           <Text style={styles.modalDatoTexto}>{companeroModal.email}</Text>
                         </View>
                       )}
                       {!!companeroModal.telefono && (
                         <View style={styles.modalDato}>
-                          <Ionicons name="call-outline" size={16} color={Theme.colors.textSecondary} />
+                          <Ionicons name="call-outline" size={16} color={theme.colors.textSecondary} />
                           <Text style={styles.modalDatoTexto}>{companeroModal.telefono}</Text>
                         </View>
                       )}

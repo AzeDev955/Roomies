@@ -1,11 +1,17 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import type { AppTheme } from '@/constants/theme';
 
-export const COLORES_PRIORIDAD: Record<string, string> = {
-  VERDE:    Theme.colors.success,
-  AMARILLO: Theme.colors.warning,
-  ROJO:     Theme.colors.danger,
-};
+export const getEstadoBadgeBg = (theme: AppTheme): Record<string, string> => ({
+  PENDIENTE: theme.colors.warningLight,
+  EN_PROCESO: theme.colors.primaryLight,
+  RESUELTA: theme.colors.successLight,
+});
+
+export const getEstadoBadgeColor = (theme: AppTheme): Record<string, string> => ({
+  PENDIENTE: theme.colors.warningText,
+  EN_PROCESO: theme.colors.primary,
+  RESUELTA: theme.colors.successText,
+});
 
 export const ETIQUETAS_ESTADO: Record<string, string> = {
   PENDIENTE:  'Pendiente',
@@ -21,25 +27,76 @@ export const ETIQUETAS_TIPO: Record<string, string> = {
   OTRO:       'Otro',
 };
 
-export const styles = StyleSheet.create({
+export const createAvatarInitialsStyle = (theme: AppTheme, size: number) => ({
+  container: {
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderWidth: 2,
+    borderColor: theme.colors.surface,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  text: {
+    fontSize: size * 0.32,
+    fontWeight: '700' as const,
+    color: theme.colors.primary,
+  },
+});
+
+export const emptyIncidenciasStyles = (theme: AppTheme) => ({
+  container: {
+    alignItems: 'center' as const,
+    paddingVertical: theme.spacing.xl,
+    gap: theme.spacing.md,
+  },
+  iconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.successLight,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  title: {
+    fontSize: theme.typography.subtitle,
+    fontWeight: '700' as const,
+    color: theme.colors.text,
+    textAlign: 'center' as const,
+  },
+  description: {
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
+    textAlign: 'center' as const,
+    lineHeight: 22,
+  },
+});
+
+export const createStyles = (theme: AppTheme) => StyleSheet.create({
   // — Onboarding (sin casa) —
   onboardingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Theme.colors.background,
-    paddingHorizontal: Theme.spacing.xl,
-    gap: Theme.spacing.lg,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.xl,
+    gap: theme.spacing.lg,
   },
   onboardingTitle: {
     fontSize: 28,
     fontWeight: '700',
     textAlign: 'center',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   onboardingSubtitle: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -47,11 +104,11 @@ export const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     paddingHorizontal: 20,
-    paddingVertical: Theme.spacing.base,
-    shadowColor: Theme.colors.shadow,
+    paddingVertical: theme.spacing.base,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -61,67 +118,67 @@ export const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     letterSpacing: 2,
-    color: Theme.colors.textTertiary,
+    color: theme.colors.textTertiary,
   },
   inputSufijo: {
     flex: 1,
     fontSize: 22,
     fontWeight: '700',
     letterSpacing: 4,
-    color: Theme.colors.text,
+    color: theme.colors.text,
     padding: 0,
   },
   botonCanjear: {
     width: '100%',
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.lg,
-    paddingVertical: Theme.spacing.base,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.lg,
+    paddingVertical: theme.spacing.base,
     alignItems: 'center',
     minHeight: 52,
     justifyContent: 'center',
   },
   botonCanjearTexto: {
-    color: Theme.colors.surface,
+    color: theme.colors.surface,
     fontSize: 17,
     fontWeight: '700',
   },
   botonCanjearDisabled: {
-    backgroundColor: Theme.colors.primaryDisabled,
+    backgroundColor: theme.colors.primaryDisabled,
   },
 
   // — Dashboard container —
   dashboardContainer: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   dashboardContent: {
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
     paddingBottom: 100,
   },
 
   // — Saludo —
   greeting: {
-    marginBottom: Theme.spacing.xl,
-    marginTop: Theme.spacing.sm,
+    marginBottom: theme.spacing.xl,
+    marginTop: theme.spacing.sm,
   },
   greetingHola: {
     fontSize: 32,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     letterSpacing: -0.5,
     lineHeight: 38,
   },
   greetingSubtitulo: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 6,
   },
   greetingViviendaPill: {
     alignSelf: 'flex-start',
-    backgroundColor: Theme.colors.primary + '18',
-    borderRadius: Theme.radius.full,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.radius.full,
     paddingHorizontal: 12,
     paddingVertical: 4,
     marginTop: 10,
@@ -130,50 +187,50 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   greetingViviendaPillTexto: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '600',
-    color: Theme.colors.primary,
+    color: theme.colors.primary,
   },
   precioHabitacionPill: {
     alignSelf: 'flex-start',
-    backgroundColor: Theme.colors.successLight,
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.sm,
-    marginTop: Theme.spacing.sm,
+    backgroundColor: theme.colors.successLight,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   precioHabitacionLabel: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '700',
-    color: Theme.colors.success,
+    color: theme.colors.success,
   },
   precioHabitacionValor: {
-    fontSize: Theme.typography.label,
+    fontSize: theme.typography.label,
     fontWeight: '800',
-    color: Theme.colors.success,
+    color: theme.colors.success,
   },
 
   // — Sección genérica —
   seccion: {
-    marginBottom: Theme.spacing.xl,
+    marginBottom: theme.spacing.xl,
   },
   seccionLabel: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
-    color: Theme.colors.textTertiary,
-    marginBottom: Theme.spacing.md,
+    color: theme.colors.textTertiary,
+    marginBottom: theme.spacing.md,
     paddingHorizontal: 2,
   },
 
   // — Compañeros (scroll horizontal) —
   companerosRow: {
     flexDirection: 'row',
-    gap: Theme.spacing.lg,
+    gap: theme.spacing.lg,
     paddingHorizontal: 2,
     paddingBottom: 4,
   },
@@ -185,20 +242,20 @@ export const styles = StyleSheet.create({
   companeroNombreCorto: {
     fontSize: 12,
     fontWeight: '600',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
   },
 
   // — Zonas comunes (lista) —
   zonaRow: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.base,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.base,
-    marginBottom: Theme.spacing.sm,
-    shadowColor: Theme.colors.shadow,
+    gap: theme.spacing.base,
+    marginBottom: theme.spacing.sm,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -207,25 +264,25 @@ export const styles = StyleSheet.create({
   zonaIconBox: {
     width: 42,
     height: 42,
-    borderRadius: Theme.radius.md,
-    backgroundColor: Theme.colors.primary + '15',
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   zonaRowNombre: {
     flex: 1,
-    fontSize: Theme.typography.body,
+    fontSize: theme.typography.body,
     fontWeight: '600',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
 
   // — Incidencia card —
   incidenciaCard: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.base,
-    marginBottom: Theme.spacing.md,
-    shadowColor: Theme.colors.shadow,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.base,
+    marginBottom: theme.spacing.md,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
     shadowRadius: 10,
@@ -234,22 +291,22 @@ export const styles = StyleSheet.create({
   incidenciaHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: Theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   incidenciaTitulo: {
-    fontSize: Theme.typography.subtitle,
+    fontSize: theme.typography.subtitle,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     marginBottom: 3,
   },
   incidenciaReporter: {
     fontSize: 12,
-    color: Theme.colors.textTertiary,
+    color: theme.colors.textTertiary,
   },
   estadoBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: Theme.radius.full,
+    borderRadius: theme.radius.full,
   },
   estadoBadgeTexto: {
     fontSize: 10,
@@ -258,8 +315,8 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   incidenciaDescripcion: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
 
@@ -271,21 +328,21 @@ export const styles = StyleSheet.create({
   },
   estadoPill: {
     flex: 1,
-    borderRadius: Theme.radius.full,
+    borderRadius: theme.radius.full,
     paddingVertical: 6,
     alignItems: 'center',
-    backgroundColor: Theme.colors.surface2,
+    backgroundColor: theme.colors.surface2,
   },
   estadoPillActivo: {
-    backgroundColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primary,
   },
   estadoPillTexto: {
     fontSize: 11,
     fontWeight: '600',
-    color: Theme.colors.textMedium,
+    color: theme.colors.textMedium,
   },
   estadoPillTextoActivo: {
-    color: Theme.colors.surface,
+    color: theme.colors.surface,
   },
 
   // — Reportar problema —
@@ -295,66 +352,66 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 2,
-    borderColor: Theme.colors.border,
-    borderRadius: Theme.radius.lg,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
-    marginTop: Theme.spacing.md,
+    marginTop: theme.spacing.md,
     minHeight: 52,
   },
   botonReportarTexto: {
-    fontSize: Theme.typography.body,
+    fontSize: theme.typography.body,
     fontWeight: '600',
-    color: Theme.colors.textMedium,
+    color: theme.colors.textMedium,
   },
 
   // — Historial toggle —
   historialToggle: {
-    paddingVertical: Theme.spacing.md,
+    paddingVertical: theme.spacing.md,
     alignItems: 'center',
-    marginTop: Theme.spacing.xs,
+    marginTop: theme.spacing.xs,
   },
   historialToggleTexto: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.primary,
+    fontSize: theme.typography.label,
+    color: theme.colors.primary,
     fontWeight: '600',
   },
 
   // — Loader —
   loaderIncidencias: {
-    marginTop: Theme.spacing.lg,
+    marginTop: theme.spacing.lg,
   },
   emptyText: {
     textAlign: 'center',
-    color: Theme.colors.textTertiary,
-    fontSize: Theme.typography.label,
-    marginVertical: Theme.spacing.md,
+    color: theme.colors.textTertiary,
+    fontSize: theme.typography.label,
+    marginVertical: theme.spacing.md,
   },
 
   // — Abandonar vivienda —
   botonAbandonar: {
-    marginTop: Theme.spacing.xl,
+    marginTop: theme.spacing.xl,
   },
 
   // — Modal compañero —
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: theme.colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: Theme.spacing.xl,
+    padding: theme.spacing.xl,
   },
   modalCardWrapper: {
     width: '100%',
   },
   modalContenido: {
     alignItems: 'center',
-    gap: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   modalNombre: {
     fontSize: 22,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
     letterSpacing: -0.3,
   },
@@ -366,33 +423,33 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   modalDatoTexto: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     flex: 1,
   },
   modalCargando: {
-    marginVertical: Theme.spacing.md,
+    marginVertical: theme.spacing.md,
   },
 
   // — FAB —
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.lg,
-    right: Theme.spacing.lg,
+    bottom: theme.spacing.lg,
+    right: theme.spacing.lg,
     width: 56,
     height: 56,
-    borderRadius: Theme.radius.full,
-    backgroundColor: Theme.colors.primary,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: Theme.colors.primary,
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
   },
   fabTexto: {
-    color: Theme.colors.surface,
+    color: theme.colors.surface,
     fontSize: 28,
     lineHeight: 32,
     fontWeight: '300',
