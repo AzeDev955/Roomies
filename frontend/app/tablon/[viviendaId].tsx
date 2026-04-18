@@ -228,6 +228,9 @@ export default function TablonScreen() {
               ]}
               placeholder="Título"
               placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={titulo}
               onChangeText={setTitulo}
               onFocus={() => setTituloFocused(true)}
@@ -241,6 +244,9 @@ export default function TablonScreen() {
               ]}
               placeholder="¿Qué quieres comunicar?"
               placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={contenido}
               onChangeText={setContenido}
               onFocus={() => setContenidoFocused(true)}
