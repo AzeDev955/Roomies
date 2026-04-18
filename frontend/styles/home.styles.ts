@@ -1,29 +1,48 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: Theme.spacing.base },
-  title: { fontSize: Theme.typography.heading, fontWeight: 'bold', textAlign: 'center' },
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: theme.spacing.base,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.xl,
+  },
+  title: {
+    fontSize: theme.typography.heading,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
   button: {
-    backgroundColor: Theme.colors.textSecondary,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.radius.sm,
+    backgroundColor: theme.colors.textSecondary,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
     minWidth: 160,
     alignItems: 'center',
   },
-  buttonText: { color: Theme.colors.surface, fontSize: Theme.typography.input, fontWeight: '600' },
+  buttonText: {
+    color: theme.colors.surface,
+    fontSize: theme.typography.input,
+    fontWeight: '600',
+  },
   buttonPrimary: {
-    backgroundColor: Theme.colors.primary,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.radius.sm,
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
     minWidth: 160,
     alignItems: 'center',
   },
   buttonSecondary: {
-    backgroundColor: Theme.colors.success,
-    padding: Theme.spacing.md,
-    borderRadius: Theme.radius.sm,
+    backgroundColor: theme.colors.success,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.lg,
     minWidth: 160,
     alignItems: 'center',
   },
 });
+
+export const styles = createStyles();

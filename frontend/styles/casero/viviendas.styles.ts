@@ -1,38 +1,37 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   list: {
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
     paddingBottom: 100,
   },
 
-  // — Header —
+  // Header
   header: {
-    marginBottom: Theme.spacing.xl,
-    marginTop: Theme.spacing.sm,
+    marginBottom: theme.spacing.xl,
+    marginTop: theme.spacing.sm,
   },
   headerTitulo: {
-    fontSize: 32,
+    fontSize: theme.typography.hero,
     fontWeight: '800',
-    color: Theme.colors.text,
-    letterSpacing: -0.5,
+    color: theme.colors.text,
   },
   headerSubtitulo: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
-    marginTop: 4,
+    marginTop: theme.spacing.xs,
   },
 
-  // — Tarjeta vivienda —
+  // Tarjeta vivienda
   cardWrapper: {
-    marginBottom: Theme.spacing.base,
+    marginBottom: theme.spacing.base,
   },
   cardWrapperPressed: {
     opacity: 0.92,
@@ -44,12 +43,12 @@ export const styles = StyleSheet.create({
   },
   cardImagePlaceholder: {
     height: 110,
-    backgroundColor: Theme.colors.primary + '15',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardBody: {
-    padding: Theme.spacing.base,
+    padding: theme.spacing.base,
   },
   cardBodyRow: {
     flexDirection: 'row',
@@ -59,115 +58,116 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitulo: {
-    fontSize: Theme.typography.title,
+    fontSize: theme.typography.title,
     fontWeight: '700',
-    color: Theme.colors.text,
-    marginBottom: 4,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
   cardDireccionFila: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: Theme.spacing.md,
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.md,
   },
   cardDireccion: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
     flex: 1,
   },
   chips: {
     flexDirection: 'row',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   chipHabitaciones: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Theme.colors.primary + '18',
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
   },
   chipHabitacionesTexto: {
-    fontSize: 12,
+    fontSize: theme.typography.caption,
     fontWeight: '600',
-    color: Theme.colors.primary,
+    color: theme.colors.primary,
   },
   chipInquilinos: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: Theme.colors.success + '18',
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.successLight,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
   },
   chipInquilinosTexto: {
-    fontSize: 12,
+    fontSize: theme.typography.caption,
     fontWeight: '600',
-    color: Theme.colors.success,
+    color: theme.colors.success,
   },
 
-  // — Empty state —
+  // Empty state
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Theme.spacing.xxl,
-    paddingHorizontal: Theme.spacing.xl,
+    paddingVertical: theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.xl,
   },
   emptyIconBox: {
     width: 96,
     height: 96,
-    borderRadius: Theme.radius.xl,
-    backgroundColor: Theme.colors.primary + '15',
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
   },
   emptyTitulo: {
-    fontSize: 22,
+    fontSize: theme.typography.heading,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
-    letterSpacing: -0.3,
   },
   emptySubtitulo: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginTop: Theme.spacing.sm,
-    lineHeight: 24,
+    marginTop: theme.spacing.sm,
+    lineHeight: theme.spacing.lg,
   },
   emptyBoton: {
-    marginTop: Theme.spacing.xl,
+    marginTop: theme.spacing.xl,
     width: '100%',
   },
 
-  // — FAB —
+  // FAB
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.lg,
-    right: Theme.spacing.lg,
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: Theme.spacing.lg,
-    paddingVertical: 14,
+    bottom: theme.spacing.lg,
+    right: theme.spacing.lg,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    shadowColor: Theme.colors.primary,
+    gap: theme.spacing.sm,
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: theme.isDark ? 0.28 : 0.32,
     shadowRadius: 8,
     elevation: 8,
   },
   fabTexto: {
-    color: Theme.colors.surface,
+    color: theme.colors.surface,
     fontWeight: '700',
-    fontSize: Theme.typography.body,
+    fontSize: theme.typography.body,
   },
   fabPressed: {
     opacity: 0.82,
     transform: [{ scale: 0.96 }],
   },
 });
+
+export const styles = createStyles();

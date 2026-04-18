@@ -13,11 +13,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
-import { useState, useCallback } from 'react';
+import type { AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import api from '@/services/api';
-import { styles } from '@/styles/inquilino/gastos.styles';
+import { createStyles } from '@/styles/inquilino/gastos.styles';
 
 type UsuarioBasico = { id: number; nombre: string; apellidos: string | null };
 
@@ -60,10 +61,12 @@ type Gasto = {
 const AvatarInitials = ({
   nombre,
   apellidos,
+  theme,
   size = 44,
 }: {
   nombre: string;
   apellidos: string | null;
+  theme: AppTheme;
   size?: number;
 }) => {
   const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
@@ -73,13 +76,13 @@ const AvatarInitials = ({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: Theme.colors.primary + '22',
+        backgroundColor: theme.colors.primary + '22',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
       }}
     >
-      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: theme.colors.primary }}>
         {initials}
       </Text>
     </View>
@@ -99,6 +102,9 @@ const sumarImportes = (items: Deuda[]) =>
   items.reduce((total, deuda) => total + deuda.importe, 0);
 
 export default function GastosInquilinoTab() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const [viviendaId, setViviendaId] = useState<number | null>(null);
   const [miId, setMiId] = useState<number | null>(null);
   const [companerosPiso, setCompanerosPiso] = useState<UsuarioBasico[]>([]);
@@ -437,7 +443,7 @@ export default function GastosInquilinoTab() {
     implicadosSeleccionados.length > 0;
 
   if (loading) {
-    return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
+    return <ActivityIndicator style={{ flex: 1 }} size="large" color={theme.colors.primary} />;
   }
 
   return (
@@ -454,7 +460,7 @@ export default function GastosInquilinoTab() {
         {errorCarga && (
           <View style={styles.errorCard}>
             <View style={styles.errorIconBox}>
-              <Ionicons name="alert-circle-outline" size={22} color={Theme.colors.danger} />
+              <Ionicons name="alert-circle-outline" size={22} color={theme.colors.danger} />
             </View>
             <View style={styles.errorTextos}>
               <Text style={styles.errorTitulo}>
@@ -469,7 +475,7 @@ export default function GastosInquilinoTab() {
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
             <View style={styles.heroIconBox}>
-              <Ionicons name="people-outline" size={18} color={Theme.colors.primary} />
+              <Ionicons name="people-outline" size={18} color={theme.colors.primary} />
             </View>
             <View style={styles.heroHeaderTextos}>
               <Text style={styles.heroTitulo}>Entre compañeros</Text>
@@ -485,16 +491,16 @@ export default function GastosInquilinoTab() {
                 styles.heroResumenCard,
                 {
                   backgroundColor:
-                    totalDeboCompaneros > 0 ? Theme.colors.dangerLight : Theme.colors.surface,
+                    totalDeboCompaneros > 0 ? theme.colors.dangerLight : theme.colors.surface,
                 },
               ]}
             >
-              <View style={[styles.heroResumenBadge, { backgroundColor: Theme.colors.dangerLight }]}>
-                <Text style={[styles.heroResumenBadgeText, { color: Theme.colors.danger }]}>
+              <View style={[styles.heroResumenBadge, { backgroundColor: theme.colors.dangerLight }]}>
+                <Text style={[styles.heroResumenBadgeText, { color: theme.colors.danger }]}>
                   Tú debes
                 </Text>
               </View>
-              <Text style={[styles.heroResumenImporte, { color: Theme.colors.danger }]}>
+              <Text style={[styles.heroResumenImporte, { color: theme.colors.danger }]}>
                 {formatImporte(totalDeboCompaneros)}
               </Text>
               <Text style={styles.heroResumenTexto}>A compañeros por gastos comunes</Text>
@@ -505,16 +511,16 @@ export default function GastosInquilinoTab() {
                 styles.heroResumenCard,
                 {
                   backgroundColor:
-                    totalMeDebenCompaneros > 0 ? Theme.colors.successLight : Theme.colors.surface,
+                    totalMeDebenCompaneros > 0 ? theme.colors.successLight : theme.colors.surface,
                 },
               ]}
             >
-              <View style={[styles.heroResumenBadge, { backgroundColor: Theme.colors.successLight }]}>
-                <Text style={[styles.heroResumenBadgeText, { color: Theme.colors.success }]}>
+              <View style={[styles.heroResumenBadge, { backgroundColor: theme.colors.successLight }]}>
+                <Text style={[styles.heroResumenBadgeText, { color: theme.colors.success }]}>
                   Te deben
                 </Text>
               </View>
-              <Text style={[styles.heroResumenImporte, { color: Theme.colors.success }]}>
+              <Text style={[styles.heroResumenImporte, { color: theme.colors.success }]}>
                 {formatImporte(totalMeDebenCompaneros)}
               </Text>
               <Text style={styles.heroResumenTexto}>Compañeros pendientes contigo</Text>
@@ -528,7 +534,7 @@ export default function GastosInquilinoTab() {
           <View style={styles.caseroCard}>
             <View style={styles.caseroHeader}>
               <View style={styles.caseroIconBox}>
-                <Ionicons name="business-outline" size={18} color={Theme.colors.info} />
+                <Ionicons name="business-outline" size={18} color={theme.colors.info} />
               </View>
               <View style={styles.caseroHeaderTextos}>
                 <Text style={styles.caseroTitulo}>Relación con el casero</Text>
@@ -539,18 +545,18 @@ export default function GastosInquilinoTab() {
             </View>
 
             <View style={styles.caseroResumenGrid}>
-              <View style={[styles.caseroResumenCard, { backgroundColor: Theme.colors.dangerLight }]}>
-                <Text style={[styles.caseroResumenLabel, { color: Theme.colors.danger }]}>Debes</Text>
-                <Text style={[styles.caseroResumenImporte, { color: Theme.colors.danger }]}>
+              <View style={[styles.caseroResumenCard, { backgroundColor: theme.colors.dangerLight }]}>
+                <Text style={[styles.caseroResumenLabel, { color: theme.colors.danger }]}>Debes</Text>
+                <Text style={[styles.caseroResumenImporte, { color: theme.colors.danger }]}>
                   {formatImporte(totalDeboCasero)}
                 </Text>
               </View>
 
-              <View style={[styles.caseroResumenCard, { backgroundColor: Theme.colors.successLight }]}>
-                <Text style={[styles.caseroResumenLabel, { color: Theme.colors.success }]}>
+              <View style={[styles.caseroResumenCard, { backgroundColor: theme.colors.successLight }]}>
+                <Text style={[styles.caseroResumenLabel, { color: theme.colors.success }]}>
                   Te deben
                 </Text>
-                <Text style={[styles.caseroResumenImporte, { color: Theme.colors.success }]}>
+                <Text style={[styles.caseroResumenImporte, { color: theme.colors.success }]}>
                   {formatImporte(totalMeDebenCasero)}
                 </Text>
               </View>
@@ -561,7 +567,7 @@ export default function GastosInquilinoTab() {
         {!errorCarga && mostrarPendientesVacios && (
           <View style={styles.pendientesEmptyCard}>
             <View style={styles.pendientesEmptyIcon}>
-              <Ionicons name="checkmark-circle-outline" size={22} color={Theme.colors.success} />
+              <Ionicons name="checkmark-circle-outline" size={22} color={theme.colors.success} />
             </View>
             <View style={styles.pendientesEmptyTextos}>
               <Text style={styles.pendientesEmptyTitulo}>Sin pagos pendientes</Text>
@@ -584,17 +590,18 @@ export default function GastosInquilinoTab() {
             {deudasPendientesCompaneros.map((deuda) => {
               const yoDebo = deuda.deudor_id === miId;
               const companero = yoDebo ? deuda.acreedor : deuda.deudor;
-              const amountColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
+              const amountColor = yoDebo ? theme.colors.danger : theme.colors.success;
               const statusBackground = yoDebo
-                ? Theme.colors.dangerLight
-                : Theme.colors.successLight;
-              const statusText = yoDebo ? Theme.colors.danger : Theme.colors.success;
+                ? theme.colors.dangerLight
+                : theme.colors.successLight;
+              const statusText = yoDebo ? theme.colors.danger : theme.colors.success;
 
               return (
                 <View key={deuda.id} style={styles.deudaCard}>
                   <AvatarInitials
                     nombre={companero.nombre}
                     apellidos={companero.apellidos}
+                    theme={theme}
                     size={52}
                   />
                   <View style={styles.deudaInfo}>
@@ -648,7 +655,7 @@ export default function GastosInquilinoTab() {
                       accessibilityRole="button"
                       accessibilityLabel={`Ver factura original de ${deuda.gasto.concepto}`}
                     >
-                      <Ionicons name="document-text-outline" size={16} color={Theme.colors.primary} />
+                      <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
                       <Text style={styles.botonFacturaOriginalTexto}>Ver factura original</Text>
                     </Pressable>
                   )}
@@ -669,15 +676,16 @@ export default function GastosInquilinoTab() {
             {deudasPendientesCasero.map((deuda) => {
               const yoDebo = deuda.deudor_id === miId;
               const contraparte = yoDebo ? deuda.acreedor : deuda.deudor;
-              const amountColor = yoDebo ? Theme.colors.danger : Theme.colors.success;
-              const statusBackground = yoDebo ? Theme.colors.dangerLight : Theme.colors.infoLight;
-              const statusText = yoDebo ? Theme.colors.danger : Theme.colors.info;
+              const amountColor = yoDebo ? theme.colors.danger : theme.colors.success;
+              const statusBackground = yoDebo ? theme.colors.dangerLight : theme.colors.infoLight;
+              const statusText = yoDebo ? theme.colors.danger : theme.colors.info;
 
               return (
                 <View key={deuda.id} style={styles.deudaCard}>
                   <AvatarInitials
                     nombre={contraparte.nombre}
                     apellidos={contraparte.apellidos}
+                    theme={theme}
                     size={52}
                   />
                   <View style={styles.deudaInfo}>
@@ -731,7 +739,7 @@ export default function GastosInquilinoTab() {
                       accessibilityRole="button"
                       accessibilityLabel={`Ver factura original de ${deuda.gasto.concepto}`}
                     >
-                      <Ionicons name="document-text-outline" size={16} color={Theme.colors.primary} />
+                      <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
                       <Text style={styles.botonFacturaOriginalTexto}>Ver factura original</Text>
                     </Pressable>
                   )}
@@ -756,6 +764,7 @@ export default function GastosInquilinoTab() {
                     <AvatarInitials
                       nombre={companero.nombre}
                       apellidos={companero.apellidos}
+                      theme={theme}
                       size={48}
                     />
                     <View style={styles.deudaPagadaInfo}>
@@ -765,7 +774,7 @@ export default function GastosInquilinoTab() {
                       <Text style={styles.deudaConcepto} numberOfLines={2}>
                         {deuda.gasto.concepto}
                       </Text>
-                      <Text style={[styles.deudaImporte, { color: Theme.colors.success }]}>
+                      <Text style={[styles.deudaImporte, { color: theme.colors.success }]}>
                         {formatImporte(deuda.importe)}
                       </Text>
                     </View>
@@ -783,7 +792,7 @@ export default function GastosInquilinoTab() {
                     accessibilityRole="button"
                     accessibilityLabel={`Ver justificante de ${deuda.gasto.concepto}`}
                   >
-                    <Ionicons name="image-outline" size={16} color={Theme.colors.info} />
+                    <Ionicons name="image-outline" size={16} color={theme.colors.info} />
                     <Text style={styles.botonJustificanteTexto}>Ver justificante</Text>
                   </Pressable>
                   {deuda.gasto.factura_url && (
@@ -796,7 +805,7 @@ export default function GastosInquilinoTab() {
                       accessibilityRole="button"
                       accessibilityLabel={`Ver factura original de ${deuda.gasto.concepto}`}
                     >
-                      <Ionicons name="document-text-outline" size={16} color={Theme.colors.primary} />
+                      <Ionicons name="document-text-outline" size={16} color={theme.colors.primary} />
                       <Text style={styles.botonFacturaOriginalTexto}>Ver factura original</Text>
                     </Pressable>
                   )}
@@ -809,7 +818,7 @@ export default function GastosInquilinoTab() {
         {!errorCarga && (gastosEntreCompaneros.length === 0 ? (
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
-              <Ionicons name="wallet-outline" size={40} color={Theme.colors.primary} />
+              <Ionicons name="wallet-outline" size={40} color={theme.colors.primary} />
             </View>
             <Text style={styles.emptyTitulo}>Sin gastos todavía</Text>
             <Text style={styles.emptySubtitulo}>
@@ -822,7 +831,12 @@ export default function GastosInquilinoTab() {
             <Text style={[styles.seccionTitulo, styles.seccionTituloSolo]}>Movimientos</Text>
             {gastosEntreCompaneros.map((gasto) => (
               <View key={gasto.id} style={styles.gastoCard}>
-                <AvatarInitials nombre={gasto.pagador.nombre} apellidos={gasto.pagador.apellidos} size={46} />
+                <AvatarInitials
+                  nombre={gasto.pagador.nombre}
+                  apellidos={gasto.pagador.apellidos}
+                  theme={theme}
+                  size={46}
+                />
                 <View style={styles.gastoInfo}>
                   <Text style={styles.gastoConcepto}>{gasto.concepto}</Text>
                   <Text style={styles.gastoPagador}>Pagado por {gasto.pagador.nombre}</Text>
@@ -845,7 +859,7 @@ export default function GastosInquilinoTab() {
         accessibilityLabel="Añadir nuevo gasto"
         accessibilityRole="button"
       >
-        <Ionicons name="add" size={28} color={Theme.colors.surface} />
+        <Ionicons name="add" size={28} color={theme.colors.surface} />
       </Pressable>
       )}
 
@@ -861,7 +875,7 @@ export default function GastosInquilinoTab() {
             <View style={styles.modalHandle} />
             <View style={styles.pagoSheetHero}>
               <View style={styles.pagoSheetIcon}>
-                <Ionicons name="wallet-outline" size={22} color={Theme.colors.success} />
+                <Ionicons name="wallet-outline" size={22} color={theme.colors.success} />
               </View>
               <View style={styles.pagoSheetHeroTextos}>
                 <Text style={styles.pagoSheetTitulo}>Confirmar pago</Text>
@@ -897,15 +911,15 @@ export default function GastosInquilinoTab() {
                     <Ionicons
                       name="checkmark-circle-outline"
                       size={20}
-                      color={Theme.colors.textMedium}
+                      color={theme.colors.textMedium}
                     />
                   </View>
                   <Text style={styles.pagoSheetOptionTitle}>Saldar sin justificante</Text>
                 </View>
                 {deudaSeleccionada && saldando === deudaSeleccionada.id ? (
-                  <ActivityIndicator color={Theme.colors.textMedium} />
+                  <ActivityIndicator color={theme.colors.textMedium} />
                 ) : (
-                  <Ionicons name="chevron-forward" size={18} color={Theme.colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
                 )}
               </View>
               <Text style={styles.pagoSheetOptionDescription}>
@@ -928,14 +942,14 @@ export default function GastosInquilinoTab() {
                   <View
                     style={[styles.pagoSheetOptionIcon, styles.pagoSheetOptionIconPrimaria]}
                   >
-                    <Ionicons name="image-outline" size={20} color={Theme.colors.primary} />
+                    <Ionicons name="image-outline" size={20} color={theme.colors.primary} />
                   </View>
                   <Text style={styles.pagoSheetOptionTitle}>Subir captura y saldar</Text>
                 </View>
                 {deudaSeleccionada && saldando === deudaSeleccionada.id ? (
-                  <ActivityIndicator color={Theme.colors.primary} />
+                  <ActivityIndicator color={theme.colors.primary} />
                 ) : (
-                  <Ionicons name="chevron-forward" size={18} color={Theme.colors.primary} />
+                  <Ionicons name="chevron-forward" size={18} color={theme.colors.primary} />
                 )}
               </View>
               <Text style={styles.pagoSheetOptionDescription}>
@@ -976,12 +990,12 @@ export default function GastosInquilinoTab() {
                 style={[
                   styles.input,
                   conceptoFocused && {
-                    borderColor: Theme.colors.primary,
-                    backgroundColor: Theme.colors.primaryLight,
+                    borderColor: theme.colors.primary,
+                    backgroundColor: theme.colors.primaryLight,
                   },
                 ]}
                 placeholder="Ej. Papel higiénico, gas, pizza..."
-                placeholderTextColor={Theme.colors.textMuted}
+                placeholderTextColor={theme.colors.textMuted}
                 value={concepto}
                 onChangeText={setConcepto}
                 onFocus={() => setConceptoFocused(true)}
@@ -997,12 +1011,12 @@ export default function GastosInquilinoTab() {
                 style={[
                   styles.input,
                   importeFocused && {
-                    borderColor: Theme.colors.primary,
-                    backgroundColor: Theme.colors.primaryLight,
+                    borderColor: theme.colors.primary,
+                    backgroundColor: theme.colors.primaryLight,
                   },
                 ]}
                 placeholder="0,00"
-                placeholderTextColor={Theme.colors.textMuted}
+                placeholderTextColor={theme.colors.textMuted}
                 value={importe}
                 onChangeText={setImporte}
                 onFocus={() => setImporteFocused(true)}
@@ -1040,6 +1054,7 @@ export default function GastosInquilinoTab() {
                       <AvatarInitials
                         nombre={inquilino.nombre}
                         apellidos={inquilino.apellidos}
+                        theme={theme}
                         size={36}
                       />
                       <View style={styles.participanteTextoBox}>
@@ -1084,7 +1099,7 @@ export default function GastosInquilinoTab() {
                 disabled={!puedeGuardar || guardando}
               >
                 {guardando ? (
-                  <ActivityIndicator color={Theme.colors.surface} />
+                  <ActivityIndicator color={theme.colors.surface} />
                 ) : (
                   <Text style={styles.botonGuardarTexto}>Guardar</Text>
                 )}

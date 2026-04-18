@@ -1,76 +1,78 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: Theme.colors.background,
-    paddingHorizontal: Theme.spacing.xl,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.xl,
   },
   logo: {
-    fontSize: Theme.typography.hero,
+    fontSize: theme.typography.hero,
     fontWeight: '800',
-    color: Theme.colors.primary,
+    color: theme.colors.primary,
     textAlign: 'center',
-    marginBottom: Theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   subtitulo: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: Theme.spacing.xxl,
+    marginBottom: theme.spacing.xxl,
   },
   enlaceRegistro: {
-    marginTop: Theme.spacing.lg,
+    marginTop: theme.spacing.lg,
     alignItems: 'center',
   },
   enlaceRegistroTexto: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.primary,
+    fontSize: theme.typography.label,
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   separador: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
-    marginTop: Theme.spacing.lg,
-    marginBottom: Theme.spacing.xs,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.xs,
   },
   separadorLinea: {
     flex: 1,
     height: 1,
-    backgroundColor: Theme.colors.border,
+    backgroundColor: theme.colors.border,
   },
   separadorTexto: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textTertiary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textTertiary,
   },
   botonGoogle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     paddingVertical: 14,
     gap: 10,
-    marginTop: Theme.spacing.md,
+    marginTop: theme.spacing.md,
     borderWidth: 2,
-    borderColor: Theme.colors.border,
+    borderColor: theme.colors.border,
     minHeight: 52,
-    shadowColor: Theme.colors.shadow,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: theme.isDark ? 0.18 : 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   botonGoogleTexto: {
-    fontSize: Theme.typography.input,
+    fontSize: theme.typography.input,
     fontWeight: '600',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   pressed: {
     opacity: 0.75,
     transform: [{ scale: 0.97 }],
   },
 });
+
+export const styles = createStyles();

@@ -507,6 +507,16 @@ Si `RESET_DB=true`, sustituye el `db push --accept-data-loss` por `db push --for
 | `spacing.xxl` | `48` | Separación entre secciones grandes |
 | `typography.subtitle` | `18` | Títulos de sección intermedios |
 
+### Modo oscuro
+
+- `frontend/constants/theme.ts` define paletas `light` y `dark`, tipos `ThemeMode`, `ResolvedThemeMode`, `AppTheme` y el constructor `buildAppTheme()`.
+- `frontend/contexts/ThemeContext.tsx` centraliza `AppThemeProvider`, persistencia de preferencia (`system`, `light`, `dark`) y sincronizacion del fondo del sistema.
+- Las pantallas reales de `frontend/app` deben consumir `useAppTheme()` y pasar `theme` a `createStyles(theme)`.
+- Los estilos de pantalla deben usar `AppTheme` y `theme.colors` en lugar de `Theme.colors` cuando el valor cambia entre claro y oscuro.
+- Inputs y formularios deben usar placeholders, cursores, selections y `keyboardAppearance` desde el tema activo.
+- Los componentes comunes y heredados de Expo deben respetar `AppThemeProvider`; no basta con leer `useColorScheme()` si la app permite selector manual.
+- Las migraciones de pantallas se documentan en `docs/changelog/EpicaDarkMode/`.
+
 ### Patrones recurrentes
 
 - **Focus state en inputs**: `borderWidth: 2`, `borderColor: border` en reposo; al recibir foco aplica clase `inputFocused` con `borderColor: primary` + `backgroundColor: primaryLight`. Controlado con `useState<string | null>(null)` + `onFocus`/`onBlur`.
@@ -680,6 +690,13 @@ Usuarios de prueba creados por `prisma db seed`:
 - `backend/tests/release-regression.test.ts` cubre una regresion final de rutas principales protegidas, payloads publicos de auth y cron de recordatorios tolerante a fallos de proveedor externo.
 - `frontend/app/__tests__/navigation-smoke.test.tsx` valida las tabs principales de casero, inquilino y detalle de vivienda, incluyendo ocultacion de modulos desactivados.
 - `docs/release/epica-16-regresion-final.md` centraliza checklist manual de release, matriz archivo -> issue -> estado, cobertura automatica por flujo y riesgos residuales.
+
+## Update 2026-04-18 - Epica Dark Mode
+
+- El frontend soporta modo `Sistema`, `Claro` y `Oscuro` desde Perfil.
+- `AppThemeProvider` gobierna paletas, tabs, componentes comunes, toast y componentes heredados de Expo.
+- Las pantallas funcionales de casero, inquilino, vivienda, incidencias, tablon, limpieza, gastos, inventario, cobros y formularios principales consumen `useAppTheme()` y estilos `createStyles(theme)`.
+- `docs/changelog/EpicaDarkMode/` contiene la documentacion por pantalla migrada y la revision final del frontend.
 
 ## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
 

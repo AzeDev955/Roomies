@@ -1,18 +1,19 @@
 import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import {
-  styles,
-  COLORES_PRIORIDAD,
-  PRIORIDAD_BG,
-  PRIORIDAD_TEXT,
+  createStyles,
   ETIQUETAS_ESTADO,
   ETIQUETAS_PRIORIDAD,
-  ESTADO_PILL_BG,
-  ESTADO_PILL_TEXT,
+  getColorPrioridad,
+  getEstadoPillBg,
+  getEstadoPillText,
+  getPrioridadBg,
+  getPrioridadText,
 } from '@/styles/incidencia/detalle.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -39,6 +40,9 @@ const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
 export default function DetalleIncidenciaScreen() {
   const { id, puedeGestionar } = useLocalSearchParams<{ id: string; puedeGestionar: string }>();
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const keyboardAppearance = theme.isDark ? 'dark' : 'light';
 
   const [incidencia, setIncidencia] = useState<IncidenciaDetalle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -150,10 +154,10 @@ export default function DetalleIncidenciaScreen() {
     >
       {/* ── Cabecera (hero card del ticket) ── */}
       <View style={styles.cabeceraCard}>
-        <View style={[styles.cabeceraStripe, { backgroundColor: COLORES_PRIORIDAD[incidencia.prioridad] }]} />
+        <View style={[styles.cabeceraStripe, { backgroundColor: getColorPrioridad(theme, incidencia.prioridad) }]} />
         <View style={styles.cabeceraBadgeRow}>
-          <View style={[styles.prioridadBadge, { backgroundColor: PRIORIDAD_BG[incidencia.prioridad] }]}>
-            <Text style={[styles.prioridadBadgeTexto, { color: PRIORIDAD_TEXT[incidencia.prioridad] }]}>
+          <View style={[styles.prioridadBadge, { backgroundColor: getPrioridadBg(theme, incidencia.prioridad) }]}>
+            <Text style={[styles.prioridadBadgeTexto, { color: getPrioridadText(theme, incidencia.prioridad) }]}>
               Prioridad {ETIQUETAS_PRIORIDAD[incidencia.prioridad]}
             </Text>
           </View>
@@ -164,6 +168,8 @@ export default function DetalleIncidenciaScreen() {
             value={titulo}
             onChangeText={setTitulo}
             placeholder="Título"
+            placeholderTextColor={theme.colors.textMuted}
+            keyboardAppearance={keyboardAppearance}
           />
         ) : (
           <Text style={styles.titulo}>{incidencia.titulo}</Text>
@@ -184,8 +190,8 @@ export default function DetalleIncidenciaScreen() {
                   style={[
                     styles.estadoPill,
                     activo && {
-                      backgroundColor: ESTADO_PILL_BG[e],
-                      borderColor: ESTADO_PILL_TEXT[e] + '40',
+                      backgroundColor: getEstadoPillBg(theme, e),
+                      borderColor: getEstadoPillText(theme, e) + '40',
                     },
                   ]}
                   onPress={() => actualizarEstado(e)}
@@ -193,7 +199,7 @@ export default function DetalleIncidenciaScreen() {
                   <Text
                     style={[
                       styles.estadoPillTexto,
-                      activo && { color: ESTADO_PILL_TEXT[e] },
+                      activo && { color: getEstadoPillText(theme, e) },
                     ]}
                   >
                     {ETIQUETAS_ESTADO[e]}
@@ -203,8 +209,8 @@ export default function DetalleIncidenciaScreen() {
             })}
           </View>
         ) : (
-          <View style={[styles.estadoSoloLectura, { backgroundColor: ESTADO_PILL_BG[incidencia.estado] }]}>
-            <Text style={[styles.estadoSoloLecturaTexto, { color: ESTADO_PILL_TEXT[incidencia.estado] }]}>
+          <View style={[styles.estadoSoloLectura, { backgroundColor: getEstadoPillBg(theme, incidencia.estado) }]}>
+            <Text style={[styles.estadoSoloLecturaTexto, { color: getEstadoPillText(theme, incidencia.estado) }]}>
               {ETIQUETAS_ESTADO[incidencia.estado]}
             </Text>
           </View>
@@ -220,6 +226,8 @@ export default function DetalleIncidenciaScreen() {
             value={descripcion}
             onChangeText={setDescripcion}
             placeholder="Descripción"
+            placeholderTextColor={theme.colors.textMuted}
+            keyboardAppearance={keyboardAppearance}
             multiline
           />
         ) : (
@@ -289,7 +297,7 @@ export default function DetalleIncidenciaScreen() {
             disabled={guardando || !puedeGuardar}
           >
             {guardando ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.surface} />
             ) : (
               <Text style={styles.botonTextoClaro}>Guardar</Text>
             )}

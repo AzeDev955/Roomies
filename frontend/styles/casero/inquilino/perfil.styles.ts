@@ -1,14 +1,14 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: theme.colors.background,
   },
   content: {
-    padding: Theme.spacing.base,
-    paddingBottom: Theme.spacing.xl,
+    padding: theme.spacing.base,
+    paddingBottom: theme.spacing.xl,
     alignItems: 'center',
   },
 
@@ -16,63 +16,68 @@ export const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: Theme.colors.primary,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: theme.isDark ? 0.42 : 0.28,
+    shadowRadius: 8,
+    elevation: 6,
   },
   avatarTexto: {
     fontSize: 28,
     fontWeight: '700',
-    color: Theme.colors.surface,
+    color: theme.colors.background,
     letterSpacing: 1,
   },
 
   // — Nombre y subtítulo —
   nombre: {
-    fontSize: Theme.typography.heading,
+    fontSize: theme.typography.heading,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: Theme.spacing.xs,
+    marginBottom: theme.spacing.xs,
   },
   subtitulo: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: Theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
   },
 
   // — Card de datos de contacto —
   card: {
     width: '100%',
-    marginBottom: Theme.spacing.base,
+    marginBottom: theme.spacing.base,
   },
   cardTitulo: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '700',
-    color: Theme.colors.textTertiary,
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: Theme.spacing.md,
+    marginBottom: theme.spacing.md,
   },
   fila: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   filaTexto: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.text,
+    fontSize: theme.typography.body,
+    color: theme.colors.text,
     flex: 1,
   },
   separador: {
     height: 1,
-    backgroundColor: Theme.colors.border,
-    marginVertical: Theme.spacing.xs,
+    backgroundColor: theme.colors.border,
+    marginVertical: theme.spacing.xs,
   },
 
   // — Botón de email —
@@ -80,36 +85,39 @@ export const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Theme.spacing.xl,
-    gap: Theme.spacing.base,
+    paddingHorizontal: theme.spacing.xl,
+    gap: theme.spacing.base,
+    backgroundColor: theme.colors.background,
   },
   errorIconBox: {
     width: 88,
     height: 88,
-    borderRadius: Theme.radius.xl,
-    backgroundColor: Theme.colors.primaryLight,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   errorTitle: {
-    fontSize: Theme.typography.heading,
+    fontSize: theme.typography.heading,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
   },
   errorText: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
   errorAction: {
     width: '100%',
-    marginTop: Theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
 
   botonEmail: {
     width: '100%',
-    marginTop: Theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
 });
+
+export const styles = createStyles();

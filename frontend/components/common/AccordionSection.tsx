@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import { Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
 type AccordionSectionProps = {
   title: string;
@@ -22,6 +24,9 @@ export function AccordionSection({
   children,
   style,
 }: AccordionSectionProps) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <View style={[styles.container, style]}>
       <Pressable
@@ -32,7 +37,7 @@ export function AccordionSection({
         accessibilityLabel={`${expanded ? 'Plegar' : 'Desplegar'} ${title}`}
       >
         <View style={styles.iconBox}>
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={Theme.colors.primary} />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.primary} />
         </View>
         <View style={styles.copy}>
           <Text style={styles.title}>{title}</Text>
@@ -46,27 +51,31 @@ export function AccordionSection({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   container: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: Theme.colors.border,
+    borderColor: theme.colors.border,
     overflow: 'hidden',
-    ...Theme.shadows.sm,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: theme.isDark ? 0.2 : 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   header: {
     minHeight: 72,
-    padding: Theme.spacing.base,
+    padding: theme.spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.base,
+    gap: theme.spacing.base,
   },
   iconBox: {
     width: 40,
     height: 40,
-    borderRadius: Theme.radius.full,
-    backgroundColor: Theme.colors.primaryLight,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -74,33 +83,33 @@ const styles = StyleSheet.create({
   copy: {
     flex: 1,
     minWidth: 0,
-    gap: Theme.spacing.xs,
+    gap: theme.spacing.xs,
   },
   title: {
-    fontSize: Theme.typography.body,
+    fontSize: theme.typography.body,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   subtitle: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.caption,
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
   meta: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '800',
-    color: Theme.colors.primary,
-    backgroundColor: Theme.colors.primaryLight,
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
+    color: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     overflow: 'hidden',
     flexShrink: 0,
   },
   content: {
     borderTopWidth: 1,
-    borderTopColor: Theme.colors.border,
-    padding: Theme.spacing.base,
-    gap: Theme.spacing.base,
+    borderTopColor: theme.colors.border,
+    padding: theme.spacing.base,
+    gap: theme.spacing.base,
   },
 });

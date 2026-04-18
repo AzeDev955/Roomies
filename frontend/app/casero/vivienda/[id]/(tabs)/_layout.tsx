@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Tabs, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable } from 'react-native';
-import { Theme } from '@/constants/theme';
 import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
 type ViviendaModulos = {
   mod_limpieza: boolean;
@@ -15,6 +15,7 @@ type ViviendaModulos = {
 
 export default function ViviendaTabsLayout() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const id = useViviendaIdParam();
   const [modulos, setModulos] = useState({ limpieza: true });
 
@@ -71,11 +72,11 @@ export default function ViviendaTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: Theme.colors.surface },
+        headerStyle: { backgroundColor: theme.colors.surface },
         headerTitleStyle: {
-          color: Theme.colors.text,
+          color: theme.colors.text,
           fontWeight: '600',
-          fontSize: Theme.typography.body,
+          fontSize: theme.typography.body,
         },
         headerShadowVisible: false,
         headerLeft: () => (
@@ -84,18 +85,18 @@ export default function ViviendaTabsLayout() {
             style={{ paddingLeft: 12, paddingRight: 8 }}
             hitSlop={8}
           >
-            <Ionicons name="chevron-back" size={26} color={Theme.colors.primary} />
+            <Ionicons name="chevron-back" size={26} color={theme.colors.primary} />
           </Pressable>
         ),
-        tabBarActiveTintColor: Theme.colors.primary,
-        tabBarInactiveTintColor: Theme.colors.textTertiary,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Theme.colors.surface,
-          borderTopColor: Theme.colors.border,
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {
-          fontSize: Theme.typography.caption,
+          fontSize: theme.typography.caption,
           fontWeight: '600',
         },
       }}

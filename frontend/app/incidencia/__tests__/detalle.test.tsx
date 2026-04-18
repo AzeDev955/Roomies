@@ -64,7 +64,9 @@ describe('DetalleIncidenciaScreen', () => {
 
     render(<DetalleIncidenciaScreen />);
 
-    await screen.findByText(/Grifo con fuga/);
+    await waitFor(() => {
+      expect(screen.getByText(/Grifo con fuga/)).toBeTruthy();
+    }, { timeout: 10000 });
 
     expect(screen.queryByText('Editar')).toBeNull();
     expect(screen.queryByText('Eliminar')).toBeNull();

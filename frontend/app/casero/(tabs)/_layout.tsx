@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Tabs, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Theme } from '@/constants/theme';
 import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
+import { useAppTheme } from '@/contexts/ThemeContext';
 
 type ViviendaModulos = {
   mod_gastos: boolean;
@@ -11,6 +11,7 @@ type ViviendaModulos = {
 };
 
 export default function CaseroTabsLayout() {
+  const { theme } = useAppTheme();
   const [modulos, setModulos] = useState({
     gastos: true,
     inventario: true,
@@ -62,19 +63,19 @@ export default function CaseroTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Theme.colors.primary,
-        tabBarInactiveTintColor: Theme.colors.textTertiary,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Theme.colors.surface,
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 0,
           elevation: 12,
-          shadowColor: Theme.colors.shadow,
+          shadowColor: theme.colors.shadow,
           shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.07,
+          shadowOpacity: theme.isDark ? 0.2 : 0.07,
           shadowRadius: 12,
         },
         tabBarLabelStyle: {
-          fontSize: Theme.typography.caption,
+          fontSize: theme.typography.caption,
           fontWeight: '600',
         },
       }}

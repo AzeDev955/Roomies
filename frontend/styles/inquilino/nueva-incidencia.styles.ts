@@ -1,82 +1,85 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { DefaultAppTheme, type AppTheme } from '@/constants/theme';
 
-// Soft tint system para prioridad (coherente con módulo de incidencias #171)
-export const PRIORIDAD_BG: Record<string, string> = {
-  VERDE:    Theme.colors.successLight,
-  AMARILLO: Theme.colors.warningLight,
-  ROJO:     Theme.colors.dangerLight,
-};
-export const PRIORIDAD_TEXT: Record<string, string> = {
-  VERDE:    Theme.colors.successText,
-  AMARILLO: Theme.colors.warningText,
-  ROJO:     Theme.colors.dangerText,
-};
-export const PRIORIDAD_BORDER: Record<string, string> = {
-  VERDE:    Theme.colors.successText,
-  AMARILLO: Theme.colors.warningText,
-  ROJO:     Theme.colors.dangerText,
-};
-export const ETIQUETAS_PRIORIDAD: Record<string, string> = {
-  VERDE:    'Sugerencia',
+type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
+
+export const getPrioridadBg = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.successLight,
+  AMARILLO: theme.colors.warningLight,
+  ROJO: theme.colors.dangerLight,
+})[prioridad];
+
+export const getPrioridadText = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.successText,
+  AMARILLO: theme.colors.warningText,
+  ROJO: theme.colors.dangerText,
+})[prioridad];
+
+export const getPrioridadBorder = (theme: AppTheme, prioridad: Prioridad) => ({
+  VERDE: theme.colors.successText,
+  AMARILLO: theme.colors.warningText,
+  ROJO: theme.colors.dangerText,
+})[prioridad];
+
+export const ETIQUETAS_PRIORIDAD: Record<Prioridad, string> = {
+  VERDE: 'Sugerencia',
   AMARILLO: 'Aviso',
-  ROJO:     'Urgente',
+  ROJO: 'Urgente',
 };
 
-export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
-  content: { padding: Theme.spacing.base, paddingBottom: 96 },
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  content: { padding: theme.spacing.base, paddingBottom: 96 },
 
   titulo: {
-    fontSize: Theme.typography.heading,
+    fontSize: theme.typography.heading,
     fontWeight: '700',
-    color: Theme.colors.text,
-    marginBottom: Theme.spacing.lg,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.lg,
   },
   contextoAviso: {
-    backgroundColor: Theme.colors.warningLight,
-    borderRadius: Theme.radius.lg,
+    backgroundColor: theme.colors.warningLight,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: Theme.colors.warning + '30',
-    padding: Theme.spacing.base,
-    marginBottom: Theme.spacing.lg,
-    gap: Theme.spacing.xs,
+    borderColor: theme.colors.warningText,
+    padding: theme.spacing.base,
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.xs,
   },
   contextoAvisoTitulo: {
-    fontSize: Theme.typography.body,
+    fontSize: theme.typography.body,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   contextoAvisoTexto: {
-    fontSize: Theme.typography.label,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
     lineHeight: 20,
   },
 
-  // — Campos —
   label: {
-    fontSize: Theme.typography.label,
+    fontSize: theme.typography.label,
     fontWeight: '600',
-    color: Theme.colors.textSecondary,
+    color: theme.colors.textSecondary,
     letterSpacing: 0.4,
-    marginBottom: Theme.spacing.sm,
-    marginTop: Theme.spacing.base,
+    marginBottom: theme.spacing.sm,
+    marginTop: theme.spacing.base,
   },
   inputTexto: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     borderWidth: 2,
-    borderColor: Theme.colors.border,
-    paddingHorizontal: Theme.spacing.base,
+    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.base,
     paddingVertical: 14,
     minHeight: 52,
-    fontSize: Theme.typography.input,
-    color: Theme.colors.text,
+    fontSize: theme.typography.input,
+    color: theme.colors.text,
     marginBottom: 4,
   },
   inputFocused: {
-    borderColor: Theme.colors.primary,
-    backgroundColor: Theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
   },
   inputDescripcion: {
     height: 120,
@@ -84,45 +87,43 @@ export const styles = StyleSheet.create({
     paddingTop: 14,
   },
 
-  // — Selector de ubicación —
   habitacionFila: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Theme.spacing.sm,
-    marginTop: Theme.spacing.sm,
-    marginBottom: Theme.spacing.base,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.base,
   },
   habitacionPill: {
-    borderRadius: Theme.radius.full,
-    paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.sm,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
     borderWidth: 2,
-    borderColor: Theme.colors.border,
-    backgroundColor: 'transparent',
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
   },
   habitacionPillActivo: {
-    backgroundColor: Theme.colors.primary + '18',
-    borderColor: Theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
   },
   habitacionPillTexto: {
-    fontSize: Theme.typography.label,
+    fontSize: theme.typography.label,
     fontWeight: '600',
-    color: Theme.colors.textSecondary,
+    color: theme.colors.textSecondary,
   },
   habitacionPillTextoActivo: {
-    color: Theme.colors.primary,
+    color: theme.colors.primary,
   },
 
-  // — Selector de prioridad —
   selectorFila: {
     flexDirection: 'row',
-    gap: Theme.spacing.sm,
-    marginTop: Theme.spacing.sm,
-    marginBottom: Theme.spacing.xl,
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xl,
   },
   selectorBtn: {
     flex: 1,
-    borderRadius: Theme.radius.full,
+    borderRadius: theme.radius.full,
     paddingVertical: 14,
     minHeight: 52,
     alignItems: 'center',
@@ -130,25 +131,26 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
   },
   selectorBtnTexto: {
-    fontSize: Theme.typography.label,
+    fontSize: theme.typography.label,
     fontWeight: '700',
   },
 
-  // — Botón enviar —
   botonEnviar: {
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.lg,
-    paddingVertical: Theme.spacing.base,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.lg,
+    paddingVertical: theme.spacing.base,
     minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
   botonEnviarTexto: {
-    color: Theme.colors.surface,
-    fontSize: 17,
+    color: theme.colors.surface,
+    fontSize: theme.typography.input,
     fontWeight: '700',
   },
   botonEnviarDisabled: {
-    backgroundColor: Theme.colors.primaryDisabled,
+    backgroundColor: theme.colors.primaryDisabled,
   },
 });
+
+export const styles = createStyles();

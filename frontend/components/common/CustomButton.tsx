@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleProp, Text, ViewStyle } from 'react-native';
-import { Theme } from '@/constants/theme';
-import { styles } from './CustomButton.styles';
+import { useMemo } from 'react';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from './CustomButton.styles';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'success';
 
@@ -25,8 +26,10 @@ export function CustomButton({
   accessibilityLabel,
   style,
 }: CustomButtonProps) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const isDarkText = DARK_TEXT_VARIANTS.includes(variant);
-  const spinnerColor = isDarkText ? Theme.colors.textMedium : Theme.colors.surface;
+  const spinnerColor = isDarkText ? theme.colors.textMedium : theme.colors.background;
 
   return (
     <Pressable

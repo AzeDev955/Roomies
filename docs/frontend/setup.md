@@ -200,6 +200,16 @@ La navegacion es modular por vivienda:
 - El tab `Opciones` (`casero/vivienda/[id]/(tabs)/opciones.tsx`) muestra switches para activar o desactivar modulos via `PATCH /api/viviendas/:id`.
 - Los tabs anidados de vivienda usan `useViviendaIdParam()` para leer el id local con fallback al pathname y evitar colisiones con otras rutas dinamicas.
 
+## Apariencia y modo oscuro
+
+La app soporta preferencia `Sistema`, `Claro` y `Oscuro` desde Perfil. El valor se guarda con `expo-secure-store` y `AppThemeProvider` resuelve la paleta activa con `buildAppTheme()`.
+
+- `frontend/constants/theme.ts` define las paletas `light` y `dark`.
+- `frontend/contexts/ThemeContext.tsx` expone `theme`, `mode`, `resolvedMode` y `setMode`.
+- Las pantallas usan `useAppTheme()` y `createStyles(theme)` para reaccionar al cambio manual o del sistema.
+- Los componentes compartidos, toast, tabs y componentes heredados de Expo consumen el tema activo.
+- Las pantallas migradas se documentan en `docs/changelog/EpicaDarkMode/`; `docs/frontend/visual-quality.md` mantiene el checklist obligatorio.
+
 ## Autenticacion y sesion
 
 El layout raiz (`app/_layout.tsx`) hace tres cosas:
@@ -364,3 +374,10 @@ eas build --platform android --profile preview
 - Se documentan los criterios obligatorios de calidad visual, accesibilidad, copy y encoding en `docs/frontend/visual-quality.md`.
 - Los colores semanticos compartidos quedan centralizados en `Theme.colors` para evitar hexadecimales locales.
 - Los componentes comunes y pantallas de autenticacion declaran roles, labels y estados accesibles en acciones principales.
+
+## Update 2026-04-18 - Epica Dark Mode
+
+- Se incorpora soporte completo de modo claro/oscuro con selector manual en Perfil.
+- Las pantallas funcionales de casero, inquilino, vivienda, incidencias, tablon, limpieza, gastos, inventario, cobros y formularios principales consumen `useAppTheme()`.
+- Los componentes heredados `ThemedText`, `ThemedView`, `ParallaxScrollView` y `Collapsible` respetan `AppThemeProvider`.
+- `docs/changelog/EpicaDarkMode/` centraliza los changelogs de pantallas migradas.
