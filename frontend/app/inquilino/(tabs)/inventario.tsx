@@ -15,13 +15,11 @@ import { useFocusEffect } from 'expo-router';
 import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import api from '@/services/api';
 import {
-  ESTADO_ITEM_BG,
-  ESTADO_ITEM_BORDER,
-  ESTADO_ITEM_TEXT,
-  styles,
+  createEstadoItemStyles,
+  createStyles,
 } from '@/styles/inquilino/inventario.styles';
 
 type EstadoItem = 'NUEVO' | 'BUENO' | 'DESGASTADO' | 'ROTO';
@@ -75,6 +73,9 @@ const ETIQUETAS_ESTADO: Record<EstadoItem, string> = {
 };
 
 export default function InquilinoInventarioScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const estadoItemStyles = useMemo(() => createEstadoItemStyles(theme), [theme]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [datosVivienda, setDatosVivienda] = useState<DatosVivienda | null>(null);
@@ -203,7 +204,7 @@ export default function InquilinoInventarioScreen() {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="lock-closed-outline" size={44} color={Theme.colors.primary} />
+            <Ionicons name="lock-closed-outline" size={44} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>Inventario desactivado</Text>
           <Text style={styles.emptySubtitle}>
@@ -220,7 +221,7 @@ export default function InquilinoInventarioScreen() {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="home-outline" size={44} color={Theme.colors.primary} />
+            <Ionicons name="home-outline" size={44} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>Todavía no tienes vivienda asignada</Text>
           <Text style={styles.emptySubtitle}>
@@ -250,13 +251,13 @@ export default function InquilinoInventarioScreen() {
 
           <View style={styles.heroStats}>
             <View style={[styles.heroStat, styles.heroStatPrimary]}>
-              <Ionicons name="images-outline" size={14} color={Theme.colors.primary} />
+              <Ionicons name="images-outline" size={14} color={theme.colors.primary} />
               <Text style={[styles.heroStatText, styles.heroStatTextPrimary]}>
                 {items.length} ítems
               </Text>
             </View>
             <View style={[styles.heroStat, styles.heroStatSuccess]}>
-              <Ionicons name="checkmark-circle-outline" size={14} color={Theme.colors.success} />
+              <Ionicons name="checkmark-circle-outline" size={14} color={theme.colors.success} />
               <Text style={[styles.heroStatText, styles.heroStatTextSuccess]}>
                 {itemsValidados} validados
               </Text>
@@ -269,12 +270,12 @@ export default function InquilinoInventarioScreen() {
 
           {refreshing ? (
             <View style={styles.loaderBlock}>
-              <ActivityIndicator size="large" color={Theme.colors.primary} />
+              <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
           ) : grupos.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name="file-tray-outline" size={42} color={Theme.colors.primary} />
+                <Ionicons name="file-tray-outline" size={42} color={theme.colors.primary} />
               </View>
               <Text style={styles.emptyTitle}>Aún no hay inventario registrado</Text>
               <Text style={styles.emptySubtitle}>
@@ -304,15 +305,15 @@ export default function InquilinoInventarioScreen() {
                           style={[
                             styles.statusPill,
                             {
-                              backgroundColor: ESTADO_ITEM_BG[item.estado],
-                              borderColor: ESTADO_ITEM_BORDER[item.estado],
+                              backgroundColor: estadoItemStyles[item.estado].background,
+                              borderColor: estadoItemStyles[item.estado].border,
                             },
                           ]}
                         >
                           <Text
                             style={[
                               styles.statusPillText,
-                              { color: ESTADO_ITEM_TEXT[item.estado] },
+                              { color: estadoItemStyles[item.estado].text },
                             ]}
                           >
                             {ETIQUETAS_ESTADO[item.estado]}
@@ -338,7 +339,7 @@ export default function InquilinoInventarioScreen() {
                         </ScrollView>
                       ) : (
                         <View style={styles.photoPlaceholder}>
-                          <Ionicons name="image-outline" size={32} color={Theme.colors.primary} />
+                          <Ionicons name="image-outline" size={32} color={theme.colors.primary} />
                           <Text style={styles.photoPlaceholderTitle}>Sin fotos todavía</Text>
                           <Text style={styles.photoPlaceholderSubtitle}>
                             Este elemento aún no tiene evidencia visual cargada.
@@ -348,7 +349,7 @@ export default function InquilinoInventarioScreen() {
 
                       <View style={styles.metaRow}>
                         <View style={styles.metaPill}>
-                          <Ionicons name="camera-outline" size={13} color={Theme.colors.textMedium} />
+                          <Ionicons name="camera-outline" size={13} color={theme.colors.textMedium} />
                           <Text style={styles.metaPillText}>
                             {item.fotos.length} foto{item.fotos.length === 1 ? '' : 's'}
                           </Text>
@@ -359,7 +360,7 @@ export default function InquilinoInventarioScreen() {
                             <Ionicons
                               name="checkmark-circle-outline"
                               size={13}
-                              color={Theme.colors.success}
+                              color={theme.colors.success}
                             />
                             <Text style={styles.validatedBadgeText}>✓ Validado por ti</Text>
                           </View>
@@ -430,7 +431,7 @@ export default function InquilinoInventarioScreen() {
                   </>
                 ) : (
                   <View style={styles.photoPlaceholder}>
-                    <Ionicons name="camera-outline" size={32} color={Theme.colors.primary} />
+                    <Ionicons name="camera-outline" size={32} color={theme.colors.primary} />
                     <Text style={styles.photoPlaceholderTitle}>No hay fotos para revisar</Text>
                     <Text style={styles.photoPlaceholderSubtitle}>
                       Puedes marcar “No coincide” para que se te recuerde abrir una incidencia con tus propias imágenes.
