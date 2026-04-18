@@ -155,7 +155,7 @@ export default function InquilinoTablonScreen() {
             accessibilityLabel="Eliminar anuncio"
             accessibilityRole="button"
           >
-            <Text style={styles.eliminarBtnTexto}>✕</Text>
+            <Ionicons name="close" size={16} color={theme.colors.dangerText} />
           </Pressable>
         )}
       </View>
