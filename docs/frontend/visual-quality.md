@@ -10,6 +10,15 @@ Esta guia resume los patrones minimos que deben respetar las PRs de frontend en 
 - Los textos de estado sobre tints usan `successText`, `warningText` o `dangerText` para mantener contraste consistente.
 - Los valores dinamicos como `opacity`, `scale`, `shadowOpacity` o porcentajes de layout pueden seguir siendo numeros locales cuando representan comportamiento, no sistema visual.
 
+## Modo oscuro
+
+- Toda pantalla real de `frontend/app` debe consumir `useAppTheme()` y construir sus estilos con `createStyles(theme)`.
+- Los archivos de `frontend/styles` deben aceptar `AppTheme` y usar `theme.colors`, `theme.spacing`, `theme.radius`, `theme.typography` y `theme.shadows`.
+- Los placeholders, cursores, selections, loaders, iconos, headers, tabs, modales, overlays, switches y FABs deben leer el tema activo.
+- Los formularios con `TextInput` deben definir `keyboardAppearance={theme.isDark ? 'dark' : 'light'}` cuando aplique.
+- Los componentes heredados de Expo deben respetar `AppThemeProvider`; no deben depender solo de `useColorScheme()` si existe selector manual en Perfil.
+- Cada nueva pantalla migrada debe tener entrada en `docs/changelog/EpicaDarkMode/` o en la epica funcional correspondiente si el modo oscuro forma parte de esa entrega.
+
 ## Componentes
 
 - Los CTAs primarios usan `CustomButton` siempre que no haya una necesidad especifica de layout.
