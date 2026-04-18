@@ -28,6 +28,7 @@ export default function NuevaHabitacionScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const keyboardAppearance = theme.isDark ? 'dark' : 'light';
   const { id } = useLocalSearchParams<{ id: string }>();
   const viviendaId = parsePositiveIntParam(id);
   const [nombre, setNombre] = useState('');
@@ -93,6 +94,7 @@ export default function NuevaHabitacionScreen() {
           style={[styles.input, focusedInput === 'nombre' && styles.inputFocused]}
           placeholder="Ej: Habitación 1"
           placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           value={nombre}
           onChangeText={setNombre}
           autoCapitalize="words"
@@ -125,8 +127,9 @@ export default function NuevaHabitacionScreen() {
               <Switch
                 value={esHabitable}
                 onValueChange={setEsHabitable}
-                trackColor={{ false: theme.colors.border, true: theme.colors.success }}
+                trackColor={{ false: theme.colors.surface2, true: theme.colors.success }}
                 thumbColor={theme.colors.surface}
+                ios_backgroundColor={theme.colors.surface2}
               />
             </View>
           </>
@@ -139,6 +142,7 @@ export default function NuevaHabitacionScreen() {
               style={[styles.input, focusedInput === 'precio' && styles.inputFocused]}
               placeholder="Ej: 450"
               placeholderTextColor={theme.colors.textMuted}
+              keyboardAppearance={keyboardAppearance}
               value={precio}
               onChangeText={setPrecio}
               keyboardType="decimal-pad"
@@ -153,6 +157,7 @@ export default function NuevaHabitacionScreen() {
           style={[styles.input, focusedInput === 'metros' && styles.inputFocused]}
           placeholder="Ej: 12.5"
           placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           value={metrosCuadrados}
           onChangeText={setMetrosCuadrados}
           keyboardType="decimal-pad"
