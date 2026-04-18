@@ -1,10 +1,10 @@
 import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
-import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
 import { parsePositiveIntParam } from '@/utils/routeParams';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
@@ -26,6 +26,8 @@ const NOMBRE_SUGERIDO: Partial<Record<TipoHabitacion, string>> = {
 
 export default function NuevaHabitacionScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const viviendaId = parsePositiveIntParam(id);
   const [nombre, setNombre] = useState('');
@@ -90,7 +92,7 @@ export default function NuevaHabitacionScreen() {
         <TextInput
           style={[styles.input, focusedInput === 'nombre' && styles.inputFocused]}
           placeholder="Ej: Habitación 1"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={nombre}
           onChangeText={setNombre}
           autoCapitalize="words"
@@ -123,8 +125,8 @@ export default function NuevaHabitacionScreen() {
               <Switch
                 value={esHabitable}
                 onValueChange={setEsHabitable}
-                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
-                thumbColor={Theme.colors.surface}
+                trackColor={{ false: theme.colors.border, true: theme.colors.success }}
+                thumbColor={theme.colors.surface}
               />
             </View>
           </>
@@ -136,7 +138,7 @@ export default function NuevaHabitacionScreen() {
             <TextInput
               style={[styles.input, focusedInput === 'precio' && styles.inputFocused]}
               placeholder="Ej: 450"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
               value={precio}
               onChangeText={setPrecio}
               keyboardType="decimal-pad"
@@ -150,7 +152,7 @@ export default function NuevaHabitacionScreen() {
         <TextInput
           style={[styles.input, focusedInput === 'metros' && styles.inputFocused]}
           placeholder="Ej: 12.5"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={metrosCuadrados}
           onChangeText={setMetrosCuadrados}
           keyboardType="decimal-pad"
@@ -164,7 +166,7 @@ export default function NuevaHabitacionScreen() {
           disabled={!nombre.trim() || loading}
         >
           {loading ? (
-            <ActivityIndicator color={Theme.colors.surface} />
+            <ActivityIndicator color={theme.colors.surface} />
           ) : (
             <Text style={styles.botonTexto}>Añadir habitación</Text>
           )}

@@ -1,11 +1,11 @@
 import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert, LayoutAnimation } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
-import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
 import { parsePositiveIntParam } from '@/utils/routeParams';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
@@ -21,6 +21,8 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
 
 export default function EditarHabitacionScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam, precio: precioParam, inquilinoId } =
     useLocalSearchParams<{
       id: string;
@@ -157,7 +159,7 @@ export default function EditarHabitacionScreen() {
         <TextInput
           style={[styles.input, focusedInput === 'nombre' && styles.inputFocused]}
           placeholder="Ej: Habitación 1"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={nombre}
           onChangeText={setNombre}
           autoCapitalize="words"
@@ -190,8 +192,8 @@ export default function EditarHabitacionScreen() {
               <Switch
                 value={esHabitable}
                 onValueChange={setEsHabitable}
-                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
-                thumbColor={Theme.colors.surface}
+                trackColor={{ false: theme.colors.border, true: theme.colors.success }}
+                thumbColor={theme.colors.surface}
               />
             </View>
           </>
@@ -203,7 +205,7 @@ export default function EditarHabitacionScreen() {
             <TextInput
               style={[styles.input, focusedInput === 'precio' && styles.inputFocused]}
               placeholder="Ej: 450"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
               value={precio}
               onChangeText={setPrecio}
               keyboardType="decimal-pad"
@@ -217,7 +219,7 @@ export default function EditarHabitacionScreen() {
         <TextInput
           style={[styles.input, focusedInput === 'metros' && styles.inputFocused]}
           placeholder="Ej: 12.5"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
           value={metrosCuadrados}
           onChangeText={setMetrosCuadrados}
           keyboardType="decimal-pad"
@@ -231,7 +233,7 @@ export default function EditarHabitacionScreen() {
           disabled={!nombre.trim() || loading}
         >
           {loading ? (
-            <ActivityIndicator color={Theme.colors.surface} />
+            <ActivityIndicator color={theme.colors.surface} />
           ) : (
             <Text style={styles.botonTexto}>Guardar cambios</Text>
           )}
@@ -244,7 +246,7 @@ export default function EditarHabitacionScreen() {
           <Ionicons
             name={mostrarPeligro ? 'chevron-up' : 'chevron-down'}
             size={16}
-            color={Theme.colors.danger}
+            color={theme.colors.danger}
           />
         </Pressable>
 
@@ -252,7 +254,7 @@ export default function EditarHabitacionScreen() {
           <View>
             {!!inquilinoId && (
               <Pressable
-                style={[styles.botonDestructivoSoft, expulsando && { opacity: 0.5 }]}
+                style={[styles.botonDestructivoSoft, expulsando && styles.botonDestructivoSoftDisabled]}
                 onPress={expulsarInquilino}
                 disabled={expulsando}
               >
