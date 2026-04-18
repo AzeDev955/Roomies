@@ -1,12 +1,16 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { DefaultAppTheme, type AppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   content: {
-    paddingHorizontal: Theme.spacing.lg,
-    paddingTop: Theme.spacing.lg,
-    paddingBottom: Theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxl,
   },
 
   // — Empty / sin vivienda —
@@ -14,40 +18,55 @@ export const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Theme.spacing.xxl,
-    paddingHorizontal: Theme.spacing.lg,
+    paddingVertical: theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.lg,
   },
   emptyText: {
     textAlign: 'center',
-    color: Theme.colors.textTertiary,
-    fontSize: Theme.typography.body,
+    color: theme.colors.textTertiary,
+    fontSize: theme.typography.body,
     lineHeight: 24,
   },
   emptyIconBox: {
     width: 88,
     height: 88,
-    borderRadius: Theme.radius.xl,
-    backgroundColor: Theme.colors.primaryLight,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  emptyIconBoxLarge: {
+    width: 80,
+    height: 80,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.sm,
   },
   emptyTitle: {
-    fontSize: Theme.typography.heading,
+    fontSize: theme.typography.heading,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: Theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  emptyTitleLarge: {
+    fontSize: theme.typography.title,
+    fontWeight: '800',
+    color: theme.colors.text,
+    textAlign: 'center',
   },
 
   // — Cabecera —
   header: {
-    marginBottom: Theme.spacing.xl,
+    marginBottom: theme.spacing.xl,
   },
   headerSemana: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '700',
-    color: Theme.colors.primary,
+    color: theme.colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 4,
@@ -55,53 +74,53 @@ export const styles = StyleSheet.create({
   headerTitulo: {
     fontSize: 30,
     fontWeight: '800',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     letterSpacing: -0.5,
     lineHeight: 34,
   },
   headerSubtitulo: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textSecondary,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
     marginTop: 5,
     lineHeight: 22,
   },
 
   // — Título de sección —
   seccionTitulo: {
-    fontSize: Theme.typography.subtitle,
+    fontSize: theme.typography.subtitle,
     fontWeight: '700',
-    color: Theme.colors.text,
-    marginTop: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
+    color: theme.colors.text,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
 
   // — Mis tareas: estado vacío inline —
   miTareaVacia: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
     alignItems: 'center',
-    shadowColor: Theme.colors.shadow,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 1,
   },
   miTareaVaciaTexto: {
-    color: Theme.colors.textTertiary,
-    fontSize: Theme.typography.body,
+    color: theme.colors.textTertiary,
+    fontSize: theme.typography.body,
     textAlign: 'center',
     lineHeight: 22,
   },
 
   // — Card de mi turno —
   miTareaCard: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.md,
-    gap: Theme.spacing.lg,
-    shadowColor: Theme.colors.shadow,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.lg,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
     shadowRadius: 10,
@@ -117,35 +136,35 @@ export const styles = StyleSheet.create({
   },
   miTareaTexto: {
     flex: 1,
-    marginRight: Theme.spacing.md,
+    marginRight: theme.spacing.md,
   },
   miTareaZona: {
     fontSize: 22,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
     letterSpacing: -0.3,
   },
   miTareaEsfuerzo: {
-    fontSize: Theme.typography.caption,
+    fontSize: theme.typography.caption,
     fontWeight: '600',
-    color: Theme.colors.textSecondary,
+    color: theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 5,
   },
   miTareaIconBox: {
-    backgroundColor: Theme.colors.primary + '15',
+    backgroundColor: theme.colors.primaryLight,
     padding: 14,
-    borderRadius: Theme.radius.md,
+    borderRadius: theme.radius.md,
   },
   miTareaIconBoxHecha: {
-    backgroundColor: Theme.colors.successLight,
+    backgroundColor: theme.colors.successLight,
   },
 
   // — Botón Marcar como Hecho —
   botonHecho: {
-    backgroundColor: Theme.colors.primary,
-    borderRadius: Theme.radius.full,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.full,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -158,8 +177,8 @@ export const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
   },
   botonHechoTexto: {
-    color: Theme.colors.surface,
-    fontSize: Theme.typography.body,
+    color: theme.colors.surface,
+    fontSize: theme.typography.body,
     fontWeight: '700',
   },
 
@@ -169,26 +188,26 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: Theme.colors.successLight,
-    borderRadius: Theme.radius.md,
+    backgroundColor: theme.colors.successLight,
+    borderRadius: theme.radius.md,
     paddingVertical: 10,
   },
   badgeHechoTexto: {
-    fontSize: Theme.typography.label,
+    fontSize: theme.typography.label,
     fontWeight: '700',
-    color: Theme.colors.successText,
+    color: theme.colors.successText,
   },
 
   // — Filas de compañeros —
   companeroRow: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.base,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    marginBottom: Theme.spacing.sm,
-    shadowColor: Theme.colors.shadow,
+    marginBottom: theme.spacing.sm,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -204,29 +223,31 @@ export const styles = StyleSheet.create({
     marginBottom: 3,
   },
   companeroZonaNombre: {
-    fontSize: Theme.typography.body,
+    fontSize: theme.typography.body,
     fontWeight: '700',
-    color: Theme.colors.text,
+    color: theme.colors.text,
   },
   companeroEstadoPendiente: {
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    color: Theme.colors.warning,
+    color: theme.colors.warningText,
   },
   companeroEstadoHecho: {
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    color: Theme.colors.successText,
+    color: theme.colors.successText,
   },
   companeroAsignado: {
     fontSize: 11,
     fontWeight: '600',
-    color: Theme.colors.textTertiary,
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
 });
+
+export const styles = createStyles();

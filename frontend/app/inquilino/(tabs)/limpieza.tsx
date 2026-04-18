@@ -7,11 +7,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
-import { useState, useCallback } from 'react';
+import type { AppTheme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { useMemo, useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import api from '@/services/api';
-import { styles } from '@/styles/inquilino/limpieza.styles';
+import { createStyles } from '@/styles/inquilino/limpieza.styles';
 
 // ── Helpers UI ────────────────────────────────────────────────────────────────
 
@@ -31,20 +32,22 @@ const zonaIcon = (nombre: string) =>
 const AvatarInitials = ({
   nombre,
   apellidos,
+  theme,
   size = 44,
 }: {
   nombre: string;
   apellidos: string | null;
+  theme: AppTheme;
   size?: number;
 }) => {
   const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: Theme.colors.primary + '22',
+      backgroundColor: theme.colors.primaryLight,
       alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     }}>
-      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: Theme.colors.primary }}>
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: theme.colors.primary }}>
         {initials}
       </Text>
     </View>
@@ -67,6 +70,8 @@ type Turno = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LimpiezaInquilinoTab() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [viviendaId, setViviendaId] = useState<number | null>(null);
   const [miUsuarioId, setMiUsuarioId] = useState<number | null>(null);
   const [turnos, setTurnos] = useState<Turno[]>([]);
@@ -152,7 +157,7 @@ export default function LimpiezaInquilinoTab() {
   // ── Loading / sin vivienda ────────────────────────────────────────────────
 
   if (loading) {
-    return <ActivityIndicator style={{ flex: 1 }} size="large" color={Theme.colors.primary} />;
+    return <ActivityIndicator style={styles.loading} size="large" color={theme.colors.primary} />;
   }
 
   if (moduloDesactivado) {
@@ -160,7 +165,7 @@ export default function LimpiezaInquilinoTab() {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="lock-closed-outline" size={40} color={Theme.colors.primary} />
+            <Ionicons name="lock-closed-outline" size={40} color={theme.colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>Limpieza desactivada</Text>
           <Text style={styles.emptyText}>
@@ -221,7 +226,7 @@ export default function LimpiezaInquilinoTab() {
                     <Ionicons
                       name={zonaIcon(t.zona.nombre)}
                       size={22}
-                      color={esHecho ? Theme.colors.successText : Theme.colors.primary}
+                      color={esHecho ? theme.colors.successText : theme.colors.primary}
                     />
                   </View>
                 </View>
@@ -234,17 +239,17 @@ export default function LimpiezaInquilinoTab() {
                     disabled={marcando === t.id}
                   >
                     {marcando === t.id ? (
-                      <ActivityIndicator color={Theme.colors.surface} size="small" />
+                      <ActivityIndicator color={theme.colors.surface} size="small" />
                     ) : (
                       <>
-                        <Ionicons name="checkmark-circle" size={20} color={Theme.colors.surface} />
+                        <Ionicons name="checkmark-circle" size={20} color={theme.colors.surface} />
                         <Text style={styles.botonHechoTexto}>Marcar como Hecho</Text>
                       </>
                     )}
                   </Pressable>
                 ) : (
                   <View style={styles.badgeHecho}>
-                    <Ionicons name="checkmark-circle" size={15} color={Theme.colors.successText} />
+                    <Ionicons name="checkmark-circle" size={15} color={theme.colors.successText} />
                     <Text style={styles.badgeHechoTexto}>Completado</Text>
                   </View>
                 )}
@@ -261,7 +266,7 @@ export default function LimpiezaInquilinoTab() {
               const esPendiente = t.estado === 'PENDIENTE';
               return (
                 <View key={t.id} style={styles.companeroRow}>
-                  <AvatarInitials nombre={t.usuario.nombre} apellidos={t.usuario.apellidos} />
+                  <AvatarInitials nombre={t.usuario.nombre} apellidos={t.usuario.apellidos} theme={theme} />
                   <View style={styles.companeroInfo}>
                     <View style={styles.companeroTurnoTop}>
                       <Text style={styles.companeroZonaNombre}>{t.zona.nombre}</Text>
@@ -273,7 +278,7 @@ export default function LimpiezaInquilinoTab() {
                       ASIGNADO A {t.usuario.nombre.toUpperCase()}
                     </Text>
                   </View>
-                  <Ionicons name={zonaIcon(t.zona.nombre)} size={18} color={Theme.colors.textTertiary} />
+                  <Ionicons name={zonaIcon(t.zona.nombre)} size={18} color={theme.colors.textTertiary} />
                 </View>
               );
             })}
@@ -283,12 +288,10 @@ export default function LimpiezaInquilinoTab() {
         {/* Sin ningún turno */}
         {turnos.length === 0 && (
           <View style={styles.emptyContainer}>
-            <View style={{ width: 80, height: 80, borderRadius: Theme.radius.xl, backgroundColor: Theme.colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginBottom: Theme.spacing.sm }}>
-              <Ionicons name="sparkles-outline" size={40} color={Theme.colors.primary} />
+            <View style={styles.emptyIconBoxLarge}>
+              <Ionicons name="sparkles-outline" size={40} color={theme.colors.primary} />
             </View>
-            <Text style={{ fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.text, textAlign: 'center', letterSpacing: -0.3 }}>
-              Sin tareas esta semana
-            </Text>
+            <Text style={styles.emptyTitleLarge}>Sin tareas esta semana</Text>
             <Text style={styles.emptyText}>
               Tu casero todavía no ha generado los turnos de limpieza. Vuelve más tarde.
             </Text>
