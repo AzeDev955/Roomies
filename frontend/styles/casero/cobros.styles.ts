@@ -254,6 +254,11 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     color: theme.colors.textTertiary,
     lineHeight: 18,
   },
+  invoiceDeleteHint: {
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.danger,
+  },
   debtCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
@@ -688,6 +693,24 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     marginBottom: theme.spacing.lg,
   },
   warningBannerText: {
+    flex: 1,
+    fontSize: theme.typography.label,
+    color: theme.colors.textMedium,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  dangerHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+    backgroundColor: `${theme.colors.danger}14`,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: `${theme.colors.danger}30`,
+    padding: theme.spacing.base,
+    marginBottom: theme.spacing.lg,
+  },
+  dangerHintText: {
     flex: 1,
     fontSize: theme.typography.label,
     color: theme.colors.textMedium,

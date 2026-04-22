@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -108,6 +109,7 @@ type FacturaEmitida = {
   id: number;
   concepto: string;
   importe: number;
+  tipo?: 'FACTURA_PUNTUAL' | 'FACTURA_MENSUAL' | 'CARGO_RECURRENTE';
   factura_url: string | null;
   fecha_creacion: string;
   fecha_modificacion: string | null;
@@ -136,6 +138,11 @@ type GastoActualizadoResponse = {
     importe: number;
     estado: 'PENDIENTE' | 'PAGADA';
   }[];
+};
+
+type EliminarGastoResponse = {
+  ok: boolean;
+  gasto_id: number;
 };
 
 type RepartoFacturaPuntualLinea = {
@@ -271,6 +278,7 @@ export default function CaseroCobrosScreen() {
   const [importeEditado, setImporteEditado] = useState('');
   const [fechaEditada, setFechaEditada] = useState('');
   const [guardandoFactura, setGuardandoFactura] = useState(false);
+  const [eliminandoFactura, setEliminandoFactura] = useState(false);
   const [subiendoFactura, setSubiendoFactura] = useState(false);
   const [inquilinosActivos, setInquilinosActivos] = useState<InquilinoActivo[]>([]);
   const [modalFacturaPuntualVisible, setModalFacturaPuntualVisible] = useState(false);
@@ -428,6 +436,7 @@ export default function CaseroCobrosScreen() {
         id: deuda.gasto.id,
         concepto: deuda.gasto.concepto,
         importe: deuda.gasto.importe,
+        tipo: deuda.gasto.tipo,
         factura_url: deuda.gasto.factura_url,
         fecha_creacion: deuda.gasto.fecha_creacion,
         fecha_modificacion: deuda.gasto.fecha_modificacion,
@@ -462,6 +471,11 @@ export default function CaseroCobrosScreen() {
   );
 
   const facturaTienePagos = facturaEditando?.deudas.some((deuda) => deuda.estado === 'PAGADA') ?? false;
+  const facturaTieneActividadPago =
+    facturaEditando?.deudas.some((deuda) => deuda.estado === 'PAGADA' || !!deuda.justificante_url) ??
+    false;
+  const facturaEsBorrable =
+    facturaEditando?.tipo === 'FACTURA_PUNTUAL' && !facturaTieneActividadPago;
 
   const cargarInquilinosActivos = useCallback(async (viviendaId: number) => {
     try {
@@ -718,7 +732,7 @@ export default function CaseroCobrosScreen() {
   };
 
   const cerrarEditorFactura = () => {
-    if (guardandoFactura) {
+    if (guardandoFactura || eliminandoFactura) {
       return;
     }
 
@@ -820,6 +834,68 @@ export default function CaseroCobrosScreen() {
         deudas: deudasActualizadas,
       };
     });
+  };
+
+  const quitarGastoDeCobros = (gastoId: number) => {
+    setResumen((resumenActual) => {
+      if (!resumenActual) {
+        return resumenActual;
+      }
+
+      const deudasActualizadas = resumenActual.deudas.filter((deuda) => deuda.gasto.id !== gastoId);
+
+      return {
+        ...resumenActual,
+        resumen: recalcularResumenCobros(deudasActualizadas),
+        deudas: deudasActualizadas,
+      };
+    });
+  };
+
+  const eliminarFactura = async () => {
+    if (!facturaEditando || !viviendaSeleccionadaId || !facturaEsBorrable) {
+      return;
+    }
+
+    setEliminandoFactura(true);
+    try {
+      const { data } = await api.delete<EliminarGastoResponse>(
+        `/viviendas/${viviendaSeleccionadaId}/gastos/${facturaEditando.id}`,
+      );
+
+      quitarGastoDeCobros(data.gasto_id);
+      setFacturaEditando(null);
+      setConceptoEditado('');
+      setImporteEditado('');
+      setFechaEditada('');
+      Toast.show({
+        type: 'success',
+        text1: 'Factura eliminada',
+        text2: 'La factura puntual ya no genera deuda pendiente.',
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: error.response?.data?.error ?? 'No se pudo borrar la factura.',
+      });
+    } finally {
+      setEliminandoFactura(false);
+    }
+  };
+
+  const confirmarEliminarFactura = () => {
+    if (!facturaEditando || !facturaEsBorrable) {
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar factura puntual',
+      `¿Quieres eliminar "${facturaEditando.concepto}"? Esta acción borrará la factura y sus cobros pendientes.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => void eliminarFactura() },
+      ],
+    );
   };
 
   const subirFotoFactura = async () => {
@@ -1385,6 +1461,15 @@ export default function CaseroCobrosScreen() {
               </View>
             )}
 
+            {facturaEditando?.tipo === 'FACTURA_PUNTUAL' && !facturaTieneActividadPago && (
+              <View style={styles.dangerHint}>
+                <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
+                <Text style={styles.dangerHintText}>
+                  Esta factura puntual todavia puede borrarse porque no tiene pagos ni justificantes asociados.
+                </Text>
+              </View>
+            )}
+
             <View style={styles.editForm}>
               <CustomInput
                 label="Concepto"
@@ -1453,17 +1538,26 @@ export default function CaseroCobrosScreen() {
             </View>
 
             <View style={styles.modalActions}>
+              {facturaEsBorrable && (
+                <CustomButton
+                  label={eliminandoFactura ? 'Eliminando...' : 'Eliminar'}
+                  variant="danger"
+                  onPress={confirmarEliminarFactura}
+                  disabled={guardandoFactura || eliminandoFactura || subiendoFactura}
+                  style={styles.modalAction}
+                />
+              )}
               <CustomButton
                 label="Cancelar"
                 variant="secondary"
                 onPress={cerrarEditorFactura}
-                disabled={guardandoFactura}
+                disabled={guardandoFactura || eliminandoFactura}
                 style={styles.modalAction}
               />
               <CustomButton
                 label={guardandoFactura ? 'Guardando...' : 'Guardar'}
                 onPress={guardarFactura}
-                disabled={guardandoFactura}
+                disabled={guardandoFactura || eliminandoFactura}
                 style={styles.modalAction}
               />
             </View>
@@ -1527,6 +1621,10 @@ function FacturaCard({
 }) {
   const pagosRegistrados = factura.deudas.some((deuda) => deuda.estado === 'PAGADA');
   const pendientes = factura.deudas.filter((deuda) => deuda.estado === 'PENDIENTE').length;
+  const tieneActividadPago = factura.deudas.some(
+    (deuda) => deuda.estado === 'PAGADA' || !!deuda.justificante_url,
+  );
+  const puedeBorrarse = factura.tipo === 'FACTURA_PUNTUAL' && !tieneActividadPago;
 
   return (
     <View style={styles.invoiceCard}>
@@ -1574,6 +1672,10 @@ function FacturaCard({
           {pagosRegistrados ? 'Con pagos registrados' : `${pendientes} pendientes`}
         </Text>
       </View>
+
+      {puedeBorrarse && (
+        <Text style={styles.invoiceDeleteHint}>Factura puntual abierta: se puede eliminar desde editar.</Text>
+      )}
 
       {factura.factura_url && (
         <Pressable style={styles.receiptLink} onPress={() => onVerFactura(factura)}>
