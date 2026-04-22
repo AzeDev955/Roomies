@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
@@ -11,6 +11,7 @@ import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { LegalNotice } from '@/components/common/LegalNotice';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
@@ -93,7 +94,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.logo}>Roomies</Text>
       <Text style={styles.subtitulo}>Gestión de pisos compartidos</Text>
 
@@ -142,6 +147,11 @@ export default function LoginScreen() {
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
+      <LegalNotice
+        variant="inline"
+        body="Antes de registrarte o continuar usando Roomies puedes revisar la informacion legal de la app."
+      />
+
       <Pressable
         style={({ pressed }) => [styles.enlaceRegistro, pressed && styles.pressed]}
         onPress={() => router.push('/registro')}
@@ -150,6 +160,6 @@ export default function LoginScreen() {
       >
         <Text style={styles.enlaceRegistroTexto}>¿No tienes cuenta? Regístrate</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }

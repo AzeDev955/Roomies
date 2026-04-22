@@ -2,6 +2,7 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
+import { LegalNotice } from '@/components/common/LegalNotice';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
@@ -152,6 +153,11 @@ export default function PerfilScreen() {
             <Text style={styles.helpButtonText}>Ver guia</Text>
           </Pressable>
         </View>
+
+        <LegalNotice
+          title="Documentacion legal"
+          body="Puedes volver a consultar en cualquier momento los terminos de uso y la politica de privacidad publicados para esta version de Roomies."
+        />
 
         <Pressable
           style={({ pressed }) => [styles.botonLogout, pressed && styles.pressed]}
