@@ -8,6 +8,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { createStyles } from '@/styles/casero/viviendas.styles';
 import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorialTarget } from '@/contexts/TutorialContext';
 import api from '@/services/api';
 
 type Habitacion = {
@@ -29,6 +30,8 @@ export default function ViviendasScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const mainTarget = useTutorialTarget('casero.viviendas.main');
+  const actionTarget = useTutorialTarget('casero.viviendas.action');
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +56,7 @@ export default function ViviendasScreen() {
   if (loading) return <LoadingScreen />;
 
   return (
-    <View style={styles.container}>
+    <View ref={mainTarget.ref} onLayout={mainTarget.onLayout} style={styles.container}>
       <FlatList
         data={viviendas}
         keyExtractor={(item) => item.id.toString()}
@@ -65,7 +68,7 @@ export default function ViviendasScreen() {
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
+          <View ref={actionTarget.ref} onLayout={actionTarget.onLayout} style={styles.emptyContainer}>
             <View style={styles.emptyIconBox}>
               <Ionicons name="home-outline" size={48} color={theme.colors.primary} />
             </View>
@@ -132,13 +135,15 @@ export default function ViviendasScreen() {
       />
 
       {viviendas.length > 0 && (
-        <Pressable
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-          onPress={() => router.push('/casero/nueva-vivienda')}
-        >
-          <Ionicons name="add" size={24} color={theme.colors.surface} />
-          <Text style={styles.fabTexto}>Nueva Vivienda</Text>
-        </Pressable>
+        <View ref={actionTarget.ref} onLayout={actionTarget.onLayout}>
+          <Pressable
+            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+            onPress={() => router.push('/casero/nueva-vivienda')}
+          >
+            <Ionicons name="add" size={24} color={theme.colors.surface} />
+            <Text style={styles.fabTexto}>Nueva Vivienda</Text>
+          </Pressable>
+        </View>
       )}
     </View>
   );

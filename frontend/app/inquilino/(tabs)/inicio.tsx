@@ -8,6 +8,7 @@ import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { Card } from '@/components/common/Card';
 import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorialTarget } from '@/contexts/TutorialContext';
 import {
   createAvatarInitialsStyle,
   createStyles,
@@ -98,6 +99,8 @@ export default function InquilinoInicioScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const mainTarget = useTutorialTarget('inquilino.inicio.main');
+  const incidenciasTarget = useTutorialTarget('inquilino.inicio.incidencias');
   const estadoBadgeBg = useMemo(() => getEstadoBadgeBg(theme), [theme]);
   const estadoBadgeColor = useMemo(() => getEstadoBadgeColor(theme), [theme]);
   const emptyStyles = useMemo(() => emptyIncidenciasStyles(theme), [theme]);
@@ -246,7 +249,7 @@ export default function InquilinoInicioScreen() {
 
   if (!tieneCasa) {
     return (
-      <View style={styles.onboardingContainer}>
+      <View ref={mainTarget.ref} onLayout={mainTarget.onLayout} style={styles.onboardingContainer}>
         <Text style={styles.onboardingTitle}>Únete a tu nuevo hogar</Text>
         <Text style={styles.onboardingSubtitle}>
           Introduce el código de invitación que te ha proporcionado tu casero para acceder a tu habitación.
@@ -359,7 +362,7 @@ export default function InquilinoInicioScreen() {
       <ScrollView contentContainerStyle={styles.dashboardContent} showsVerticalScrollIndicator={false}>
 
         {/* ── Saludo ── */}
-        <View style={styles.greeting}>
+        <View ref={mainTarget.ref} onLayout={mainTarget.onLayout} style={styles.greeting}>
           {miNombre ? (
             <Text style={styles.greetingHola}>¡Hola, {miNombre}!</Text>
           ) : null}
@@ -427,7 +430,7 @@ export default function InquilinoInicioScreen() {
         )}
 
         {/* ── Incidencias ── */}
-        <View style={styles.seccion}>
+        <View ref={incidenciasTarget.ref} onLayout={incidenciasTarget.onLayout} style={styles.seccion}>
           <Text style={styles.seccionLabel}>Incidencias Recientes</Text>
 
           {loadingIncidencias ? (

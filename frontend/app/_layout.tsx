@@ -10,11 +10,14 @@ import { toastConfig } from '@/constants/toastConfig';
 import { syncPushToken } from '@/utils/notifications';
 import { getDashboardRoute } from '@/utils/authRoutes';
 import { AppThemeProvider, useAppTheme } from '@/contexts/ThemeContext';
+import { TutorialProvider } from '@/contexts/TutorialContext';
 
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <RootShell />
+      <TutorialProvider>
+        <RootShell />
+      </TutorialProvider>
     </AppThemeProvider>
   );
 }

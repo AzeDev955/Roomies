@@ -23,6 +23,7 @@ import { CustomInput } from '@/components/common/CustomInput';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorialTarget } from '@/contexts/TutorialContext';
 import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import {
@@ -254,6 +255,7 @@ export default function CaseroCobrosScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const tutorialTarget = useTutorialTarget('casero.cobros.main');
   const estadoBadgeColors = useMemo(() => getEstadoBadgeColors(theme), [theme]);
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
   const [hayViviendas, setHayViviendas] = useState(false);
@@ -917,7 +919,7 @@ export default function CaseroCobrosScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View ref={tutorialTarget.ref} onLayout={tutorialTarget.onLayout} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerEyebrow}>Dashboard financiero</Text>
