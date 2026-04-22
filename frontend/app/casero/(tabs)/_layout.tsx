@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorial } from '@/contexts/TutorialContext';
+import { buildCaseroTutorialSteps } from '@/tutorial/definitions';
 
 type ViviendaModulos = {
   mod_gastos: boolean;
@@ -12,6 +14,7 @@ type ViviendaModulos = {
 
 export default function CaseroTabsLayout() {
   const { theme } = useAppTheme();
+  const { setRoleTutorialSteps } = useTutorial();
   const [modulos, setModulos] = useState({
     gastos: true,
     inventario: true,
@@ -58,6 +61,10 @@ export default function CaseroTabsLayout() {
   );
 
   useEffect(() => onModulosViviendaActualizados(() => cargarModulos()), [cargarModulos]);
+
+  useEffect(() => {
+    setRoleTutorialSteps('CASERO', buildCaseroTutorialSteps({ hasGastos: modulos.gastos }));
+  }, [modulos.gastos, setRoleTutorialSteps]);
 
   return (
     <Tabs

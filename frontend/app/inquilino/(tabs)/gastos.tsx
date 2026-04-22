@@ -15,6 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 import type { AppTheme } from '@/constants/theme';
 import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorialTarget } from '@/contexts/TutorialContext';
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from 'expo-router';
 import api from '@/services/api';
@@ -104,6 +105,7 @@ const sumarImportes = (items: Deuda[]) =>
 export default function GastosInquilinoTab() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const tutorialTarget = useTutorialTarget('inquilino.gastos.main');
 
   const [viviendaId, setViviendaId] = useState<number | null>(null);
   const [miId, setMiId] = useState<number | null>(null);
@@ -447,7 +449,7 @@ export default function GastosInquilinoTab() {
   }
 
   return (
-    <View style={styles.container}>
+    <View ref={tutorialTarget.ref} onLayout={tutorialTarget.onLayout} style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerEtiqueta}>Gastos comunes</Text>

@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { useEffect, useMemo, useState } from 'react';
@@ -8,6 +9,7 @@ import { eliminarToken } from '@/services/auth.service';
 import { createStyles } from '@/styles/perfil.styles';
 import { ThemeMode } from '@/constants/theme';
 import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorial, useTutorialTarget } from '@/contexts/TutorialContext';
 
 type Perfil = {
   id: number;
@@ -21,7 +23,10 @@ type Perfil = {
 export default function PerfilScreen() {
   const router = useRouter();
   const { mode, setMode, theme } = useAppTheme();
+  const { startRoleTutorial } = useTutorial();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const aparienciaTarget = useTutorialTarget('perfil.apariencia');
+  const tutorialTarget = useTutorialTarget('perfil.tutorial');
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,6 +47,20 @@ export default function PerfilScreen() {
   const cerrarSesion = async () => {
     await eliminarToken();
     router.replace('/');
+  };
+
+  const relanzarTutorial = () => {
+    if (!perfil) {
+      return;
+    }
+
+    const started = startRoleTutorial(perfil.rol);
+    if (!started) {
+      Toast.show({
+        type: 'info',
+        text1: 'El tutorial aun se esta preparando.',
+      });
+    }
   };
 
   if (loading) return <LoadingScreen />;
@@ -82,7 +101,7 @@ export default function PerfilScreen() {
           </View>
         ) : null}
 
-        <View style={styles.themeSection}>
+        <View ref={aparienciaTarget.ref} onLayout={aparienciaTarget.onLayout} style={styles.themeSection}>
           <Text style={styles.themeTitle}>Apariencia</Text>
           <View style={styles.themeOptions}>
             {[
@@ -111,6 +130,27 @@ export default function PerfilScreen() {
               );
             })}
           </View>
+        </View>
+
+        <View ref={tutorialTarget.ref} onLayout={tutorialTarget.onLayout} style={styles.helpSection}>
+          <View style={styles.helpIconBox}>
+            <Ionicons name="sparkles-outline" size={22} color={theme.colors.primary} />
+          </View>
+          <View style={styles.helpContent}>
+            <Text style={styles.helpTitle}>Tutorial guiado</Text>
+            <Text style={styles.helpDescription}>
+              Recorre otra vez las funciones principales de Roomies con una guia breve y visual.
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.helpButton,
+              pressed && styles.pressed,
+            ]}
+            onPress={relanzarTutorial}
+          >
+            <Text style={styles.helpButtonText}>Ver guia</Text>
+          </Pressable>
         </View>
 
         <Pressable

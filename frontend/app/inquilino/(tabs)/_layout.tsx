@@ -3,6 +3,8 @@ import { Tabs, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import api from "@/services/api";
 import { useAppTheme } from "@/contexts/ThemeContext";
+import { useTutorial } from "@/contexts/TutorialContext";
+import { buildInquilinoTutorialSteps } from "@/tutorial/definitions";
 
 type ViviendaModulos = {
   mod_limpieza: boolean;
@@ -12,6 +14,7 @@ type ViviendaModulos = {
 
 export default function InquilinoTabsLayout() {
   const { theme } = useAppTheme();
+  const { setRoleTutorialSteps } = useTutorial();
   const [modulos, setModulos] = useState({
     limpieza: false,
     gastos: false,
@@ -47,6 +50,18 @@ export default function InquilinoTabsLayout() {
         activo = false;
       };
     }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setRoleTutorialSteps(
+        'INQUILINO',
+        buildInquilinoTutorialSteps({
+          hasVivienda: tieneVivienda,
+          hasGastos: modulos.gastos,
+        }),
+      );
+    }, [modulos.gastos, setRoleTutorialSteps, tieneVivienda]),
   );
 
   return (
