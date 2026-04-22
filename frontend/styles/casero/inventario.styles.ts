@@ -24,6 +24,24 @@ export const createEstadoItemStyles = (theme: AppTheme = DefaultAppTheme) => ({
   },
 } as const);
 
+export const createRevisionInventarioStyles = (theme: AppTheme = DefaultAppTheme) => ({
+  VALIDADO: {
+    background: theme.colors.successLight,
+    text: theme.colors.success,
+    border: `${theme.colors.success}30`,
+  },
+  PENDIENTE: {
+    background: theme.colors.warningLight,
+    text: theme.colors.warning,
+    border: `${theme.colors.warning}35`,
+  },
+  NO_APLICA: {
+    background: theme.colors.surface2,
+    text: theme.colors.textMedium,
+    border: theme.colors.border,
+  },
+} as const);
+
 export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   container: {
     flex: 1,
@@ -121,6 +139,12 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
   heroStatNeutral: {
     backgroundColor: theme.colors.surface2,
   },
+  heroStatSuccess: {
+    backgroundColor: theme.colors.successLight,
+  },
+  heroStatWarning: {
+    backgroundColor: theme.colors.warningLight,
+  },
   heroStatText: {
     fontSize: theme.typography.caption,
     fontWeight: '700',
@@ -130,6 +154,12 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
   },
   heroStatTextNeutral: {
     color: theme.colors.textMedium,
+  },
+  heroStatTextSuccess: {
+    color: theme.colors.success,
+  },
+  heroStatTextWarning: {
+    color: theme.colors.warning,
   },
   sectionTitle: {
     fontSize: theme.typography.subtitle,
@@ -233,6 +263,24 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     fontSize: theme.typography.caption,
     color: theme.colors.textMedium,
     fontWeight: '700',
+  },
+  reviewBadge: {
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  reviewBadgeText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+  },
+  reviewDetail: {
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
   },
   emptyContainer: {
     alignItems: 'center',
