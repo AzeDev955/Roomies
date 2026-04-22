@@ -428,6 +428,66 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
   res.status(200).json(gastoActualizado);
 };
 
+export const eliminarGasto: express.RequestHandler = async (req, res) => {
+  const viviendaId = obtenerParamNumerico(req.params.viviendaId);
+  const gastoId = obtenerParamNumerico(req.params.gastoId);
+  const usuarioId = req.usuario!.id;
+
+  if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
+    res.status(400).json({ error: 'viviendaId inválido.' });
+    return;
+  }
+
+  if (!Number.isInteger(gastoId) || gastoId <= 0) {
+    res.status(400).json({ error: 'gastoId inválido.' });
+    return;
+  }
+
+  const esCasero = await usuarioEsCaseroDeVivienda(viviendaId, usuarioId);
+
+  if (!esCasero) {
+    res.status(403).json({ error: 'Solo el casero puede borrar facturas de esta vivienda.' });
+    return;
+  }
+
+  const gasto = await prisma.gasto.findFirst({
+    where: { id: gastoId, vivienda_id: viviendaId, tipo: { in: [...TIPOS_GASTO_CASERO] } },
+    include: { deudas: true },
+  });
+
+  if (!gasto) {
+    res.status(404).json({ error: 'Factura no encontrada para esta vivienda.' });
+    return;
+  }
+
+  if (gasto.tipo !== 'FACTURA_PUNTUAL') {
+    res.status(400).json({
+      error: 'Solo se pueden borrar facturas puntuales creadas manualmente.',
+    });
+    return;
+  }
+
+  const tieneActividadDePago = gasto.deudas.some(
+    (deuda) => deuda.estado === 'PAGADA' || Boolean(deuda.justificante_url),
+  );
+
+  if (tieneActividadDePago) {
+    res.status(400).json({
+      error: 'Esta factura no puede borrarse porque ya tiene actividad de pago asociada.',
+    });
+    return;
+  }
+
+  await prisma.gasto.delete({
+    where: { id: gasto.id },
+  });
+
+  res.status(200).json({
+    ok: true,
+    gasto_id: gasto.id,
+  });
+};
+
 export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
   const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const gastoId = obtenerParamNumerico(req.params.gastoId);

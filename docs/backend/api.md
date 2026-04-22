@@ -1177,6 +1177,29 @@ Edita una factura mensual, factura puntual o cargo recurrente ya generado por el
 
 ---
 
+### DELETE `/viviendas/:viviendaId/gastos/:gastoId`
+
+Borra una factura puntual creada manualmente por el casero cuando todavia no existe actividad de pago asociada.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede borrar facturas de la vivienda.
+- Solo admite gastos `FACTURA_PUNTUAL`.
+- El borrado se bloquea si alguna `Deuda` hija esta `PAGADA` o si existe `justificante_url` en alguna deuda.
+- Al borrar el `Gasto`, sus `Deuda[]` hijas se eliminan en cascada.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Factura puntual eliminada correctamente. |
+| `400` | IDs invalidos, intento de borrar un tipo no permitido o factura con actividad de pago. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto no encontrado en esa vivienda. |
+
+---
+
 ### POST `/viviendas/:viviendaId/gastos/:gastoId/factura`
 
 Sube o reemplaza la imagen de factura adjunta a una factura o cargo del casero. No permite adjuntar facturas a gastos `ENTRE_COMPANEROS`.

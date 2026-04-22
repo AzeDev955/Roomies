@@ -7,6 +7,7 @@ import {
   listarGastos,
   crearGasto,
   actualizarGasto,
+  eliminarGasto,
   subirFacturaGasto,
   listarDeudas,
   saldarDeuda,
@@ -18,6 +19,7 @@ const gastosActivos = protegerModuloVivienda('gastos');
 router.get('/:viviendaId/gastos', verificarToken, gastosActivos, listarGastos);
 router.post('/:viviendaId/gastos', verificarToken, gastosActivos, uploadFacturaGasto.single('factura'), crearGasto);
 router.patch('/:viviendaId/gastos/:gastoId', verificarToken, gastosActivos, actualizarGasto);
+router.delete('/:viviendaId/gastos/:gastoId', verificarToken, gastosActivos, eliminarGasto);
 router.post(
   '/:viviendaId/gastos/:gastoId/factura',
   verificarToken,

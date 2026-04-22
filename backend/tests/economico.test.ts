@@ -26,6 +26,9 @@ const prisma = vi.hoisted(() => ({
     create: async (_args: unknown): Promise<unknown> => {
       throw new Error('Unexpected prisma call: gasto.create');
     },
+    delete: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: gasto.delete');
+    },
     findMany: async (_args: unknown): Promise<unknown> => {
       throw new Error('Unexpected prisma call: gasto.findMany');
     },
@@ -55,6 +58,7 @@ const { crearGastoDividido } = await import('../src/services/gasto.service');
 const { crearCargosMensualesHabitacion } = await import('../src/services/gasto.service');
 const {
   actualizarGasto,
+  eliminarGasto,
   listarGastos,
   saldarDeuda,
 } = await import('../src/controllers/gasto.controller');
@@ -66,6 +70,7 @@ let ultimoGastoCreate: {
 let deudaUpdateCalls: unknown[] = [];
 let ultimoGastoFindMany: unknown = null;
 let ultimoGastoFindFirst: unknown = null;
+let ultimoGastoDelete: unknown = null;
 let ultimaDeudaFindMany: unknown = null;
 let transactionCalled = false;
 
@@ -74,6 +79,7 @@ function resetPrisma() {
   deudaUpdateCalls = [];
   ultimoGastoFindMany = null;
   ultimoGastoFindFirst = null;
+  ultimoGastoDelete = null;
   ultimaDeudaFindMany = null;
   transactionCalled = false;
 
@@ -106,6 +112,10 @@ function resetPrisma() {
   prisma.gasto.findFirst = async (args: unknown) => {
     ultimoGastoFindFirst = args;
     return null;
+  };
+  prisma.gasto.delete = async (args: unknown) => {
+    ultimoGastoDelete = args;
+    return { id: 1 };
   };
   prisma.deuda.findMany = async (args: unknown) => {
     ultimaDeudaFindMany = args;
@@ -552,5 +562,72 @@ describe('modulo economico', () => {
     ]);
     assert.equal((res.body as { modificado_por_id: number }).modificado_por_id, 99);
     assert.ok((res.body as { fecha_modificacion: Date }).fecha_modificacion instanceof Date);
+  });
+
+  test('permite borrar una factura puntual sin actividad de pago', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+    prisma.gasto.findFirst = async () => ({
+      id: 12,
+      tipo: 'FACTURA_PUNTUAL',
+      deudas: [{ id: 20, deudor_id: 2, estado: 'PENDIENTE', justificante_url: null }],
+    });
+
+    const res = await invoke(
+      eliminarGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1', gastoId: '12' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(ultimoGastoDelete, { where: { id: 12 } });
+    assert.deepEqual(res.body, { ok: true, gasto_id: 12 });
+  });
+
+  test('bloquea borrar una factura puntual con justificante asociado', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+    prisma.gasto.findFirst = async () => ({
+      id: 12,
+      tipo: 'FACTURA_PUNTUAL',
+      deudas: [{ id: 20, deudor_id: 2, estado: 'PENDIENTE', justificante_url: 'https://ejemplo.test/justificante.jpg' }],
+    });
+
+    const res = await invoke(
+      eliminarGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1', gastoId: '12' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.deepEqual(res.body, {
+      error: 'Esta factura no puede borrarse porque ya tiene actividad de pago asociada.',
+    });
+    assert.equal(ultimoGastoDelete, null);
+  });
+
+  test('bloquea borrar facturas no puntuales', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+    prisma.gasto.findFirst = async () => ({
+      id: 12,
+      tipo: 'FACTURA_MENSUAL',
+      deudas: [],
+    });
+
+    const res = await invoke(
+      eliminarGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1', gastoId: '12' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 400);
+    assert.deepEqual(res.body, {
+      error: 'Solo se pueden borrar facturas puntuales creadas manualmente.',
+    });
+    assert.equal(ultimoGastoDelete, null);
   });
 });
