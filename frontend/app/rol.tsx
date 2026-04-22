@@ -1,8 +1,9 @@
-import { View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LegalNotice } from '@/components/common/LegalNotice';
 import { createStyles } from '@/styles/rol.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
@@ -18,9 +19,18 @@ export default function SeleccionRolScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [rolSeleccionado, setRolSeleccionado] = useState<Rol | null>(null);
   const [loading, setLoading] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const confirmar = async () => {
     if (!rolSeleccionado) return;
+    if (!acceptedLegal) {
+      Toast.show({
+        type: 'error',
+        text1: 'Acepta las condiciones legales',
+        text2: 'Necesitas aceptar los terminos y la politica de privacidad antes de continuar.',
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await api.patch<{ token: string; usuario: { rol: string } }>('/auth/rol', {
@@ -37,7 +47,11 @@ export default function SeleccionRolScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.titulo}>¿Cómo usarás Roomies?</Text>
       <Text style={styles.subtitulo}>
         Elige tu rol para personalizar la experiencia. Podrás cambiarlo más adelante desde tu perfil.
@@ -89,6 +103,14 @@ export default function SeleccionRolScreen() {
           <Text style={styles.botonConfirmarTexto}>Confirmar</Text>
         )}
       </Pressable>
-    </View>
+
+      <LegalNotice
+        title="Aceptacion legal"
+        body="Como parte del alta inicial en Roomies, confirma que conoces la documentacion legal publicada en la app."
+        accepted={acceptedLegal}
+        onToggleAccepted={() => setAcceptedLegal((current) => !current)}
+        acceptanceLabel="He leido y acepto los Terminos de uso y la Politica de privacidad vigentes."
+      />
+    </ScrollView>
   );
 }

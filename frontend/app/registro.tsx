@@ -10,6 +10,7 @@ import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { LegalNotice } from '@/components/common/LegalNotice';
 import { useAppTheme } from '@/contexts/ThemeContext';
 import { dniNieSchema, pasaporteSchema, passwordSchema } from '@/utils/schemas';
 import { syncPushToken } from '@/utils/notifications';
@@ -35,6 +36,7 @@ export default function RegistroScreen() {
   const [loading, setLoading] = useState(false);
   const [errorDoc, setErrorDoc] = useState('');
   const [errorPassword, setErrorPassword] = useState('');
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
@@ -86,6 +88,14 @@ export default function RegistroScreen() {
     }
     if (!rol) {
       Toast.show({ type: 'error', text1: 'Selecciona un rol', text2: 'Elige si eres Casero o Inquilino.' });
+      return;
+    }
+    if (!acceptedLegal) {
+      Toast.show({
+        type: 'error',
+        text1: 'Acepta las condiciones legales',
+        text2: 'Necesitas aceptar los terminos y la politica de privacidad para crear la cuenta.',
+      });
       return;
     }
 
@@ -240,6 +250,14 @@ export default function RegistroScreen() {
         onPress={handleRegistrar}
         loading={loading}
         style={{ marginTop: 8 }}
+      />
+
+      <LegalNotice
+        title="Condiciones legales"
+        body="Para completar el alta debes revisar la documentacion legal basica de Roomies."
+        accepted={acceptedLegal}
+        onToggleAccepted={() => setAcceptedLegal((current) => !current)}
+        acceptanceLabel="He leido y acepto los Terminos de uso y la Politica de privacidad vigentes."
       />
 
       <View style={styles.separador}>

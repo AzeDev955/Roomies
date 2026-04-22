@@ -2,11 +2,16 @@ import { StyleSheet } from 'react-native';
 import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
 export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
-  container: {
+  scrollContainer: {
     flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  container: {
+    flexGrow: 1,
     justifyContent: 'center',
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.xxl,
   },
   logo: {
     fontSize: theme.typography.hero,
@@ -24,6 +29,7 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
   enlaceRegistro: {
     marginTop: theme.spacing.lg,
     alignItems: 'center',
+    marginBottom: theme.spacing.base,
   },
   enlaceRegistroTexto: {
     fontSize: theme.typography.label,

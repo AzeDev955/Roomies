@@ -2,12 +2,17 @@ import { StyleSheet } from 'react-native';
 import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
 export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
-  container: {
+  scrollContainer: {
     flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  container: {
+    flexGrow: 1,
     backgroundColor: theme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.xxl,
     gap: theme.spacing.base,
   },
   titulo: {
