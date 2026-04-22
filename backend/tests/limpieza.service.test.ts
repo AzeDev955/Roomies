@@ -36,7 +36,8 @@ const { generarTurnosSemanales } = await import('../src/services/limpieza.servic
 
 type TurnoCreateMany = {
   data: Array<{
-    usuario_id: number;
+    usuario_id: number | null;
+    habitacion_id: number;
     zona_id: number;
     fecha_inicio: Date;
     fecha_fin: Date;
@@ -59,8 +60,20 @@ function resetPrisma() {
     return { operation: 'createMany', args };
   };
   prisma.habitacion.findMany = async () => [
-    { inquilino: { id: 1, balance_limpieza: 0 } },
-    { inquilino: { id: 2, balance_limpieza: 2 } },
+    {
+      id: 101,
+      nombre: 'Habitacion A',
+      tipo: 'DORMITORIO',
+      es_habitable: true,
+      inquilino: { id: 1, balance_limpieza: 0, estado_presencia: 'ACTIVO' },
+    },
+    {
+      id: 102,
+      nombre: 'Habitacion B',
+      tipo: 'DORMITORIO',
+      es_habitable: true,
+      inquilino: { id: 2, balance_limpieza: 2, estado_presencia: 'ACTIVO' },
+    },
   ];
   prisma.zonaLimpieza.findMany = async () => [
     { id: 10, peso: 3, asignaciones_fijas: [] },
@@ -87,18 +100,19 @@ afterEach(() => {
 });
 
 describe('generacion de turnos de limpieza', () => {
-  test('reparte zonas por carga efectiva y actualiza balances semanales', async () => {
+  test('reparte zonas por carga efectiva de la habitacion responsable y actualiza balances', async () => {
     await generarTurnosSemanales(10);
 
     assert.deepEqual(
       createManyArgs?.data.map((turno) => ({
         usuario_id: turno.usuario_id,
+        habitacion_id: turno.habitacion_id,
         zona_id: turno.zona_id,
         estado: turno.estado,
       })),
       [
-        { usuario_id: 1, zona_id: 10, estado: 'PENDIENTE' },
-        { usuario_id: 2, zona_id: 11, estado: 'PENDIENTE' },
+        { usuario_id: 1, habitacion_id: 101, zona_id: 10, estado: 'PENDIENTE' },
+        { usuario_id: 2, habitacion_id: 102, zona_id: 11, estado: 'PENDIENTE' },
       ],
     );
     assert.equal(createManyArgs?.data[0]?.fecha_inicio.toISOString(), '2026-04-05T22:00:00.000Z');
@@ -121,12 +135,20 @@ describe('generacion de turnos de limpieza', () => {
     assert.equal(createManyArgs?.data[0]?.fecha_fin.toISOString(), '2026-04-26T21:59:59.999Z');
   });
 
-  test('lanza error si no hay inquilinos activos', async () => {
-    prisma.habitacion.findMany = async () => [];
+  test('lanza error si no hay habitaciones ocupadas activas', async () => {
+    prisma.habitacion.findMany = async () => [
+      {
+        id: 101,
+        nombre: 'Habitacion vacia',
+        tipo: 'DORMITORIO',
+        es_habitable: true,
+        inquilino: null,
+      },
+    ];
 
     await assert.rejects(
       () => generarTurnosSemanales(10),
-      /no hay inquilinos activos/i,
+      /no hay habitaciones ocupadas activas/i,
     );
     assert.equal(createManyArgs, null);
   });

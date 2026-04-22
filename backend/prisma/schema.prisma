@@ -83,7 +83,6 @@ model Usuario {
   incidencias        Incidencia[]
   anuncios           Anuncio[]
   turnos_limpieza    TurnoLimpieza[]
-  asignaciones_fijas AsignacionLimpiezaFija[]
   gastos_pagados     Gasto[]
   gastos_modificados Gasto[]                  @relation("ModificadorGasto")
   gastos_recurrentes_pagados GastoRecurrente[]
@@ -128,6 +127,9 @@ model Habitacion {
   incidencias       Incidencia[]
   items_inventario  ItemInventario[]
   cargos_alquiler   Gasto[]          @relation("CargoHabitacion")
+  zonas_limpieza_objetivo ZonaLimpieza[] @relation("ZonaLimpiezaObjetivoHabitacion")
+  asignaciones_limpieza_fijas AsignacionLimpiezaFija[] @relation("AsignacionLimpiezaFijaHabitacion")
+  turnos_limpieza_responsable TurnoLimpieza[] @relation("TurnoLimpiezaHabitacionResponsable")
 }
 
 model Incidencia {
@@ -238,6 +240,8 @@ model ZonaLimpieza {
   id                 Int                      @id @default(autoincrement())
   vivienda_id        Int
   vivienda           Vivienda                 @relation(fields: [vivienda_id], references: [id])
+  habitacion_id      Int?
+  habitacion         Habitacion?              @relation("ZonaLimpiezaObjetivoHabitacion", fields: [habitacion_id], references: [id], onDelete: SetNull)
   nombre             String
   peso               Float
   activa             Boolean                  @default(true)
@@ -245,23 +249,28 @@ model ZonaLimpieza {
   asignaciones_fijas AsignacionLimpiezaFija[]
 }
 
-/// Tabla de asignaciones fijas: una zona siempre la limpia el mismo usuario,
-/// sin participar en la rotación global. Su peso SÍ cuenta para el balance.
+/// Tabla de asignaciones fijas: una zona siempre la limpia la misma habitacion
+/// responsable, sin participar en la rotacion global. Su peso si cuenta para el
+/// balance del ocupante actual cuando exista.
 model AsignacionLimpiezaFija {
   id         Int          @id @default(autoincrement())
   zona_id    Int
   zona       ZonaLimpieza @relation(fields: [zona_id], references: [id], onDelete: Cascade)
-  usuario_id Int
-  usuario    Usuario      @relation(fields: [usuario_id], references: [id])
+  habitacion_id Int
+  habitacion Habitacion   @relation("AsignacionLimpiezaFijaHabitacion", fields: [habitacion_id], references: [id], onDelete: Cascade)
 
-  @@unique([zona_id, usuario_id])
+  @@unique([zona_id, habitacion_id])
 }
 
 /// Registro semanal del reparto. Generado por el algoritmo al inicio de cada semana.
+/// La entidad principal es la habitacion responsable; usuario guarda un snapshot
+/// opcional del ocupante en el momento de generar el turno.
 model TurnoLimpieza {
   id           Int          @id @default(autoincrement())
-  usuario_id   Int
-  usuario      Usuario      @relation(fields: [usuario_id], references: [id])
+  usuario_id   Int?
+  usuario      Usuario?     @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  habitacion_id Int
+  habitacion   Habitacion   @relation("TurnoLimpiezaHabitacionResponsable", fields: [habitacion_id], references: [id], onDelete: Cascade)
   zona_id      Int
   zona         ZonaLimpieza @relation(fields: [zona_id], references: [id], onDelete: Cascade)
   fecha_inicio DateTime

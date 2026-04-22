@@ -258,7 +258,7 @@ describe('exportacion de limpieza', () => {
 
   test('genera csv con cabeceras, filtros y nombre descargable', async () => {
     let filtros: unknown;
-    prisma.vivienda.findFirst = async () => ({ id: 10, alias_nombre: 'Piso Centro' });
+    prisma.vivienda.findUnique = async () => ({ id: 10, alias_nombre: 'Piso Centro', casero_id: 99 });
     prisma.turnoLimpieza.findMany = async (args: unknown) => {
       filtros = args;
       return [
@@ -267,10 +267,13 @@ describe('exportacion de limpieza', () => {
           fecha_inicio: new Date('2026-04-13T00:00:00.000Z'),
           fecha_fin: new Date('2026-04-19T23:59:59.999Z'),
           estado: 'HECHO',
-          zona: { nombre: 'Cocina' },
-          usuario: {
-            nombre: 'Ada',
-            apellidos: 'Lovelace',
+          zona: {
+            nombre: 'Cocina',
+            habitacion: { tipo: 'COCINA', es_habitable: false },
+          },
+          habitacion: {
+            nombre: 'Habitacion 1',
+            inquilino: { nombre: 'Ada', apellidos: 'Lovelace' },
           },
         },
       ];
@@ -288,21 +291,27 @@ describe('exportacion de limpieza', () => {
     assert.equal(response.statusCode, 200);
     assert.match(response.headers['content-type'], /text\/csv/);
     assert.match(response.headers['content-disposition'], /limpiezas-piso-centro-/);
-    assert.match(response.body as string, /"Zona a limpiar";"Inquilino";"Fecha"/);
-    assert.match(response.body as string, /"Cocina";"Ada Lovelace";"13\/04\/2026"/);
+    assert.match(response.body as string, /"Espacio";"Tipo de espacio";"Habitacion responsable";"Responsable actual";"Fecha"/);
+    assert.match(response.body as string, /"Cocina";"Zona comun";"Habitacion 1";"Ada Lovelace";"13\/04\/2026"/);
     assert.equal((filtros as { where: { estado: string } }).where.estado, 'HECHO');
   });
 
   test('devuelve base64 para preservar acentos en movil', async () => {
-    prisma.vivienda.findFirst = async () => ({ id: 10, alias_nombre: 'Piso Centro' });
+    prisma.vivienda.findUnique = async () => ({ id: 10, alias_nombre: 'Piso Centro', casero_id: 99 });
     prisma.turnoLimpieza.findMany = async () => [
       {
         id: 1,
         fecha_inicio: new Date('2026-04-13T00:00:00.000Z'),
         fecha_fin: new Date('2026-04-19T23:59:59.999Z'),
         estado: 'PENDIENTE',
-        zona: { nombre: 'BaÃ±o 1' },
-        usuario: { nombre: 'Ada', apellidos: 'Lovelace' },
+        zona: {
+          nombre: 'Baño 1',
+          habitacion: { tipo: 'BANO', es_habitable: false },
+        },
+        habitacion: {
+          nombre: 'Habitacion 2',
+          inquilino: { nombre: 'Ada', apellidos: 'Lovelace' },
+        },
       },
     ];
 
@@ -319,11 +328,11 @@ describe('exportacion de limpieza', () => {
     const body = response.body as { contenidoBase64: string; nombreArchivo: string };
     const csv = Buffer.from(body.contenidoBase64, 'base64').subarray(2).toString('utf16le');
     assert.match(body.nombreArchivo, /limpiezas-piso-centro-/);
-    assert.match(csv, /"BaÃ±o 1";"Ada Lovelace";"13\/04\/2026"/);
+    assert.match(csv, /"Baño 1";"Zona comun";"Habitacion 2";"Ada Lovelace";"13\/04\/2026"/);
   });
 
   test('responde claro si no hay turnos para los filtros actuales', async () => {
-    prisma.vivienda.findFirst = async () => ({ id: 10, alias_nombre: 'Piso Centro' });
+    prisma.vivienda.findUnique = async () => ({ id: 10, alias_nombre: 'Piso Centro', casero_id: 99 });
     prisma.turnoLimpieza.findMany = async () => [];
 
     const response = await invoke(
