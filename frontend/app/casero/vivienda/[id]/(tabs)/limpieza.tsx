@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import Toast from 'react-native-toast-message';
 import type { AppTheme } from '@/constants/theme';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '@/services/api';
 import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
@@ -24,16 +24,17 @@ import { createStyles } from '@/styles/casero/vivienda/limpieza.styles';
 import { useViviendaIdParam } from '@/hooks/useViviendaIdParam';
 import { useAppTheme } from '@/contexts/ThemeContext';
 
-// ── Helpers UI ────────────────────────────────────────────────────────────────
-
 const ZONA_ICONS: Record<string, string> = {
   cocina: 'restaurant-outline',
-  'baño': 'water-outline', 'baño 1': 'water-outline', 'baño 2': 'water-outline',
-  'salón': 'tv-outline', salon: 'tv-outline',
+  baño: 'water-outline',
+  'baño 1': 'water-outline',
+  'baño 2': 'water-outline',
+  salón: 'tv-outline',
+  salon: 'tv-outline',
   pasillo: 'footsteps-outline',
 };
-const zonaIcon = (nombre: string) =>
-  (ZONA_ICONS[nombre.toLowerCase()] ?? 'sparkles-outline') as any;
+
+const zonaIcon = (nombre: string) => (ZONA_ICONS[nombre.toLowerCase()] ?? 'sparkles-outline') as any;
 
 const AvatarInitials = ({
   nombre,
@@ -48,18 +49,21 @@ const AvatarInitials = ({
 }) => {
   const initials = `${nombre[0] ?? ''}${apellidos?.[0] ?? ''}`.toUpperCase();
   return (
-    <View style={{
-      width: size, height: size, borderRadius: size / 2,
-      backgroundColor: theme.colors.primaryLight, alignItems: 'center', justifyContent: 'center',
-    }}>
-      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: theme.colors.primary }}>
-        {initials}
-      </Text>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: theme.colors.primaryLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ fontSize: size * 0.33, fontWeight: '700', color: theme.colors.primary }}>{initials}</Text>
     </View>
   );
 };
 
-// ── T-Shirt Sizing ────────────────────────────────────────────────────────────
 const TALLAS = [
   { label: 'Ligera', peso: 3 },
   { label: 'Normal', peso: 6 },
@@ -67,6 +71,12 @@ const TALLAS = [
 ] as const;
 
 const ETIQUETA_ESFUERZO: Record<number, string> = { 3: 'Ligera', 6: 'Normal', 10: 'Intensa' };
+const QUICK_CHIPS = ['Cocina', 'Baño', 'Salón', 'Pasillo'];
+const ZONAS_BASE = [
+  { nombre: 'Cocina', peso: 10 },
+  { nombre: 'Salón', peso: 6 },
+  { nombre: 'Baño', peso: 6 },
+];
 
 const etiquetaEsfuerzo = (peso: number) =>
   ETIQUETA_ESFUERZO[peso] ? `Esfuerzo: ${ETIQUETA_ESFUERZO[peso]}` : `Peso: ${peso}`;
@@ -78,26 +88,25 @@ const formatearFechaParam = (fecha: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const QUICK_CHIPS = ['Cocina', 'Baño', 'Salón', 'Pasillo'];
-
-const ZONAS_BASE = [
-  { nombre: 'Cocina', peso: 10 },
-  { nombre: 'Salón', peso: 6 },
-  { nombre: 'Baño', peso: 6 },
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-type Inquilino = {
+type ResponsableActual = {
   id: number;
   nombre: string;
   apellidos: string | null;
+} | null;
+
+type Habitacion = {
+  id: number;
+  nombre: string;
+  tipo: 'DORMITORIO' | 'BANO' | 'COCINA' | 'SALON' | 'OTRO';
+  es_habitable: boolean;
+  inquilino: ResponsableActual;
 };
 
 type AsignacionFija = {
   id: number;
-  usuario_id: number;
-  usuario: Inquilino;
+  habitacion_id: number;
+  habitacion: Habitacion;
+  responsable_actual: ResponsableActual;
 };
 
 type ZonaLimpieza = {
@@ -105,18 +114,23 @@ type ZonaLimpieza = {
   nombre: string;
   peso: number;
   activa: boolean;
+  tipo_espacio: 'HABITACION' | 'ZONA_COMUN' | 'ESPACIO';
+  habitacion: Habitacion | null;
   asignaciones_fijas: AsignacionFija[];
 };
 
 type Turno = {
   id: number;
-  usuario_id: number;
+  usuario_id: number | null;
+  habitacion_id: number;
   zona_id: number;
   fecha_inicio: string;
   fecha_fin: string;
   estado: 'PENDIENTE' | 'HECHO' | 'NO_HECHO';
-  zona: { id: number; nombre: string; peso: number };
-  usuario: { id: number; nombre: string; apellidos: string | null };
+  tipo_espacio: 'HABITACION' | 'ZONA_COMUN' | 'ESPACIO';
+  zona: { id: number; nombre: string; peso: number; habitacion: Habitacion | null };
+  habitacion: Habitacion;
+  responsable_actual: ResponsableActual;
 };
 
 type ExportLimpiezasResponse = {
@@ -133,35 +147,37 @@ const FILTROS_ESTADO: { label: string; value: EstadoFiltro }[] = [
   { label: 'Hechos', value: 'HECHO' },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+const getTipoEspacioLabel = (tipo: ZonaLimpieza['tipo_espacio']) => {
+  if (tipo === 'HABITACION') return 'Habitación';
+  if (tipo === 'ZONA_COMUN') return 'Zona común';
+  return 'Espacio';
+};
+
+const getResponsableLabel = (responsable: ResponsableActual) =>
+  responsable ? `${responsable.nombre}${responsable.apellidos ? ` ${responsable.apellidos}` : ''}` : 'Sin ocupante';
 
 export default function LimpiezaCaseroTab() {
   const id = useViviendaIdParam();
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  // — Vista activa —
   const [vistaActual, setVistaActual] = useState<'CONFIG' | 'CALENDARIO'>('CONFIG');
-
-  // — Config state —
   const [zonas, setZonas] = useState<ZonaLimpieza[]>([]);
-  const [inquilinos, setInquilinos] = useState<Inquilino[]>([]);
+  const [habitaciones, setHabitaciones] = useState<Habitacion[]>([]);
   const [loading, setLoading] = useState(true);
   const [generando, setGenerando] = useState(false);
   const [creandoBase, setCreandoBase] = useState(false);
 
-  // — Modal nueva zona —
   const [modalZonaVisible, setModalZonaVisible] = useState(false);
   const [nombre, setNombre] = useState('');
   const [pesoSeleccionado, setPesoSeleccionado] = useState<number | null>(null);
+  const [habitacionObjetivoId, setHabitacionObjetivoId] = useState<number | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  // — Modal asignación fija (multi-select) —
   const [zonaSeleccionada, setZonaSeleccionada] = useState<ZonaLimpieza | null>(null);
   const [seleccionados, setSeleccionados] = useState<number[]>([]);
   const [asignando, setAsignando] = useState(false);
 
-  // — Calendario state —
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [loadingTurnos, setLoadingTurnos] = useState(false);
   const [exportando, setExportando] = useState(false);
@@ -174,44 +190,48 @@ export default function LimpiezaCaseroTab() {
     return hoy;
   });
 
+  const habitacionesResponsables = habitaciones.filter(
+    (habitacion) => habitacion.es_habitable && habitacion.tipo === 'DORMITORIO',
+  );
+
   useEffect(() => {
     const inicializar = async () => {
       setLoading(true);
-      await Promise.all([cargarZonas(), cargarInquilinos()]);
+      await Promise.all([cargarZonas(), cargarHabitaciones()]);
       setLoading(false);
     };
     inicializar();
-  }, [id]);
+  }, [cargarHabitaciones, cargarZonas]);
 
   useEffect(() => {
-    if (vistaActual === 'CALENDARIO') cargarTurnos(fechaObjetivo);
-  }, [vistaActual, fechaObjetivo]);
+    if (vistaActual === 'CALENDARIO') {
+      cargarTurnos(fechaObjetivo);
+    }
+  }, [cargarTurnos, fechaObjetivo, vistaActual]);
 
-  const cargarZonas = async () => {
+  const cargarZonas = useCallback(async () => {
     if (!id) return;
 
     try {
       const { data } = await api.get<ZonaLimpieza[]>(`/viviendas/${id}/limpieza/zonas`);
       setZonas(data);
     } catch {
-      Toast.show({ type: 'error', text1: 'No se pudieron cargar las zonas.' });
+      Toast.show({ type: 'error', text1: 'No se pudieron cargar los espacios de limpieza.' });
     }
-  };
+  }, [id]);
 
-  const cargarInquilinos = async () => {
+  const cargarHabitaciones = useCallback(async () => {
     if (!id) return;
 
     try {
-      const { data } = await api.get<{ habitaciones: { inquilino: Inquilino | null }[] }>(`/viviendas/${id}`);
-      setInquilinos(
-        data.habitaciones.filter((h) => h.inquilino !== null).map((h) => h.inquilino!)
-      );
+      const { data } = await api.get<{ habitaciones: Habitacion[] }>(`/viviendas/${id}`);
+      setHabitaciones(data.habitaciones);
     } catch {
-      // non-critical
+      Toast.show({ type: 'error', text1: 'No se pudieron cargar las habitaciones.' });
     }
-  };
+  }, [id]);
 
-  const cargarTurnos = async (fecha?: Date) => {
+  const cargarTurnos = useCallback(async (fecha?: Date) => {
     if (!id) return;
 
     setLoadingTurnos(true);
@@ -225,7 +245,7 @@ export default function LimpiezaCaseroTab() {
     } finally {
       setLoadingTurnos(false);
     }
-  };
+  }, [fechaObjetivo, id]);
 
   const guardarArchivoCsv = async (contenidoBase64: string, nombreArchivo: string, mimeType: string) => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -319,53 +339,54 @@ export default function LimpiezaCaseroTab() {
     });
   };
 
-  // — Nueva zona —
   const cerrarModalZona = () => {
     setModalZonaVisible(false);
     setNombre('');
     setPesoSeleccionado(null);
+    setHabitacionObjetivoId(null);
   };
 
   const handleGuardar = async () => {
-    if (!id || !nombre.trim() || pesoSeleccionado === null) return;
+    if (!id || pesoSeleccionado === null) return;
+    if (!nombre.trim() && !habitacionObjetivoId) return;
+
     setGuardando(true);
     try {
       const { data } = await api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, {
-        nombre: nombre.trim(),
+        nombre: nombre.trim() || undefined,
         peso: pesoSeleccionado,
+        habitacion_id: habitacionObjetivoId,
       });
-      setZonas((prev) => [...prev, { ...data, asignaciones_fijas: [] }]);
+      setZonas((prev) => [...prev, data]);
       cerrarModalZona();
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo crear la zona.' });
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo crear el espacio.' });
     } finally {
       setGuardando(false);
     }
   };
 
-  const puedeGuardar = nombre.trim().length > 0 && pesoSeleccionado !== null;
+  const puedeGuardar = (nombre.trim().length > 0 || habitacionObjetivoId !== null) && pesoSeleccionado !== null;
 
-  // — Starter Pack —
   const handleGenerarZonasBasicas = async () => {
     if (!id) return;
 
     setCreandoBase(true);
     try {
       const resultados = await Promise.all(
-        ZONAS_BASE.map((z) => api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, z))
+        ZONAS_BASE.map((zonaBase) => api.post<ZonaLimpieza>(`/viviendas/${id}/limpieza/zonas`, zonaBase)),
       );
-      setZonas(resultados.map((r) => ({ ...r.data, asignaciones_fijas: [] })));
+      setZonas((prev) => [...prev, ...resultados.map((resultado) => resultado.data)]);
     } catch (err: any) {
-      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudieron crear las zonas base.' });
+      Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudieron crear los espacios base.' });
     } finally {
       setCreandoBase(false);
     }
   };
 
-  // — Asignación fija multi-select —
   const abrirModalAsignacion = (zona: ZonaLimpieza) => {
     setZonaSeleccionada(zona);
-    setSeleccionados((zona.asignaciones_fijas ?? []).map((a) => a.usuario_id));
+    setSeleccionados((zona.asignaciones_fijas ?? []).map((asignacion) => asignacion.habitacion_id));
   };
 
   const cerrarModalAsignacion = () => {
@@ -373,22 +394,23 @@ export default function LimpiezaCaseroTab() {
     setSeleccionados([]);
   };
 
-  const toggleSeleccion = (usuarioId: number) => {
+  const toggleSeleccion = (habitacionId: number) => {
     setSeleccionados((prev) =>
-      prev.includes(usuarioId) ? prev.filter((x) => x !== usuarioId) : [...prev, usuarioId]
+      prev.includes(habitacionId) ? prev.filter((idHabitacion) => idHabitacion !== habitacionId) : [...prev, habitacionId],
     );
   };
 
   const handleGuardarAsignacion = async () => {
     if (!id || !zonaSeleccionada) return;
+
     setAsignando(true);
     try {
       const { data } = await api.post<AsignacionFija[]>(
         `/viviendas/${id}/limpieza/zonas/${zonaSeleccionada.id}/asignacion`,
-        { usuario_ids: seleccionados }
+        { habitacion_ids: seleccionados },
       );
       setZonas((prev) =>
-        prev.map((z) => (z.id === zonaSeleccionada.id ? { ...z, asignaciones_fijas: data } : z))
+        prev.map((zona) => (zona.id === zonaSeleccionada.id ? { ...zona, asignaciones_fijas: data } : zona)),
       );
       cerrarModalAsignacion();
     } catch (err: any) {
@@ -400,7 +422,7 @@ export default function LimpiezaCaseroTab() {
 
   const handleEliminarZona = (zona: ZonaLimpieza) => {
     Alert.alert(
-      'Eliminar zona',
+      'Eliminar espacio',
       `¿Eliminar "${zona.nombre}"? Se borrarán también sus asignaciones y turnos.`,
       [
         { text: 'Cancelar', style: 'cancel' },
@@ -410,13 +432,13 @@ export default function LimpiezaCaseroTab() {
           onPress: async () => {
             try {
               await api.delete(`/viviendas/${id}/limpieza/zonas/${zona.id}`);
-              setZonas((prev) => prev.filter((z) => z.id !== zona.id));
+              setZonas((prev) => prev.filter((item) => item.id !== zona.id));
             } catch (err: any) {
-              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar la zona.' });
+              Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar el espacio.' });
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -426,19 +448,20 @@ export default function LimpiezaCaseroTab() {
     setGenerando(true);
     try {
       await api.post(`/viviendas/${id}/limpieza/generar`);
-      Toast.show({ type: 'success', text1: 'Turnos generados', text2: 'Ve al Calendario para verlos.' });
+      Toast.show({
+        type: 'success',
+        text1: 'Turnos generados',
+        text2: 'El reparto ya está vinculado a habitaciones responsables.',
+      });
+      if (vistaActual === 'CALENDARIO') {
+        await cargarTurnos(fechaObjetivo);
+      }
     } catch (err: any) {
-      Alert.alert(
-        'No se pudieron generar los turnos',
-        err.response?.data?.error ?? 'Ha ocurrido un error inesperado.'
-      );
+      Alert.alert('No se pudieron generar los turnos', err.response?.data?.error ?? 'Ha ocurrido un error inesperado.');
     } finally {
       setGenerando(false);
     }
   };
-
-  const nombreCorto = (inq: Inquilino) =>
-    `${inq.nombre}${inq.apellidos ? ` ${inq.apellidos[0]}.` : ''}`;
 
   const getSemanaLabel = (base: Date) => {
     const domingo = new Date(base);
@@ -447,13 +470,11 @@ export default function LimpiezaCaseroTab() {
     return `${fmt(base)} — ${fmt(domingo)}`;
   };
 
-  // ── Render: card de zona ──────────────────────────────────────────────────
-
   const renderZona = ({ item }: { item: ZonaLimpieza }) => {
     const asignaciones = item.asignaciones_fijas ?? [];
     const etiquetaFijos =
       asignaciones.length > 0
-        ? `👤 Fijos: ${asignaciones.map((a) => nombreCorto(a.usuario)).join(', ')}`
+        ? `Responsables fijas: ${asignaciones.map((asignacion) => asignacion.habitacion.nombre).join(', ')}`
         : null;
 
     return (
@@ -470,12 +491,16 @@ export default function LimpiezaCaseroTab() {
           </Pressable>
         </View>
         <Text style={styles.zonaPeso}>{etiquetaEsfuerzo(item.peso)}</Text>
+        <Text style={[styles.zonaPeso, { color: theme.colors.textSecondary, marginTop: theme.spacing.xs }]}>
+          {getTipoEspacioLabel(item.tipo_espacio)}
+          {item.habitacion ? ` · ${item.habitacion.nombre}` : ' · Espacio personalizado'}
+        </Text>
         <View style={styles.asignacionRow}>
           <Pressable onPress={() => abrirModalAsignacion(item)} hitSlop={6}>
             {etiquetaFijos ? (
               <Text style={styles.asignacionFija}>{etiquetaFijos}</Text>
             ) : (
-              <Text style={styles.asignarLink}>+ Asignar inquilino(s) fijo(s)</Text>
+              <Text style={styles.asignarLink}>+ Asignar habitación responsable fija</Text>
             )}
           </Pressable>
         </View>
@@ -488,10 +513,12 @@ export default function LimpiezaCaseroTab() {
       <View style={styles.emptyIconBox}>
         <Ionicons name="sparkles-outline" size={40} color={theme.colors.success} />
       </View>
-      <Text style={styles.emptyTitulo}>Sin zonas todavía</Text>
-      <Text style={styles.emptySubtitulo}>Genera las zonas básicas para empezar a repartir las tareas de limpieza.</Text>
+      <Text style={styles.emptyTitulo}>Sin espacios todavía</Text>
+      <Text style={styles.emptySubtitulo}>
+        Crea habitaciones, zonas comunes o espacios personalizados para planificar la limpieza por espacio.
+      </Text>
       <CustomButton
-        label={creandoBase ? 'Creando...' : 'Generar zonas básicas'}
+        label={creandoBase ? 'Creando...' : 'Generar espacios base'}
         variant="outline"
         onPress={handleGenerarZonasBasicas}
         disabled={creandoBase}
@@ -500,27 +527,22 @@ export default function LimpiezaCaseroTab() {
     </View>
   );
 
-  // ── Render: vista Calendario ──────────────────────────────────────────────
-
   const renderCalendario = () => {
     if (loadingTurnos) {
       return <ActivityIndicator style={{ flex: 1, marginTop: 40 }} size="large" color={theme.colors.primary} />;
     }
 
-    const turnosFiltrados = turnos.filter((turno) =>
-      filtroEstado === 'TODOS' ? true : turno.estado === filtroEstado
-    );
-    const turnosFiltradosPorUsuario = turnosFiltrados.reduce<
-      Record<number, { usuario: Turno['usuario']; items: Turno[] }>
-    >((acc, t) => {
-      if (!acc[t.usuario_id]) acc[t.usuario_id] = { usuario: t.usuario, items: [] };
-      acc[t.usuario_id].items.push(t);
+    const turnosFiltrados = turnos.filter((turno) => (filtroEstado === 'TODOS' ? true : turno.estado === filtroEstado));
+    const turnosAgrupados = turnosFiltrados.reduce<Record<number, { habitacion: Habitacion; items: Turno[] }>>((acc, turno) => {
+      if (!acc[turno.habitacion_id]) {
+        acc[turno.habitacion_id] = { habitacion: turno.habitacion, items: [] };
+      }
+      acc[turno.habitacion_id].items.push(turno);
       return acc;
     }, {});
 
     return (
       <ScrollView contentContainerStyle={styles.content}>
-        {/* ── Cabecera ── */}
         <View style={styles.calendarioHeader}>
           <View>
             <Text style={styles.calendarioGestion}>Gestión</Text>
@@ -528,10 +550,7 @@ export default function LimpiezaCaseroTab() {
           </View>
           <View style={styles.calendarioActions}>
             <Pressable
-              style={({ pressed }) => [
-                styles.calendarioBtnExport,
-                (pressed || exportando) && { opacity: 0.7 },
-              ]}
+              style={({ pressed }) => [styles.calendarioBtnExport, (pressed || exportando) && { opacity: 0.7 }]}
               onPress={exportarTurnos}
               disabled={exportando}
             >
@@ -540,9 +559,7 @@ export default function LimpiezaCaseroTab() {
               ) : (
                 <Ionicons name="download-outline" size={16} color={theme.colors.primary} />
               )}
-              <Text style={styles.calendarioBtnExportTexto}>
-                {exportando ? 'Exportando' : 'Exportar todo'}
-              </Text>
+              <Text style={styles.calendarioBtnExportTexto}>{exportando ? 'Exportando' : 'Exportar todo'}</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.calendarioBtnConfig, pressed && { opacity: 0.7 }]}
@@ -553,13 +570,20 @@ export default function LimpiezaCaseroTab() {
           </View>
         </View>
 
-        {/* ── Navegación de semana ── */}
         <View style={styles.semanaNav}>
-          <Pressable onPress={() => navegar(-1)} hitSlop={12} style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}>
+          <Pressable
+            onPress={() => navegar(-1)}
+            hitSlop={12}
+            style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}
+          >
             <Text style={styles.semanaNavTexto}>‹</Text>
           </Pressable>
           <Text style={styles.semanaLabel}>{getSemanaLabel(fechaObjetivo)}</Text>
-          <Pressable onPress={() => navegar(1)} hitSlop={12} style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}>
+          <Pressable
+            onPress={() => navegar(1)}
+            hitSlop={12}
+            style={({ pressed }) => [styles.semanaNavBtn, pressed && { opacity: 0.5 }]}
+          >
             <Text style={styles.semanaNavTexto}>›</Text>
           </Pressable>
         </View>
@@ -593,7 +617,9 @@ export default function LimpiezaCaseroTab() {
               <Ionicons name="calendar-outline" size={40} color={theme.colors.success} />
             </View>
             <Text style={styles.emptyTitulo}>Sin turnos esta semana</Text>
-            <Text style={styles.emptySubtitulo}>Genera los turnos para asignar las tareas de limpieza de esta semana.</Text>
+            <Text style={styles.emptySubtitulo}>
+              Genera los turnos para repartir tareas por habitación responsable y mantener el histórico del espacio.
+            </Text>
             <CustomButton
               label={generando ? 'Generando...' : 'Generar turnos'}
               variant="primary"
@@ -611,37 +637,44 @@ export default function LimpiezaCaseroTab() {
             <Text style={styles.emptySubtitulo}>No hay turnos de limpieza con el filtro seleccionado.</Text>
           </View>
         ) : (
-          Object.values(turnosFiltradosPorUsuario).map((grupo) => (
-            <View key={grupo.usuario.id} style={styles.userCard}>
-              {/* Avatar + nombre */}
+          Object.values(turnosAgrupados).map((grupo) => (
+            <View key={grupo.habitacion.id} style={styles.userCard}>
               <View style={styles.userCardHeader}>
-                <AvatarInitials nombre={grupo.usuario.nombre} apellidos={grupo.usuario.apellidos} theme={theme} />
+                <AvatarInitials
+                  nombre={grupo.habitacion.inquilino?.nombre ?? grupo.habitacion.nombre}
+                  apellidos={grupo.habitacion.inquilino?.apellidos ?? null}
+                  theme={theme}
+                />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.userNombre}>
-                    {grupo.usuario.nombre}{grupo.usuario.apellidos ? ` ${grupo.usuario.apellidos}` : ''}
-                  </Text>
-                  <Text style={styles.userSubtitle}>
-                    {grupo.items.length} {grupo.items.length === 1 ? 'tarea' : 'tareas'}
-                  </Text>
+                  <Text style={styles.userNombre}>{grupo.habitacion.nombre}</Text>
+                  <Text style={styles.userSubtitle}>{getResponsableLabel(grupo.habitacion.inquilino)}</Text>
                 </View>
               </View>
 
-              {/* Turnos */}
-              {grupo.items.map((t) => (
-                <View key={t.id} style={styles.turnoRow}>
+              {grupo.items.map((turno) => (
+                <View key={turno.id} style={styles.turnoRow}>
                   <View style={styles.turnoIconWrapper}>
-                    <Ionicons name={zonaIcon(t.zona.nombre)} size={15} color={theme.colors.primary} />
+                    <Ionicons name={zonaIcon(turno.zona.nombre)} size={15} color={theme.colors.primary} />
                   </View>
-                  <Text style={styles.turnoZona}>{t.zona.nombre}</Text>
-                  <View style={[
-                    styles.turnoEstadoBadge,
-                    t.estado === 'HECHO' ? styles.turnoEstadoBadgeHecho : styles.turnoEstadoBadgePendiente,
-                  ]}>
-                    <Text style={[
-                      styles.turnoEstadoTexto,
-                      t.estado === 'HECHO' ? styles.turnoEstadoTextoHecho : styles.turnoEstadoTextoPendiente,
-                    ]}>
-                      {t.estado === 'HECHO' ? 'Hecho' : 'Pendiente'}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.turnoZona}>{turno.zona.nombre}</Text>
+                    <Text style={[styles.userSubtitle, { marginTop: 2 }]}>
+                      {getTipoEspacioLabel(turno.tipo_espacio)}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.turnoEstadoBadge,
+                      turno.estado === 'HECHO' ? styles.turnoEstadoBadgeHecho : styles.turnoEstadoBadgePendiente,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.turnoEstadoTexto,
+                        turno.estado === 'HECHO' ? styles.turnoEstadoTextoHecho : styles.turnoEstadoTextoPendiente,
+                      ]}
+                    >
+                      {turno.estado === 'HECHO' ? 'Hecho' : 'Pendiente'}
                     </Text>
                   </View>
                 </View>
@@ -653,27 +686,20 @@ export default function LimpiezaCaseroTab() {
     );
   };
 
-  // ── Render principal ──────────────────────────────────────────────────────
-
   return (
     <View style={styles.container}>
-      {/* Segmented Control */}
       <View style={styles.segmentedControl}>
         <Pressable
           style={[styles.segTab, vistaActual === 'CALENDARIO' && styles.segTabActivo]}
           onPress={() => setVistaActual('CALENDARIO')}
         >
-          <Text style={[styles.segTabTexto, vistaActual === 'CALENDARIO' && styles.segTabTextoActivo]}>
-            Calendario
-          </Text>
+          <Text style={[styles.segTabTexto, vistaActual === 'CALENDARIO' && styles.segTabTextoActivo]}>Calendario</Text>
         </Pressable>
         <Pressable
           style={[styles.segTab, vistaActual === 'CONFIG' && styles.segTabActivo]}
           onPress={() => setVistaActual('CONFIG')}
         >
-          <Text style={[styles.segTabTexto, vistaActual === 'CONFIG' && styles.segTabTextoActivo]}>
-            Configuración
-          </Text>
+          <Text style={[styles.segTabTexto, vistaActual === 'CONFIG' && styles.segTabTextoActivo]}>Configuración</Text>
         </Pressable>
       </View>
 
@@ -697,10 +723,7 @@ export default function LimpiezaCaseroTab() {
               ListEmptyComponent={emptyComponent}
             />
           )}
-          <Pressable
-            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-            onPress={() => setModalZonaVisible(true)}
-          >
+          <Pressable style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]} onPress={() => setModalZonaVisible(true)}>
             <Text style={styles.fabTexto}>+</Text>
           </Pressable>
         </>
@@ -708,16 +731,11 @@ export default function LimpiezaCaseroTab() {
         renderCalendario()
       )}
 
-      {/* Modal nueva zona */}
       <Modal visible={modalZonaVisible} animationType="slide" transparent onRequestClose={cerrarModalZona}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitulo}>Nueva zona</Text>
+            <Text style={styles.modalTitulo}>Nuevo espacio</Text>
 
-            {/* Quick Chips */}
             <View style={styles.chipRow}>
               {QUICK_CHIPS.map((chip) => (
                 <Pressable
@@ -731,14 +749,56 @@ export default function LimpiezaCaseroTab() {
             </View>
 
             <CustomInput
-              label="Nombre de la zona"
-              placeholder="ej. Cocina, Baño 1, Pasillo..."
+              label="Nombre del espacio"
+              placeholder="ej. Cocina, Baño 1 o Despensa"
               value={nombre}
               onChangeText={setNombre}
               maxLength={80}
             />
 
-            {/* T-Shirt Sizing */}
+            <Text style={styles.tshirtLabel}>Vincular a una habitación existente (opcional)</Text>
+            <ScrollView style={{ maxHeight: 160, marginBottom: theme.spacing.md }}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.inquilinoRow,
+                  habitacionObjetivoId === null && styles.inquilinoRowActual,
+                  pressed && styles.botonPressed,
+                ]}
+                onPress={() => setHabitacionObjetivoId(null)}
+              >
+                <Text style={[styles.inquilinoNombre, habitacionObjetivoId === null && styles.inquilinoNombreActual]}>
+                  Espacio personalizado
+                </Text>
+              </Pressable>
+              {habitaciones.map((habitacion) => {
+                const seleccionado = habitacionObjetivoId === habitacion.id;
+                return (
+                  <Pressable
+                    key={habitacion.id}
+                    style={({ pressed }) => [
+                      styles.inquilinoRow,
+                      seleccionado && styles.inquilinoRowActual,
+                      pressed && styles.botonPressed,
+                    ]}
+                    onPress={() => {
+                      setHabitacionObjetivoId(habitacion.id);
+                      setNombre(habitacion.nombre);
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.inquilinoNombre, seleccionado && styles.inquilinoNombreActual]}>
+                        {habitacion.nombre}
+                      </Text>
+                      <Text style={{ color: theme.colors.textTertiary, fontSize: theme.typography.caption }}>
+                        {habitacion.es_habitable ? 'Habitación' : 'Zona común'}
+                      </Text>
+                    </View>
+                    {seleccionado && <Text style={styles.checkmark}>✓</Text>}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
             <Text style={styles.tshirtLabel}>Esfuerzo</Text>
             <View style={styles.tshirtRow}>
               {TALLAS.map((talla) => (
@@ -748,10 +808,7 @@ export default function LimpiezaCaseroTab() {
                   onPress={() => setPesoSeleccionado(talla.peso)}
                 >
                   <Text
-                    style={[
-                      styles.tshirtBtnTexto,
-                      pesoSeleccionado === talla.peso && styles.tshirtBtnTextoActivo,
-                    ]}
+                    style={[styles.tshirtBtnTexto, pesoSeleccionado === talla.peso && styles.tshirtBtnTextoActivo]}
                   >
                     {talla.label}
                   </Text>
@@ -760,10 +817,7 @@ export default function LimpiezaCaseroTab() {
             </View>
 
             <View style={styles.modalAcciones}>
-              <Pressable
-                style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]}
-                onPress={cerrarModalZona}
-              >
+              <Pressable style={({ pressed }) => [styles.botonCancelar, pressed && styles.botonPressed]} onPress={cerrarModalZona}>
                 <Text style={styles.botonCancelarTexto}>Cancelar</Text>
               </Pressable>
               <Pressable
@@ -775,51 +829,51 @@ export default function LimpiezaCaseroTab() {
                 onPress={handleGuardar}
                 disabled={!puedeGuardar || guardando}
               >
-                {guardando ? (
-                  <ActivityIndicator color={theme.colors.surface} />
-                ) : (
-                  <Text style={styles.botonGuardarTexto}>Guardar</Text>
-                )}
+                {guardando ? <ActivityIndicator color={theme.colors.surface} /> : <Text style={styles.botonGuardarTexto}>Guardar</Text>}
               </Pressable>
             </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal asignación fija — multi-select */}
-      <Modal
-        visible={zonaSeleccionada !== null}
-        animationType="slide"
-        transparent
-        onRequestClose={cerrarModalAsignacion}
-      >
+      <Modal visible={zonaSeleccionada !== null} animationType="slide" transparent onRequestClose={cerrarModalAsignacion}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitulo}>Asignar fijos</Text>
-            {zonaSeleccionada && (
-              <Text style={styles.modalSubtitulo}>{zonaSeleccionada.nombre}</Text>
-            )}
-            {inquilinos.length === 0 ? (
-              <Text style={{ textAlign: 'center', color: theme.colors.textTertiary, fontSize: theme.typography.body, paddingVertical: theme.spacing.md }}>
-                No hay inquilinos en esta vivienda.
+            <Text style={styles.modalTitulo}>Asignar responsables fijas</Text>
+            {zonaSeleccionada && <Text style={styles.modalSubtitulo}>{zonaSeleccionada.nombre}</Text>}
+            {habitacionesResponsables.length === 0 ? (
+              <Text
+                style={{
+                  textAlign: 'center',
+                  color: theme.colors.textTertiary,
+                  fontSize: theme.typography.body,
+                  paddingVertical: theme.spacing.md,
+                }}
+              >
+                No hay habitaciones habitables disponibles.
               </Text>
             ) : (
-              inquilinos.map((inq) => {
-                const seleccionado = seleccionados.includes(inq.id);
+              habitacionesResponsables.map((habitacion) => {
+                const seleccionado = seleccionados.includes(habitacion.id);
                 return (
                   <Pressable
-                    key={inq.id}
+                    key={habitacion.id}
                     style={({ pressed }) => [
                       styles.inquilinoRow,
                       seleccionado && styles.inquilinoRowActual,
                       pressed && styles.botonPressed,
                     ]}
-                    onPress={() => toggleSeleccion(inq.id)}
+                    onPress={() => toggleSeleccion(habitacion.id)}
                     disabled={asignando}
                   >
-                    <Text style={[styles.inquilinoNombre, seleccionado && styles.inquilinoNombreActual]}>
-                      {inq.nombre} {inq.apellidos ?? ''}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.inquilinoNombre, seleccionado && styles.inquilinoNombreActual]}>
+                        {habitacion.nombre}
+                      </Text>
+                      <Text style={{ color: theme.colors.textTertiary, fontSize: theme.typography.caption }}>
+                        {getResponsableLabel(habitacion.inquilino)}
+                      </Text>
+                    </View>
                     {seleccionado && <Text style={styles.checkmark}>✓</Text>}
                   </Pressable>
                 );
@@ -838,11 +892,7 @@ export default function LimpiezaCaseroTab() {
                 onPress={handleGuardarAsignacion}
                 disabled={asignando}
               >
-                {asignando ? (
-                  <ActivityIndicator color={theme.colors.surface} />
-                ) : (
-                  <Text style={styles.botonGuardarTexto}>Guardar</Text>
-                )}
+                {asignando ? <ActivityIndicator color={theme.colors.surface} /> : <Text style={styles.botonGuardarTexto}>Guardar</Text>}
               </Pressable>
             </View>
           </View>
