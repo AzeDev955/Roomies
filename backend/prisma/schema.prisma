@@ -89,6 +89,7 @@ model Usuario {
   cargos_habitacion Gasto[]                  @relation("InquilinoCargoHabitacion")
   deudas_a_pagar     Deuda[]                  @relation("DeudorDeuda")
   deudas_a_cobrar    Deuda[]                  @relation("AcreedorDeuda")
+  items_inventario_validados ItemInventario[] @relation("ValidadorInventario")
 }
 
 model Vivienda {
@@ -213,17 +214,20 @@ model Deuda {
 }
 
 model ItemInventario {
-  id             Int         @id @default(autoincrement())
-  nombre         String
-  descripcion    String?
-  estado         EstadoItem  @default(BUENO)
-  revisado_por_inquilino Boolean @default(false)
-  habitacion_id  Int?
-  habitacion     Habitacion? @relation(fields: [habitacion_id], references: [id])
-  vivienda_id    Int?
-  vivienda       Vivienda?   @relation(fields: [vivienda_id], references: [id])
-  fecha_registro DateTime    @default(now())
-  fotos          FotoAsset[]
+  id                          Int         @id @default(autoincrement())
+  nombre                      String
+  descripcion                 String?
+  estado                      EstadoItem  @default(BUENO)
+  revisado_por_inquilino      Boolean     @default(false)
+  revisado_por_inquilino_id   Int?
+  revisado_por_inquilino_en   DateTime?
+  revisado_por_inquilino_user Usuario?    @relation("ValidadorInventario", fields: [revisado_por_inquilino_id], references: [id], onDelete: SetNull)
+  habitacion_id               Int?
+  habitacion                  Habitacion? @relation(fields: [habitacion_id], references: [id])
+  vivienda_id                 Int?
+  vivienda                    Vivienda?   @relation(fields: [vivienda_id], references: [id])
+  fecha_registro              DateTime    @default(now())
+  fotos                       FotoAsset[]
 }
 
 model FotoAsset {

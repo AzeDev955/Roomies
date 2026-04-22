@@ -32,6 +32,18 @@ const usuarioTieneAccesoAVivienda = async (
   return habitacion !== null;
 };
 
+const obtenerHabitacionDelInquilinoEnVivienda = async (usuarioId: number, viviendaId: number) =>
+  prisma.habitacion.findFirst({
+    where: {
+      vivienda_id: viviendaId,
+      inquilino_id: usuarioId,
+    },
+    select: {
+      id: true,
+      vivienda_id: true,
+    },
+  });
+
 const obtenerViviendaDelCasero = async (usuarioId: number, viviendaId: number) =>
   prisma.vivienda.findFirst({
     where: {
@@ -73,7 +85,7 @@ export const crearItemInventario: express.RequestHandler = async (req, res) => {
   };
 
   if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
-    res.status(400).json({ error: 'viviendaId inválido.' });
+    res.status(400).json({ error: 'viviendaId invÃ¡lido.' });
     return;
   }
 
@@ -100,10 +112,10 @@ export const crearItemInventario: express.RequestHandler = async (req, res) => {
   }
 
   const estadoNormalizado =
-    typeof estado === 'string' ? estado.trim().toUpperCase() as EstadoItem : EstadoItem.BUENO;
+    typeof estado === 'string' ? (estado.trim().toUpperCase() as EstadoItem) : EstadoItem.BUENO;
 
   if (!ESTADOS_ITEM_VALIDOS.has(estadoNormalizado)) {
-    res.status(400).json({ error: 'El estado del item no es válido.' });
+    res.status(400).json({ error: 'El estado del item no es vÃ¡lido.' });
     return;
   }
 
@@ -134,12 +146,12 @@ export const crearItemInventario: express.RequestHandler = async (req, res) => {
   }
 
   if (tieneHabitacion && (!Number.isInteger(habitacionId) || habitacionId <= 0)) {
-    res.status(400).json({ error: 'habitacion_id inválido.' });
+    res.status(400).json({ error: 'habitacion_id invÃ¡lido.' });
     return;
   }
 
   if (tieneVivienda && (!Number.isInteger(viviendaIdBody) || viviendaIdBody <= 0)) {
-    res.status(400).json({ error: 'vivienda_id inválido.' });
+    res.status(400).json({ error: 'vivienda_id invÃ¡lido.' });
     return;
   }
 
@@ -149,7 +161,7 @@ export const crearItemInventario: express.RequestHandler = async (req, res) => {
     );
 
     if (!habitacionPerteneceAVivienda) {
-      res.status(400).json({ error: 'La habitación no pertenece a esta vivienda.' });
+      res.status(400).json({ error: 'La habitaciÃ³n no pertenece a esta vivienda.' });
       return;
     }
   }
@@ -168,6 +180,7 @@ export const crearItemInventario: express.RequestHandler = async (req, res) => {
           id: true,
           nombre: true,
           tipo: true,
+          inquilino_id: true,
         },
       },
       fotos: {
@@ -187,7 +200,7 @@ export const listarInventarioVivienda: express.RequestHandler = async (req, res)
   const rol = req.usuario!.rol;
 
   if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
-    res.status(400).json({ error: 'viviendaId inválido.' });
+    res.status(400).json({ error: 'viviendaId invÃ¡lido.' });
     return;
   }
 
@@ -198,25 +211,61 @@ export const listarInventarioVivienda: express.RequestHandler = async (req, res)
   }
 
   const items = await prisma.itemInventario.findMany({
-    where: {
-      OR: [
-        { vivienda_id: viviendaId },
-        { habitacion: { vivienda_id: viviendaId } },
-      ],
-    },
-    include: {
+    where:
+      rol === RolUsuario.CASERO
+        ? {
+            OR: [
+              { vivienda_id: viviendaId },
+              { habitacion: { vivienda_id: viviendaId } },
+            ],
+          }
+        : {
+            OR: [
+              { vivienda_id: viviendaId },
+              { habitacion: { vivienda_id: viviendaId, es_habitable: false } },
+              { habitacion: { vivienda_id: viviendaId, inquilino_id: usuarioId } },
+            ],
+          },
+    select: {
+      id: true,
+      nombre: true,
+      descripcion: true,
+      estado: true,
+      revisado_por_inquilino: true,
+      revisado_por_inquilino_id: true,
+      revisado_por_inquilino_en: true,
+      habitacion_id: true,
+      vivienda_id: true,
+      fecha_registro: true,
       habitacion: {
         select: {
           id: true,
           nombre: true,
           tipo: true,
+          inquilino_id: true,
         },
       },
       fotos: {
+        select: {
+          id: true,
+          url: true,
+          fecha_subida: true,
+        },
         orderBy: {
           fecha_subida: 'desc',
         },
       },
+      ...(rol === RolUsuario.CASERO
+        ? {
+            revisado_por_inquilino_user: {
+              select: {
+                id: true,
+                nombre: true,
+                apellidos: true,
+              },
+            },
+          }
+        : {}),
     },
     orderBy: [
       { habitacion_id: 'asc' },
@@ -234,7 +283,7 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
   const rol = req.usuario!.rol;
 
   if (!Number.isInteger(itemId) || itemId <= 0) {
-    res.status(400).json({ error: 'itemId inválido.' });
+    res.status(400).json({ error: 'itemId invÃ¡lido.' });
     return;
   }
 
@@ -245,10 +294,35 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
 
   const item = await prisma.itemInventario.findUnique({
     where: { id: itemId },
-    include: {
+    select: {
+      id: true,
+      nombre: true,
+      descripcion: true,
+      estado: true,
+      revisado_por_inquilino: true,
+      revisado_por_inquilino_id: true,
+      revisado_por_inquilino_en: true,
+      habitacion_id: true,
+      vivienda_id: true,
+      fecha_registro: true,
       habitacion: {
         select: {
+          id: true,
+          nombre: true,
+          tipo: true,
           vivienda_id: true,
+          es_habitable: true,
+          inquilino_id: true,
+        },
+      },
+      fotos: {
+        select: {
+          id: true,
+          url: true,
+          fecha_subida: true,
+        },
+        orderBy: {
+          fecha_subida: 'desc',
         },
       },
     },
@@ -262,13 +336,38 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
   const viviendaId = item.vivienda_id ?? item.habitacion?.vivienda_id;
 
   if (!viviendaId) {
-    res.status(400).json({ error: 'El item de inventario no está vinculado a una vivienda válida.' });
+    res.status(400).json({ error: 'El item de inventario no estÃ¡ vinculado a una vivienda vÃ¡lida.' });
     return;
   }
 
-  const tieneAcceso = await usuarioTieneAccesoAVivienda(usuarioId, rol, viviendaId);
-  if (!tieneAcceso) {
+  const miHabitacion = await obtenerHabitacionDelInquilinoEnVivienda(usuarioId, viviendaId);
+  if (!miHabitacion) {
     res.status(403).json({ error: 'No tienes acceso a este item de inventario.' });
+    return;
+  }
+
+  const esItemDeZonaComun =
+    item.vivienda_id === viviendaId ||
+    (item.habitacion?.vivienda_id === viviendaId && item.habitacion.es_habitable === false);
+  const esItemDeMiHabitacion =
+    item.habitacion?.vivienda_id === viviendaId && item.habitacion.inquilino_id === usuarioId;
+
+  if (!esItemDeZonaComun && !esItemDeMiHabitacion) {
+    res.status(403).json({ error: 'No puedes validar items de otra habitaciÃ³n.' });
+    return;
+  }
+
+  if (
+    item.revisado_por_inquilino &&
+    item.revisado_por_inquilino_id !== null &&
+    item.revisado_por_inquilino_id !== usuarioId
+  ) {
+    res.status(409).json({ error: 'Este item ya fue validado por otro inquilino.' });
+    return;
+  }
+
+  if (item.revisado_por_inquilino && item.revisado_por_inquilino_id === usuarioId) {
+    res.status(200).json(item);
     return;
   }
 
@@ -276,6 +375,8 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
     where: { id: itemId },
     data: {
       revisado_por_inquilino: true,
+      revisado_por_inquilino_id: usuarioId,
+      revisado_por_inquilino_en: new Date(),
     },
     include: {
       habitacion: {
@@ -283,6 +384,7 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
           id: true,
           nombre: true,
           tipo: true,
+          inquilino_id: true,
         },
       },
       fotos: {
@@ -302,12 +404,12 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
   const rol = req.usuario!.rol;
 
   if (!cloudinaryEstaConfigurado) {
-    res.status(500).json({ error: 'Cloudinary no está configurado en el servidor.' });
+    res.status(500).json({ error: 'Cloudinary no estÃ¡ configurado en el servidor.' });
     return;
   }
 
   if (!Number.isInteger(itemId) || itemId <= 0) {
-    res.status(400).json({ error: 'itemId inválido.' });
+    res.status(400).json({ error: 'itemId invÃ¡lido.' });
     return;
   }
 
@@ -340,7 +442,7 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
   const viviendaId = item.vivienda_id ?? item.habitacion?.vivienda_id;
 
   if (!viviendaId) {
-    res.status(400).json({ error: 'El item de inventario no está vinculado a una vivienda válida.' });
+    res.status(400).json({ error: 'El item de inventario no estÃ¡ vinculado a una vivienda vÃ¡lida.' });
     return;
   }
 

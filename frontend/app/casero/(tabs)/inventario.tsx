@@ -24,6 +24,7 @@ import api from '@/services/api';
 import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
 import {
   createEstadoItemStyles,
+  createRevisionInventarioStyles,
   createStyles,
 } from '@/styles/casero/inventario.styles';
 
@@ -33,6 +34,13 @@ type Habitacion = {
   id: number;
   nombre: string;
   tipo: string;
+  inquilino_id?: number | null;
+};
+
+type UsuarioValidacion = {
+  id: number;
+  nombre: string;
+  apellidos: string | null;
 };
 
 type Vivienda = {
@@ -57,6 +65,10 @@ type ItemInventario = {
   habitacion_id: number | null;
   vivienda_id: number | null;
   fecha_registro: string;
+  revisado_por_inquilino: boolean;
+  revisado_por_inquilino_id: number | null;
+  revisado_por_inquilino_en: string | null;
+  revisado_por_inquilino_user?: UsuarioValidacion | null;
   habitacion: Habitacion | null;
   fotos: FotoAsset[];
 };
@@ -87,6 +99,7 @@ export default function CaseroInventarioScreen() {
   const { theme } = useAppTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const estadoItemStyles = useMemo(() => createEstadoItemStyles(theme), [theme]);
+  const revisionInventarioStyles = useMemo(() => createRevisionInventarioStyles(theme), [theme]);
   const [viviendas, setViviendas] = useState<Vivienda[]>([]);
   const [hayViviendas, setHayViviendas] = useState(false);
   const [viviendaSeleccionadaId, setViviendaSeleccionadaId] = useState<number | null>(null);
@@ -105,6 +118,18 @@ export default function CaseroInventarioScreen() {
     viviendas.find((vivienda) => vivienda.id === viviendaSeleccionadaId) ?? null;
 
   const grupos = construirGruposInventario(items);
+  const resumenRevision = useMemo(
+    () =>
+      items.reduce(
+        (acc, item) => {
+          const estadoRevision = obtenerEstadoRevisionCasero(item);
+          acc[estadoRevision] += 1;
+          return acc;
+        },
+        { VALIDADO: 0, PENDIENTE: 0, NO_APLICA: 0 } as Record<EstadoRevisionCasero, number>,
+      ),
+    [items],
+  );
 
   const cargarInventario = useCallback(async (viviendaId: number) => {
     setLoadingItems(true);
@@ -363,6 +388,22 @@ export default function CaseroInventarioScreen() {
                   {viviendaSeleccionada.habitaciones.length} ubicaciones
                 </Text>
               </View>
+              <View style={[styles.heroStat, styles.heroStatSuccess]}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={14}
+                  color={theme.colors.success}
+                />
+                <Text style={[styles.heroStatText, styles.heroStatTextSuccess]}>
+                  {resumenRevision.VALIDADO} validados
+                </Text>
+              </View>
+              <View style={[styles.heroStat, styles.heroStatWarning]}>
+                <Ionicons name="time-outline" size={14} color={theme.colors.warning} />
+                <Text style={[styles.heroStatText, styles.heroStatTextWarning]}>
+                  {resumenRevision.PENDIENTE} pendientes
+                </Text>
+              </View>
             </View>
           </Card>
         )}
@@ -393,6 +434,7 @@ export default function CaseroInventarioScreen() {
               <View style={styles.itemList}>
                 {grupo.items.map((item) => {
                   const fotoPrincipal = item.fotos[0]?.url;
+                  const estadoRevision = obtenerEstadoRevisionCasero(item);
                   return (
                     <Card key={item.id} style={styles.itemCard}>
                       <View style={styles.itemCardRow}>
@@ -449,7 +491,35 @@ export default function CaseroInventarioScreen() {
                                 {item.fotos.length} foto{item.fotos.length === 1 ? '' : 's'}
                               </Text>
                             </View>
+                            <View
+                              style={[
+                                styles.reviewBadge,
+                                {
+                                  backgroundColor:
+                                    revisionInventarioStyles[estadoRevision].background,
+                                  borderColor:
+                                    revisionInventarioStyles[estadoRevision].border,
+                                },
+                              ]}
+                            >
+                              <Ionicons
+                                name={obtenerIconoRevisionCasero(estadoRevision)}
+                                size={13}
+                                color={revisionInventarioStyles[estadoRevision].text}
+                              />
+                              <Text
+                                style={[
+                                  styles.reviewBadgeText,
+                                  { color: revisionInventarioStyles[estadoRevision].text },
+                                ]}
+                              >
+                                {obtenerEtiquetaRevisionCasero(estadoRevision)}
+                              </Text>
+                            </View>
                           </View>
+                          <Text style={styles.reviewDetail}>
+                            {obtenerDetalleRevisionCasero(item)}
+                          </Text>
                         </View>
                       </View>
                     </Card>
@@ -670,4 +740,79 @@ function construirGruposInventario(items: ItemInventario[]): GrupoInventario[] {
   });
 
   return Array.from(grupos.values());
+}
+
+type EstadoRevisionCasero = 'VALIDADO' | 'PENDIENTE' | 'NO_APLICA';
+
+function obtenerEstadoRevisionCasero(item: ItemInventario): EstadoRevisionCasero {
+  const dormitorioSinInquilino =
+    item.habitacion?.tipo === 'DORMITORIO' && !item.habitacion?.inquilino_id;
+
+  if (dormitorioSinInquilino) {
+    return 'NO_APLICA';
+  }
+
+  if (item.revisado_por_inquilino) {
+    return 'VALIDADO';
+  }
+
+  return 'PENDIENTE';
+}
+
+function obtenerEtiquetaRevisionCasero(estado: EstadoRevisionCasero) {
+  if (estado === 'VALIDADO') {
+    return 'Validado';
+  }
+
+  if (estado === 'NO_APLICA') {
+    return 'No aplica';
+  }
+
+  return 'Pendiente';
+}
+
+function obtenerIconoRevisionCasero(estado: EstadoRevisionCasero) {
+  if (estado === 'VALIDADO') {
+    return 'checkmark-circle-outline' as const;
+  }
+
+  if (estado === 'NO_APLICA') {
+    return 'remove-circle-outline' as const;
+  }
+
+  return 'time-outline' as const;
+}
+
+function obtenerDetalleRevisionCasero(item: ItemInventario) {
+  const estado = obtenerEstadoRevisionCasero(item);
+
+  if (estado === 'NO_APLICA') {
+    return 'No se solicita conformidad hasta que esta habitación tenga un inquilino asignado.';
+  }
+
+  if (estado === 'VALIDADO') {
+    const nombreValidador = item.revisado_por_inquilino_user
+      ? [item.revisado_por_inquilino_user.nombre, item.revisado_por_inquilino_user.apellidos]
+          .filter(Boolean)
+          .join(' ')
+      : 'Un inquilino';
+    const fechaRevision = item.revisado_por_inquilino_en
+      ? ` el ${formatearFechaRevision(item.revisado_por_inquilino_en)}`
+      : '';
+
+    return `${nombreValidador} validó este item${fechaRevision}.`;
+  }
+
+  if (item.habitacion?.tipo === 'DORMITORIO') {
+    return 'Pendiente de revisión por parte del inquilino asignado a esta habitación.';
+  }
+
+  return 'Pendiente de revisión para el inventario visible de zonas comunes.';
+}
+
+function formatearFechaRevision(valor: string) {
+  return new Intl.DateTimeFormat('es-ES', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(valor));
 }
