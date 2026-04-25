@@ -50,17 +50,17 @@ El campo se valida en el middleware `validate(registroSchema)` (Zod) antes de ll
   - **NIE**: prefijo `X/Y/Z` (→ `0/1/2`) + 7 dígitos + letra de control.
 - Cualquier otro string alfanumérico de 6-15 caracteres se acepta como pasaporte internacional.
 
-**Comportamiento:**
-1. Crea el usuario con `correo_verificado: false` y un `token_verificacion` aleatorio (hex-32).
-2. Envía un correo HTML con un botón "Verificar mi cuenta" apuntando a `GET /auth/verificar/:token`.
-3. El envío de correo es asíncrono — no bloquea la respuesta al cliente.
-4. **No devuelve JWT**. El usuario debe verificar su correo antes de poder hacer login.
+**Comportamiento actual (Epica 16):**
+1. Crea el usuario con `correo_verificado: true`.
+2. Devuelve JWT y usuario seguro para iniciar sesion inmediatamente tras el registro.
+3. No devuelve `password_hash` ni `token_verificacion`.
+4. El endpoint historico `GET /auth/verificar/:token` se mantiene por compatibilidad, pero el registro manual ya no depende del magic link.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `201` | Usuario creado. Devuelve `{ mensaje }` indicando que debe revisar el correo. |
+| `201` | Usuario creado. Devuelve `{ token, usuario }`. |
 | `400` | Datos inválidos (validación Zod) — devuelve `{ error, errores: [{ campo, mensaje }] }`. |
 | `400` | El email o documento de identidad ya está registrado. |
 
@@ -80,7 +80,17 @@ El campo se valida en el middleware `validate(registroSchema)` (Zod) antes de ll
 **Ejemplo respuesta 201:**
 ```json
 {
-  "mensaje": "Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión."
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "usuario": {
+    "id": 1,
+    "nombre": "Ana",
+    "apellidos": "Garcia Lopez",
+    "documento_identidad": "12345678Z",
+    "email": "ana@example.com",
+    "telefono": "600123456",
+    "rol": "CASERO",
+    "correo_verificado": true
+  }
 }
 ```
 
@@ -142,7 +152,7 @@ Autentica un usuario y devuelve un JWT.
 |---|---|
 | `200` | Login correcto. Devuelve token JWT + datos del usuario sin `password_hash`. |
 | `401` | Credenciales inválidas (email no existe o contraseña incorrecta). |
-| `403` | El correo del usuario aún no ha sido verificado. |
+| `403` | Reservado para politicas futuras. El guard de `correo_verificado` esta deshabilitado temporalmente por decision documentada en Epica 16 issue 247. |
 
 **Ejemplo respuesta 200:**
 ```json
@@ -1463,6 +1473,8 @@ Guarda o limpia el `expo_push_token` del usuario autenticado.
 
 Los endpoints de inventario estan protegidos por `mod_inventario`. Si el modulo esta desactivado en la vivienda, el backend responde `403` antes de crear, listar, subir fotos o marcar conformidad.
 
+> Epica 17: la conformidad conserva auditoria del inquilino validador con `revisado_por_inquilino_id`, `revisado_por_inquilino_en` y, para casero, `revisado_por_inquilino_user`. El listado de inquilino solo devuelve items globales de vivienda, zonas comunes y habitacion propia; no devuelve dormitorios ajenos.
+
 ### POST `/viviendas/:viviendaId/inventario`
 
 Crea un nuevo `ItemInventario` para una vivienda. Pensado para el flujo de configuración del casero.
@@ -1562,6 +1574,35 @@ Lista todos los items de inventario de una vivienda, incluyendo habitación asoc
 
 ---
 
+### PATCH `/inventario/:itemId/conformidad`
+
+Marca un `ItemInventario` como revisado por el inquilino autenticado.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body:** no requiere body.
+
+**Reglas de acceso:**
+
+- Solo usuarios `INQUILINO`.
+- El inquilino debe tener habitacion asignada en la vivienda del item.
+- Puede validar items globales de vivienda, items de zonas comunes y items de su propia habitacion.
+- No puede validar items de dormitorios ajenos aunque pertenezcan a la misma vivienda.
+- La llamada es idempotente si el mismo inquilino ya habia validado el item.
+- Si un item comun ya fue validado por otro inquilino, responde `409` para no sobrescribir la auditoria.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Item actualizado o item ya validado por el mismo inquilino. |
+| `400` | `itemId` invalido o item sin vivienda resoluble. |
+| `403` | Usuario no inquilino, sin acceso a la vivienda o intentando validar habitacion ajena. |
+| `404` | Item de inventario no encontrado. |
+| `409` | Item ya validado por otro inquilino. |
+
+---
+
 ### POST `/inventario/:itemId/fotos`
 
 Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item.
@@ -1613,7 +1654,9 @@ Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item
 
 Los endpoints de limpieza estan protegidos por `mod_limpieza`. Si el modulo esta desactivado en la vivienda, el backend responde `403` antes de gestionar zonas, asignaciones o turnos.
 
-Todos los endpoints requieren que el usuario autenticado sea el **casero propietario** de la vivienda.
+Las operaciones de configuracion de zonas, asignaciones y generacion de turnos requieren que el usuario autenticado sea el **casero propietario**. La lectura de turnos, exportacion y marcado como hecho tambien permite al inquilino con habitacion en la vivienda, con filtrado por su habitacion responsable y espacios comunes.
+
+> Epica 17: la limpieza se reparte por **habitacion responsable**. `usuario_id` en `TurnoLimpieza` queda como snapshot opcional del ocupante al generar el turno; la entidad estable del reparto es `habitacion_id`.
 
 ### POST `/viviendas/:id/limpieza/zonas`
 
@@ -1631,8 +1674,9 @@ Crea una nueva zona limpiable en la vivienda.
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `nombre` | string | Sí | Nombre descriptivo (ej. "Cocina", "Baño 1") |
-| `peso` | number | Sí | Esfuerzo relativo positivo (ej. `10`) |
+| `nombre` | string | Condicional | Nombre descriptivo. Obligatorio si no se envia `habitacion_id`; si se vincula habitacion y se omite, toma el nombre de esa habitacion. |
+| `peso` | number | Si | Esfuerzo relativo positivo (ej. `10`) |
+| `habitacion_id` | number \| null | No | Habitacion objetivo que representa el espacio a limpiar. Puede ser dormitorio o zona comun. |
 
 **Respuestas:**
 
@@ -1713,6 +1757,7 @@ Actualiza el nombre, peso o estado activo de una zona.
 | `nombre` | string | Nuevo nombre de la zona |
 | `peso` | number | Nuevo peso (debe ser positivo) |
 | `activa` | boolean | `false` excluye la zona del reparto |
+| `habitacion_id` | number \| null | Vincula la zona a una habitacion objetivo o la desvincula con `null` |
 
 **Respuestas:**
 
@@ -1727,7 +1772,7 @@ Actualiza el nombre, peso o estado activo de una zona.
 
 ### POST `/viviendas/:id/limpieza/zonas/:zonaId/asignacion`
 
-Sincroniza la lista de inquilinos fijos de una zona (operación destructiva: reemplaza el conjunto completo). Enviar `usuario_ids: []` equivale a quitar todas las asignaciones.
+Sincroniza la lista de habitaciones responsables fijas de una zona (operacion destructiva: reemplaza el conjunto completo). Enviar `habitacion_ids: []` equivale a quitar todas las asignaciones.
 
 **Auth requerida:** Sí — `Authorization: Bearer <token>`
 
@@ -1742,18 +1787,18 @@ Sincroniza la lista de inquilinos fijos de una zona (operación destructiva: ree
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `usuario_ids` | number[] | Sí | IDs de los inquilinos a asignar (puede ser `[]`) |
+| `habitacion_ids` | number[] | Si | IDs de dormitorios habitables que pueden ser responsables fijos (puede ser `[]`) |
 
 **Validaciones:**
-- Cada ID debe corresponder a un inquilino con habitación en la vivienda.
+- Cada ID debe corresponder a una habitacion de la vivienda con `tipo: DORMITORIO` y `es_habitable: true`.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `200` | Asignaciones sincronizadas. Devuelve el array `AsignacionLimpiezaFija[]` actualizado, cada una con `usuario { id, nombre, apellidos }` embebido. |
-| `400` | `usuario_ids` no es un array. |
-| `403` | La vivienda no pertenece al casero, o algún ID no es inquilino de la vivienda. |
+| `200` | Asignaciones sincronizadas. Devuelve `AsignacionLimpiezaFija[]` con `habitacion` y `responsable_actual`. |
+| `400` | `habitacion_ids` no es un array. |
+| `403` | La vivienda no pertenece al casero, o alguna habitacion no puede ser responsable fija. |
 | `404` | Zona no encontrada en esa vivienda. |
 
 **Ejemplo respuesta 200:**
@@ -1812,16 +1857,16 @@ Ejecuta el algoritmo de reparto y genera los turnos de limpieza para la siguient
 - El casero puede pulsar N veces para generar N semanas consecutivas.
 
 **Algoritmo:**
-1. **Fase A** — Zonas con asignación fija: de los co-responsables activos, se elige al de menor carga efectiva (`carga_semanal + balance_limpieza`).
-2. **Fase B** — Zonas rotativas (sin asignados activos): greedy decreciente por peso, asignado al usuario con menor carga efectiva.
-3. **Fase C** — Actualización de karma: `nuevo_balance = balance + (carga_asignada − cuota_ideal)`.
+1. **Fase A** - Zonas con asignacion fija: de las habitaciones responsables con ocupante activo, se elige la de menor carga efectiva (`carga_semanal + balance_limpieza` del ocupante).
+2. **Fase B** - Zonas rotativas: greedy decreciente por peso, asignando a la habitacion ocupada activa con menor carga efectiva.
+3. **Fase C** - Actualizacion de balance: `nuevo_balance = balance + (carga_asignada - cuota_ideal)` para el ocupante actual de cada habitacion responsable.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
 | `201` | Turnos generados correctamente. |
-| `400` | No hay inquilinos activos, no hay zonas activas, u otro error de dominio. |
+| `400` | No hay habitaciones habitables, no hay habitaciones ocupadas activas, no hay zonas activas u otro error de dominio. |
 | `403` | La vivienda no pertenece al casero autenticado. |
 
 **Ejemplo respuesta 201:**
@@ -1849,7 +1894,7 @@ Devuelve los turnos de la semana indicada (o de la semana actual si no se especi
 
 | Código | Descripción |
 |---|---|
-| `200` | Array de `TurnoLimpieza[]` con `zona` y `usuario` embebidos, ordenados por usuario y peso desc. Puede ser `[]`. |
+| `200` | Array de turnos con `zona`, `habitacion`, `responsable_actual` y snapshot `usuario`. Puede ser `[]`. |
 | `403` | El usuario no pertenece a la vivienda. |
 
 **Ejemplo respuesta 200:**
@@ -1900,7 +1945,7 @@ Exporta los turnos de limpieza visibles para el usuario autenticado en CSV compa
 
 **Cabeceras del CSV:**
 
-`Zona a limpiar`, `Inquilino`, `Fecha`.
+`Espacio`, `Tipo de espacio`, `Habitacion responsable`, `Responsable actual`, `Fecha`.
 
 ---
 
@@ -1917,31 +1962,15 @@ Marca un turno como `HECHO`. No tiene body.
 | `id` | ID de la vivienda |
 | `turnoId` | ID del turno |
 
-**Reglas de acceso:** Solo puede marcar el turno el **usuario asignado** (`turno.usuario_id`) o el **casero** de la vivienda.
+**Reglas de acceso:** Solo puede marcar el turno el **inquilino que ocupa actualmente la habitacion responsable** (`turno.habitacion.inquilino_id`) o el **casero** de la vivienda.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `200` | Turno actualizado. Devuelve el `TurnoLimpieza` con `zona` y `usuario` embebidos. |
-| `403` | El usuario no es el asignado ni el casero. |
+| `200` | Turno actualizado. Devuelve el turno con `zona`, `habitacion`, `responsable_actual` y snapshot `usuario`. |
+| `403` | El usuario no ocupa la habitacion responsable ni es el casero. |
 | `404` | Turno no encontrado en esa vivienda. |
-## Update 2026-04-09 - Inventario inquilino
-
-### PATCH `/inventario/:itemId/conformidad`
-
-Marca un `ItemInventario` como revisado por el inquilino.
-
-- Auth: `Bearer token`
-- Solo `INQUILINO`
-- Requiere acceso del inquilino a la vivienda del item
-- No requiere body
-- Actualiza `revisado_por_inquilino` a `true`
-
-Notas:
-
-- `POST /viviendas/:viviendaId/inventario` crea los items con `revisado_por_inquilino = false`
-- `GET /viviendas/:viviendaId/inventario` devuelve tambien este flag
 
 ## Update 2026-04-11 - Consistencia de datos
 
@@ -1949,3 +1978,9 @@ Notas:
 - Una `Deuda` queda acotada a una pareja `gasto_id` + `deudor_id`; el backend no debe crear dos deudas del mismo gasto para el mismo usuario.
 - Las deudas se eliminan en cascada al borrar su `Gasto`; las fotos de inventario al borrar su `ItemInventario`; y los turnos/asignaciones al borrar su `ZonaLimpieza`.
 - Los importes siguen saliendo como numeros (`Float`) por compatibilidad de API. La logica de negocio reparte y compara en centimos antes de persistir.
+
+## Update 2026-04-22 - Epica 17
+
+- Inventario guarda quien valido cada item y cuando lo hizo. El listado de casero incluye `revisado_por_inquilino_user`; el de inquilino queda filtrado a vivienda, zonas comunes y habitacion propia.
+- Limpieza usa habitaciones responsables para asignaciones fijas y turnos; `usuario_id` en turnos es un snapshot opcional del ocupante al generar.
+- La exportacion CSV de limpieza puede devolverse como `formato=base64` para escritura nativa movil compatible con Excel.

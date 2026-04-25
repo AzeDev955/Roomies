@@ -193,6 +193,8 @@ npx expo start --clear
 | `Deuda` es unica por `gasto_id` y `deudor_id` | Evita que un mismo gasto genere dos deudas para el mismo deudor. |
 | `Deuda`, `FotoAsset`, `AsignacionLimpiezaFija` y `TurnoLimpieza` usan cascada desde su padre directo | Son registros dependientes sin sentido fuera del gasto, item o zona que los contiene. |
 | `Incidencia.habitacion` y `Habitacion.inquilino` usan `SetNull` al borrar la entidad relacionada | Conserva el historial operativo aunque se elimine una habitacion o un usuario deje de existir. |
+| `TurnoLimpieza.habitacion_id` identifica la habitacion responsable | El reparto de limpieza se mantiene estable aunque cambie el ocupante; `usuario_id` queda como snapshot opcional del usuario al generar. |
+| `ItemInventario.revisado_por_inquilino_id` y `revisado_por_inquilino_en` auditan la conformidad | El casero puede saber quien valido un item y cuando; los inquilinos no pueden validar dormitorios ajenos. |
 | Importes monetarios siguen como `Float` por compatibilidad MVP | La logica de reparto convierte a centimos antes de comparar o dividir. Migrar a `Decimal` o centimos enteros queda pendiente de migracion coordinada con frontend, API y datos existentes. |
 
 El seed de demo esta pensado para desarrollo local y Railway desarrollo: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway no desarrollo salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
@@ -233,3 +235,15 @@ El seed de demo esta pensado para desarrollo local y Railway desarrollo: usa ema
 - Se separa `src/app.ts` de `src/index.ts` para que Express pueda probarse sin abrir puerto ni arrancar cron jobs.
 - Se anade Vitest + Supertest con scripts `test`, `test:watch` y `test:coverage`.
 - La suite inicial valida `GET /ping` como smoke test de la app Express.
+
+## Update 2026-04-12 - Epica 16 issue 247
+
+- `POST /auth/register` crea usuarios manuales con `correo_verificado: true` y devuelve `{ token, usuario }` para iniciar sesion inmediata.
+- El guard de `correo_verificado` en login queda deshabilitado temporalmente; la decision esta documentada en el changelog de Epica 16 issue 247.
+- `GET /auth/verificar/:token` se mantiene como endpoint historico/compatible, pero el alta manual actual no depende de magic links.
+
+## Update 2026-04-22 - Epica 17
+
+- Limpieza reparte por habitaciones responsables: `ZonaLimpieza.habitacion_id`, `AsignacionLimpiezaFija.habitacion_id` y `TurnoLimpieza.habitacion_id` son parte del contrato operativo.
+- `GET /api/viviendas/:id/limpieza/turnos/export` exporta CSV y soporta `formato=base64` para escritura movil compatible con Excel.
+- Inventario registra auditoria de conformidad con `revisado_por_inquilino_id` y `revisado_por_inquilino_en`; el listado de inquilino queda limitado a vivienda, zonas comunes y habitacion propia.

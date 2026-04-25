@@ -8,9 +8,10 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 
 - Gestion multipropiedad con alta de viviendas y habitaciones.
 - Centro de mando por vivienda con resumen, incidencias, tablon y limpieza.
+- Limpieza por habitaciones responsables, asignaciones fijas y exportacion CSV compatible con Excel.
 - Pestanas globales de `Mis viviendas`, `Cobros`, `Inventario`, `Tablon` y `Perfil`.
 - Dashboard de cobros mensuales con detalle de deudas pagadas, pendientes y justificantes.
-- Inventario por vivienda con subida de imagenes a Cloudinary.
+- Inventario por vivienda con subida de imagenes a Cloudinary y estado de validacion del inquilino.
 
 ### Inquilino
 
@@ -18,7 +19,8 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 - Tablon, limpieza, gastos, inventario y perfil en navegacion principal.
 - Gestion de gastos puntuales y mensualidades.
 - Subida de justificantes de pago y saldado de deudas desde la app.
-- Check-in visual del inventario con conformidad por item.
+- Check-in visual del inventario con conformidad por item visible: vivienda, zonas comunes y habitacion propia.
+- Consulta de terminos de uso y politica de privacidad desde la app.
 
 ### Automatizaciones
 
@@ -27,9 +29,10 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 
 ### Autenticacion
 
-- Email y contrasena con verificacion por correo.
+- Email y contrasena con sesion inmediata tras registro; la verificacion por correo queda como flujo historico/compatible y no bloquea login.
 - Google OAuth.
 - Selector de rol para altas nuevas desde Google.
+- Aceptacion explicita de terminos y privacidad en registro manual y altas nuevas desde Google.
 
 ## Stack tecnologico
 
@@ -46,6 +49,8 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 ## Roadmap
 
 - [x] Modulo de limpieza
+- [x] Exportacion de limpiezas
+- [x] Terminos de uso y politica de privacidad
 - [x] Cobros mensuales del casero
 - [x] Mensualidades recurrentes
 - [x] Recordatorios de pago por push

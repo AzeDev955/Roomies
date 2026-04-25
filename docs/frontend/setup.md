@@ -87,6 +87,9 @@ frontend/
     registro.tsx
     rol.tsx
     perfil.tsx
+    legal/
+      terminos.tsx
+      privacidad.tsx
     casero/
       _layout.tsx
       nueva-vivienda.tsx
@@ -156,6 +159,8 @@ frontend/
 | `/registro` | `app/registro.tsx` | Registro con validacion y Google OAuth |
 | `/rol` | `app/rol.tsx` | Selector de rol para usuarios nuevos |
 | `/perfil` | `app/perfil.tsx` | Perfil y logout |
+| `/legal/terminos` | `app/legal/terminos.tsx` | Terminos de uso versionados |
+| `/legal/privacidad` | `app/legal/privacidad.tsx` | Politica de privacidad versionada |
 | `/casero/viviendas` | `casero/(tabs)/viviendas.tsx` | Lista de viviendas del casero |
 | `/casero/cobros` | `casero/(tabs)/cobros.tsx` | Resumen mensual de cobros por vivienda |
 | `/casero/inventario` | `casero/(tabs)/inventario.tsx` | Inventario global del casero |
@@ -165,14 +170,14 @@ frontend/
 | `/casero/vivienda/:id` | `casero/vivienda/[id]/(tabs)/index.tsx` | Resumen operativo de la vivienda |
 | `/casero/vivienda/:id/incidencias` | `casero/vivienda/[id]/(tabs)/incidencias.tsx` | Incidencias de la vivienda |
 | `/casero/vivienda/:id/tablon` | `casero/vivienda/[id]/(tabs)/tablon.tsx` | Tablon de la vivienda |
-| `/casero/vivienda/:id/limpieza` | `casero/vivienda/[id]/(tabs)/limpieza.tsx` | Zonas y turnos de limpieza |
+| `/casero/vivienda/:id/limpieza` | `casero/vivienda/[id]/(tabs)/limpieza.tsx` | Espacios, habitaciones responsables, turnos y exportacion de limpieza |
 | `/casero/vivienda/:id/opciones` | `casero/vivienda/[id]/(tabs)/opciones.tsx` | Configuracion de modulos de la vivienda |
 | `/casero/vivienda/:id/nueva-habitacion` | `casero/vivienda/[id]/nueva-habitacion.tsx` | Alta de habitacion |
 | `/casero/vivienda/:id/editar-habitacion` | `casero/vivienda/[id]/editar-habitacion.tsx` | Edicion, expulsion y borrado |
 | `/casero/vivienda/:id/nueva-incidencia` | `casero/vivienda/[id]/nueva-incidencia.tsx` | Alta de incidencia desde vista casero |
 | `/inquilino/inicio` | `inquilino/(tabs)/inicio.tsx` | Onboarding y dashboard del inquilino |
 | `/inquilino/tablon` | `inquilino/(tabs)/tablon.tsx` | Tablon del inquilino |
-| `/inquilino/limpieza` | `inquilino/(tabs)/limpieza.tsx` | Turno asignado y marcacion como hecho |
+| `/inquilino/limpieza` | `inquilino/(tabs)/limpieza.tsx` | Turnos de su habitacion responsable y zonas comunes |
 | `/inquilino/gastos` | `inquilino/(tabs)/gastos.tsx` | Gastos puntuales, deudas, facturas y justificantes |
 | `/inquilino/inventario` | `inquilino/(tabs)/inventario.tsx` | Revision visual del inventario |
 | `/inquilino/perfil` | `inquilino/(tabs)/perfil.tsx` | Perfil del inquilino |
@@ -221,10 +226,20 @@ El layout raiz (`app/_layout.tsx`) hace tres cosas:
 Flujos principales:
 
 - Login manual: `POST /auth/login`
-- Registro manual: `POST /auth/register`
+- Registro manual: `POST /auth/register`, guarda el JWT devuelto y entra directamente al dashboard tras aceptar terminos y privacidad
 - Google OAuth: `POST /auth/google`
 - Selector de rol: `PATCH /auth/rol`
 - Perfil autenticado: `GET /auth/me`
+
+## Documentos legales
+
+Los terminos de uso y la politica de privacidad viven versionados en `frontend/constants/legal.ts` y se renderizan con `components/common/LegalDocumentScreen.tsx`.
+
+- `components/common/LegalNotice.tsx` muestra enlaces a `/legal/terminos` y `/legal/privacidad`.
+- Login y perfil muestran accesos de consulta.
+- Registro manual exige aceptacion explicita antes de llamar a `POST /auth/register`.
+- El selector de rol exige la misma aceptacion para usuarios nuevos que llegan desde Google.
+- El texto actual es informativo y queda marcado como pendiente de revision legal profesional antes de publicacion definitiva.
 
 ## Notificaciones push
 
@@ -257,6 +272,20 @@ La app usa `expo-notifications`.
 - Las tarjetas de habitaciones del casero muestran el precio privado cuando existe.
 - `inquilino/(tabs)/inicio.tsx` muestra el precio de la habitacion propia; los companeros llegan desde backend con `precio: null`.
 - Si una habitacion se convierte en zona comun, el backend limpia `precio` y el frontend deja de mostrar el campo.
+
+## Flujos destacados de la epica 17
+
+### Limpieza por habitaciones y exportacion
+
+- `casero/vivienda/[id]/(tabs)/limpieza.tsx` configura espacios de limpieza vinculados a habitaciones objetivo o espacios personalizados.
+- Las asignaciones fijas se hacen por `habitacion_ids`, no por `usuario_ids`, para que el responsable siga siendo la habitacion aunque cambie el ocupante.
+- La accion `Exportar todo` llama a `GET /api/viviendas/:id/limpieza/turnos/export?formato=base64` y guarda/compartir el CSV con bytes compatibles con Excel.
+- El inquilino ve tareas de su habitacion responsable y contexto de zonas comunes; no recibe tareas de dormitorios ajenos.
+
+### Inventario validado por inquilino
+
+- `casero/(tabs)/inventario.tsx` muestra badges `Validado`, `Pendiente` y `No aplica`, con nombre y fecha del validador cuando el backend lo devuelve.
+- `inquilino/(tabs)/inventario.tsx` lista solo vivienda, zonas comunes y habitacion propia; la conformidad no permite marcar items de habitaciones ajenas.
 
 ### Facturacion flexible
 
@@ -381,3 +410,11 @@ eas build --platform android --profile preview
 - Las pantallas funcionales de casero, inquilino, vivienda, incidencias, tablon, limpieza, gastos, inventario, cobros y formularios principales consumen `useAppTheme()`.
 - Los componentes heredados `ThemedText`, `ThemedView`, `ParallaxScrollView` y `Collapsible` respetan `AppThemeProvider`.
 - `docs/changelog/EpicaDarkMode/` centraliza los changelogs de pantallas migradas.
+
+## Update 2026-04-22 - Epica 17
+
+- Se anaden pantallas legales `/legal/terminos` y `/legal/privacidad`, mas `LegalNotice` en login, registro, rol y perfil.
+- Registro y selector de rol bloquean el alta hasta aceptar terminos y privacidad.
+- Limpieza del casero permite configurar espacios por habitacion objetivo, asignar habitaciones responsables fijas y exportar el calendario completo a CSV.
+- Limpieza del inquilino e inventario del inquilino respetan filtros por habitacion propia y zonas comunes.
+- Inventario del casero muestra estado de validacion del inquilino y funciona con modo claro/oscuro.

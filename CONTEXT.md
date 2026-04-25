@@ -34,6 +34,14 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 ## Actualizaciones recientes
 
+### Limpieza, inventario legal y cierre funcional (Epica 17)
+
+- El modulo de limpieza se reparte por habitaciones responsables: `ZonaLimpieza` puede vincularse a una habitacion objetivo, `AsignacionLimpiezaFija` guarda `habitacion_id` y `TurnoLimpieza` conserva `habitacion_id` como responsable estable con `usuario_id` solo como snapshot del ocupante al generar.
+- `GET /api/viviendas/:id/limpieza/turnos/export` exporta limpiezas visibles en CSV compatible con Excel; admite `fecha`, `fechaDesde`, `fechaHasta`, `estado` y `formato=base64` para escritura movil.
+- El inventario del inquilino filtra items a vivienda, zonas comunes y habitacion propia. La conformidad guarda `revisado_por_inquilino_id` y `revisado_por_inquilino_en`, y el casero ve el usuario validador cuando existe.
+- El frontend incorpora terminos de uso y politica de privacidad versionados en `frontend/constants/legal.ts`, pantallas `/legal/terminos` y `/legal/privacidad`, y aceptacion explicita en registro manual y selector de rol para altas nuevas de Google.
+- El inventario del casero esta migrado a `useAppTheme()` y `createStyles(theme)` para modo claro/oscuro.
+
 ### Pulido de casero en vivienda y gastos comunes (Epica 15)
 
 - Los tabs internos de `casero/vivienda/[id]/(tabs)` usan `useViviendaIdParam()` para aislar el `id` de vivienda y evitar colisiones con otras rutas dinamicas como perfiles o incidencias.
@@ -69,8 +77,8 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 - El flujo del casero crea primero el item y después puede subir una foto con `multipart/form-data` en el campo `foto`.
 - El frontend del casero incorpora una pestaña `Inventario` con selector de vivienda, agrupado por ubicación y alta de items con `expo-image-picker`.
 
-- `ItemInventario` incorpora el campo `revisado_por_inquilino` con valor por defecto `false`.
-- El backend expone `PATCH /api/inventario/:itemId/conformidad` para que el inquilino marque un item como validado.
+- `ItemInventario` incorpora `revisado_por_inquilino`, `revisado_por_inquilino_id` y `revisado_por_inquilino_en` para auditar la conformidad del inquilino.
+- El backend expone `PATCH /api/inventario/:itemId/conformidad` para que el inquilino marque un item visible como validado; rechaza dormitorios ajenos y evita sobrescribir una validacion de otro inquilino.
 - El frontend del inquilino incorpora la pestaña `Inventario` con agrupado por habitación/zona, galería de fotos y modal de revisión.
 - Si el item no coincide, el flujo redirige al módulo de incidencias mediante un `Alert` nativo.
 
@@ -222,8 +230,8 @@ Roomies/
 | `telefono`           | String?        | obligatorio en registro manual                |
 | `rol`                | RolUsuario     | `CASERO` \| `INQUILINO`                       |
 | `expo_push_token`    | String?        | token Expo opcional para recordatorios de pago y avisos push |
-| `correo_verificado`  | Boolean        | `@default(false)`; el login lo exige en `true` |
-| `token_verificacion` | String?        | token hex-32 generado al registrarse; null tras verificar |
+| `correo_verificado`  | Boolean        | se conserva por compatibilidad; el registro manual lo crea en `true` y el login no lo exige temporalmente |
+| `token_verificacion` | String?        | token historico para magic link; no se genera en el registro manual actual |
 
 ### `Vivienda`
 
@@ -323,9 +331,9 @@ Roomies/
 
 | Método | Ruta             | Auth | Descripción                                                                                           |
 | ------ | ---------------- | ---- | ----------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/register`         | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol`. Devuelve `{ mensaje }`. Envía magic link al email. |
+| POST   | `/auth/register`         | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol`. Devuelve `{ token, usuario }` y crea sesion inmediata. |
 | GET    | `/auth/verificar/:token` | No   | Verifica el correo. Si OK → redirect `roomies://verificacion?status=success`. |
-| POST   | `/auth/login`            | No   | Login con email/pass. Devuelve `403` si `correo_verificado` es `false`.      |
+| POST   | `/auth/login`            | No   | Login con email/pass. El guard de `correo_verificado` esta deshabilitado temporalmente por decision de Epica 16 issue 247. |
 | POST   | `/auth/google`   | No   | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean`                           |
 | GET    | `/auth/me`       | Sí   | Perfil del usuario autenticado                                                                        |
 | PATCH  | `/auth/rol`      | Sí   | Actualiza el rol del usuario y re-emite el JWT. Body: `{ rol: "CASERO" \| "INQUILINO" }`              |
@@ -599,8 +607,8 @@ Si `RESET_DB=true`, sustituye el `db push --accept-data-loss` por `db push --for
    - Redirige con `router.replace()` al dashboard correspondiente.
    - Si el token es inválido o expirado, lo borra con `eliminarToken()` y deja al usuario en el login.
    - Muestra un `ActivityIndicator` como overlay mientras verifica (el Stack se renderiza siempre para que `router.replace()` tenga destino).
-2. **Registro manual**: `POST /auth/register` → devuelve nada (201). El usuario va al login.
-3. **Login manual**: `POST /auth/login` → devuelve `{ token, usuario }`. Se guarda el token con `guardarToken`. Se navega con `router.replace()` al dashboard según el rol.
+2. **Registro manual**: `POST /auth/register` -> devuelve `{ token, usuario }`, crea `correo_verificado: true`, guarda el token y navega al dashboard segun rol.
+3. **Login manual**: `POST /auth/login` -> devuelve `{ token, usuario }`. Se guarda el token con `guardarToken`. Se navega con `router.replace()` al dashboard segun el rol.
 4. **Google OAuth**:
    - `expo-auth-session` obtiene un `idToken` en el dispositivo.
    - Se envía a `POST /auth/google` → el backend lo verifica con `google-auth-library` → upsert del usuario.
@@ -697,6 +705,18 @@ Usuarios de prueba creados por `prisma db seed`:
 - `AppThemeProvider` gobierna paletas, tabs, componentes comunes, toast y componentes heredados de Expo.
 - Las pantallas funcionales de casero, inquilino, vivienda, incidencias, tablon, limpieza, gastos, inventario, cobros y formularios principales consumen `useAppTheme()` y estilos `createStyles(theme)`.
 - `docs/changelog/EpicaDarkMode/` contiene la documentacion por pantalla migrada y la revision final del frontend.
+
+## Update 2026-04-22 - Epica 17
+
+- Backend:
+  - Limpieza pasa a habitaciones responsables: `ZonaLimpieza.habitacion_id` apunta al espacio objetivo, `AsignacionLimpiezaFija.habitacion_id` fija dormitorios responsables y `TurnoLimpieza.habitacion_id` identifica la habitacion responsable del turno.
+  - `GET /api/viviendas/:id/limpieza/turnos/export` genera CSV con `Espacio`, `Tipo de espacio`, `Habitacion responsable`, `Responsable actual` y `Fecha`; `formato=base64` devuelve bytes compatibles con Excel en movil.
+  - Inventario registra `revisado_por_inquilino_id` y `revisado_por_inquilino_en`; los inquilinos no pueden listar ni validar items de dormitorios ajenos.
+- Frontend:
+  - El casero configura limpieza por espacios objetivo y habitaciones responsables fijas desde el tab `Limpieza`.
+  - El inquilino ve tareas asociadas a su habitacion responsable y contexto de zonas comunes.
+  - Login, registro, rol y perfil muestran documentos legales versionados; registro y selector de rol exigen aceptacion explicita cuando aplica.
+  - Inventario del casero muestra estados de validacion y respeta modo claro/oscuro.
 
 ## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
 
