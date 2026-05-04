@@ -80,11 +80,6 @@ export async function generarTurnosSemanales(viviendaId: number): Promise<void> 
     throw new Error('No hay habitaciones habitables en la vivienda.');
   }
 
-  const habitacionesActivas = habitacionesResponsables.filter(esHabitacionOcupadaActiva);
-  if (habitacionesActivas.length === 0) {
-    throw new Error('No hay habitaciones ocupadas activas para repartir la limpieza.');
-  }
-
   const zonas = await prisma.zonaLimpieza.findMany({
     where: { vivienda_id: viviendaId, activa: true },
     include: {
@@ -111,7 +106,8 @@ export async function generarTurnosSemanales(viviendaId: number): Promise<void> 
     throw new Error('No hay zonas activas en la vivienda.');
   }
 
-  const habitacionesActivasIds = new Set(habitacionesActivas.map((habitacion) => habitacion.id));
+  const habitacionesActivas = habitacionesResponsables.filter(esHabitacionOcupadaActiva);
+  const habitacionesResponsablesIds = new Set(habitacionesResponsables.map((habitacion) => habitacion.id));
   const cargaSemanal = new Map<number, number>(habitacionesResponsables.map((habitacion) => [habitacion.id, 0]));
 
   type TurnoData = {
@@ -130,7 +126,7 @@ export async function generarTurnosSemanales(viviendaId: number): Promise<void> 
     const asignadasActivas = zona.asignaciones_fijas
       .map((asignacion) => asignacion.habitacion)
       .filter((habitacion): habitacion is typeof habitacion & HabitacionResponsable => Boolean(habitacion))
-      .filter((habitacion) => habitacionesActivasIds.has(habitacion.id));
+      .filter((habitacion) => habitacionesResponsablesIds.has(habitacion.id));
 
     if (asignadasActivas.length > 0) {
       let elegida = asignadasActivas[0];
@@ -159,6 +155,10 @@ export async function generarTurnosSemanales(viviendaId: number): Promise<void> 
     zonasRotativas.push(zona);
   }
 
+  if (zonasRotativas.length > 0 && habitacionesActivas.length === 0) {
+    throw new Error('No hay habitaciones ocupadas activas para repartir la limpieza rotativa.');
+  }
+
   for (const zona of zonasRotativas) {
     let elegida = habitacionesActivas[0];
     let menorCarga = cargaEfectivaHabitacion(elegida, cargaSemanal);
@@ -184,8 +184,12 @@ export async function generarTurnosSemanales(viviendaId: number): Promise<void> 
 
   const habitacionesConBalance = habitacionesActivas.filter((habitacion) => habitacion.inquilino !== null);
 
-  const pesoTotal = zonas.reduce((acc, zona) => acc + zona.peso, 0);
-  const cuotaIdeal = pesoTotal / habitacionesConBalance.length;
+  const pesoConResponsableActual = turnos.reduce((acc, turno) => {
+    const habitacion = habitacionesConBalance.find((item) => item.id === turno.habitacion_id);
+    const zona = zonas.find((item) => item.id === turno.zona_id);
+    return habitacion && zona ? acc + zona.peso : acc;
+  }, 0);
+  const cuotaIdeal = habitacionesConBalance.length > 0 ? pesoConResponsableActual / habitacionesConBalance.length : 0;
 
   const actualizacionesBalance = habitacionesConBalance.map((habitacion) => {
     const cargaAsignada = cargaSemanal.get(habitacion.id) ?? 0;

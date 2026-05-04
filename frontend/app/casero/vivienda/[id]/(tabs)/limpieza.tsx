@@ -105,7 +105,7 @@ type Habitacion = {
 type AsignacionFija = {
   id: number;
   habitacion_id: number;
-  habitacion: Habitacion;
+  habitacion?: Habitacion | null;
   responsable_actual: ResponsableActual;
 };
 
@@ -129,7 +129,7 @@ type Turno = {
   estado: 'PENDIENTE' | 'HECHO' | 'NO_HECHO';
   tipo_espacio: 'HABITACION' | 'ZONA_COMUN' | 'ESPACIO';
   zona: { id: number; nombre: string; peso: number; habitacion: Habitacion | null };
-  habitacion: Habitacion;
+  habitacion?: Habitacion | null;
   responsable_actual: ResponsableActual;
 };
 
@@ -155,6 +155,9 @@ const getTipoEspacioLabel = (tipo: ZonaLimpieza['tipo_espacio']) => {
 
 const getResponsableLabel = (responsable: ResponsableActual) =>
   responsable ? `${responsable.nombre}${responsable.apellidos ? ` ${responsable.apellidos}` : ''}` : 'Sin ocupante';
+
+const getNombreHabitacion = (habitacion: Habitacion | null | undefined, fallback = 'Habitacion') =>
+  habitacion?.nombre ?? fallback;
 
 export default function LimpiezaCaseroTab() {
   const id = useViviendaIdParam();
@@ -474,7 +477,9 @@ export default function LimpiezaCaseroTab() {
     const asignaciones = item.asignaciones_fijas ?? [];
     const etiquetaFijos =
       asignaciones.length > 0
-        ? `Responsables fijas: ${asignaciones.map((asignacion) => asignacion.habitacion.nombre).join(', ')}`
+        ? `Responsables fijas: ${asignaciones
+            .map((asignacion) => getNombreHabitacion(asignacion.habitacion, `Habitacion ${asignacion.habitacion_id}`))
+            .join(', ')}`
         : null;
 
     return (
@@ -532,10 +537,20 @@ export default function LimpiezaCaseroTab() {
       return <ActivityIndicator style={{ flex: 1, marginTop: 40 }} size="large" color={theme.colors.primary} />;
     }
 
+    const getHabitacionTurno = (turno: Turno) =>
+      turno.habitacion ??
+      habitaciones.find((habitacion) => habitacion.id === turno.habitacion_id) ?? {
+        id: turno.habitacion_id,
+        nombre: `Habitacion ${turno.habitacion_id}`,
+        tipo: 'DORMITORIO',
+        es_habitable: true,
+        inquilino: null,
+      };
     const turnosFiltrados = turnos.filter((turno) => (filtroEstado === 'TODOS' ? true : turno.estado === filtroEstado));
     const turnosAgrupados = turnosFiltrados.reduce<Record<number, { habitacion: Habitacion; items: Turno[] }>>((acc, turno) => {
+      const habitacionTurno = getHabitacionTurno(turno);
       if (!acc[turno.habitacion_id]) {
-        acc[turno.habitacion_id] = { habitacion: turno.habitacion, items: [] };
+        acc[turno.habitacion_id] = { habitacion: habitacionTurno, items: [] };
       }
       acc[turno.habitacion_id].items.push(turno);
       return acc;

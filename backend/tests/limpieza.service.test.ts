@@ -152,4 +152,100 @@ describe('generacion de turnos de limpieza', () => {
     );
     assert.equal(createManyArgs, null);
   });
+
+  test('mantiene asignaciones fijas a habitaciones vacias sin moverlas a otro inquilino', async () => {
+    prisma.habitacion.findMany = async () => [
+      {
+        id: 101,
+        nombre: 'Habitacion ocupada',
+        tipo: 'DORMITORIO',
+        es_habitable: true,
+        inquilino: { id: 1, balance_limpieza: 0, estado_presencia: 'ACTIVO' },
+      },
+      {
+        id: 102,
+        nombre: 'Habitacion vacia',
+        tipo: 'DORMITORIO',
+        es_habitable: true,
+        inquilino: null,
+      },
+    ];
+    prisma.zonaLimpieza.findMany = async () => [
+      {
+        id: 10,
+        peso: 6,
+        asignaciones_fijas: [
+          {
+            habitacion: {
+              id: 102,
+              nombre: 'Habitacion vacia',
+              tipo: 'DORMITORIO',
+              es_habitable: true,
+              inquilino: null,
+            },
+          },
+        ],
+      },
+      { id: 11, peso: 3, asignaciones_fijas: [] },
+    ];
+
+    await generarTurnosSemanales(10);
+
+    assert.deepEqual(
+      createManyArgs?.data.map((turno) => ({
+        usuario_id: turno.usuario_id,
+        habitacion_id: turno.habitacion_id,
+        zona_id: turno.zona_id,
+      })),
+      [
+        { usuario_id: null, habitacion_id: 102, zona_id: 10 },
+        { usuario_id: 1, habitacion_id: 101, zona_id: 11 },
+      ],
+    );
+    assert.deepEqual(usuarioUpdateCalls, [
+      { where: { id: 1 }, data: { balance_limpieza: 0 } },
+    ]);
+  });
+
+  test('permite generar solo tareas fijas de habitaciones vacias sin balances', async () => {
+    prisma.habitacion.findMany = async () => [
+      {
+        id: 101,
+        nombre: 'Habitacion vacia',
+        tipo: 'DORMITORIO',
+        es_habitable: true,
+        inquilino: null,
+      },
+    ];
+    prisma.zonaLimpieza.findMany = async () => [
+      {
+        id: 10,
+        peso: 6,
+        asignaciones_fijas: [
+          {
+            habitacion: {
+              id: 101,
+              nombre: 'Habitacion vacia',
+              tipo: 'DORMITORIO',
+              es_habitable: true,
+              inquilino: null,
+            },
+          },
+        ],
+      },
+    ];
+
+    await generarTurnosSemanales(10);
+
+    assert.deepEqual(
+      createManyArgs?.data.map((turno) => ({
+        usuario_id: turno.usuario_id,
+        habitacion_id: turno.habitacion_id,
+        zona_id: turno.zona_id,
+      })),
+      [{ usuario_id: null, habitacion_id: 101, zona_id: 10 }],
+    );
+    assert.deepEqual(usuarioUpdateCalls, []);
+    assert.equal(transactionArgs?.length, 1);
+  });
 });
