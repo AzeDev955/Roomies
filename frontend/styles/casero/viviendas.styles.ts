@@ -142,10 +142,12 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
   },
 
   // FAB
-  fab: {
+  fabTarget: {
     position: 'absolute',
     bottom: theme.spacing.lg,
     right: theme.spacing.lg,
+  },
+  fab: {
     backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.full,
     paddingHorizontal: theme.spacing.lg,
