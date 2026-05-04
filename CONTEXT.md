@@ -469,7 +469,8 @@ Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados
 El testeo funcional diario se hace con Docker Compose local:
 
 1. `.env` define PostgreSQL, secretos, `HOST_IP` y `EXPO_PUBLIC_API_URL`.
-2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env`, lanza `docker compose up --build -d` y arranca `npx expo start --clear` en `frontend`.
+2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env`, lanza `docker compose up --build -d --force-recreate`, espera a `/ping` y arranca `npx expo start --clear` en `frontend`.
+   - El backend de Compose reinicia la BD con `prisma db push --force-reset` y ejecuta seed antes de `npm run dev`.
 3. La app se abre desde Expo Go usando el QR de Expo local.
 
 Railway queda reservado para produccion y debe desplegar desde `main`. `backend/Dockerfile` existe para que Railway construya la imagen del backend.
@@ -487,7 +488,7 @@ El `backend/Dockerfile` ejecuta:
 2. `npx prisma db push --accept-data-loss` - aplica el schema.
 3. `npm run dev` - arranca el servidor con nodemon.
 
-Si `RESET_DB=true`, sustituye el `db push --accept-data-loss` por `db push --force-reset` y ejecuta `npx prisma db seed` antes de arrancar.
+La BD local se reinicia y se siembra siempre al arrancar con `dev.bat`.
 
 **Puertos**: PostgreSQL en `5433:5432`, backend en `3001:3000`, frontend en `8080:8080`.
 

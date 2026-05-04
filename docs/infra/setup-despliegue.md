@@ -64,7 +64,9 @@ npx expo start --clear
 .\dev.bat
 ```
 
-`dev.bat` se ejecuta desde la raiz, valida que exista `.env`, lanza `docker compose up --build -d` y despues ejecuta `npx expo start --clear` en `frontend`.
+`dev.bat` se ejecuta desde la raiz, valida que exista `.env`, lanza `docker compose up --build -d --force-recreate`, espera a `http://localhost:3001/ping` y despues ejecuta `npx expo start --clear` en `frontend`.
+
+En Compose de desarrollo el backend siempre reinicia la BD con `npx prisma db push --force-reset` y ejecuta `npx prisma db seed` antes de arrancar `npm run dev`.
 
 3. En `frontend/.env`, apunta a Docker local si usas Metro fuera del contenedor:
 
@@ -93,7 +95,7 @@ El servicio `backend` de Compose sobreescribe el comando de la imagen de Railway
 2. `npx prisma db push --accept-data-loss`
 3. `npm run dev`
 
-Si `RESET_DB=true`, ejecuta `npx prisma db push --force-reset` y `npx prisma db seed` antes de arrancar.
+La BD local se reinicia y se siembra siempre al arrancar con `dev.bat`.
 
 ## Backend local opcional
 
