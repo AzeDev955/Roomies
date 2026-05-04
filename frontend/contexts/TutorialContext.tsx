@@ -22,10 +22,18 @@ import {
 const TUTORIAL_STATE_KEY = `roomies.tutorial.${TUTORIAL_VERSION}`;
 const HIGHLIGHT_PADDING = 12;
 const CARD_MAX_WIDTH = 380;
+const CARD_ESTIMATED_HEIGHT = 280;
 
 type TargetRect = {
   x: number;
   y: number;
+  width: number;
+  height: number;
+};
+
+type HighlightRect = {
+  top: number;
+  left: number;
   width: number;
   height: number;
 };
@@ -328,6 +336,7 @@ function TutorialOverlay({
   theme: AppTheme;
 }) {
   const { width, height } = useWindowDimensions();
+  const [cardHeight, setCardHeight] = useState(0);
 
   if (!auth || !preferencesLoaded || !session) {
     return null;
@@ -345,6 +354,14 @@ function TutorialOverlay({
         height: Math.min(currentTarget.height + HIGHLIGHT_PADDING * 2, height),
       }
     : null;
+  const measuredCardHeight = cardHeight || CARD_ESTIMATED_HEIGHT;
+  const cardTop = getCardTop({
+    highlight,
+    screenHeight: height,
+    cardHeight: measuredCardHeight,
+    edgeMargin: theme.spacing.xl,
+    gap: theme.spacing.base,
+  });
 
   const nextStep = () => {
     if (isLastStep) {
@@ -438,8 +455,11 @@ function TutorialOverlay({
           <View style={[overlayStyles.dim, StyleSheet.absoluteFillObject]} />
         )}
 
-        <View style={overlayStyles.cardContainer} pointerEvents="box-none">
-          <View style={overlayStyles.card}>
+        <View style={[overlayStyles.cardContainer, { top: cardTop }]} pointerEvents="box-none">
+          <View
+            style={overlayStyles.card}
+            onLayout={({ nativeEvent }) => setCardHeight(nativeEvent.layout.height)}
+          >
             <View style={overlayStyles.cardHeader}>
               <Text style={overlayStyles.stepCounter}>
                 Paso {session.index + 1} de {session.steps.length}
@@ -495,11 +515,40 @@ function TutorialOverlay({
   );
 }
 
+function getCardTop({
+  highlight,
+  screenHeight,
+  cardHeight,
+  edgeMargin,
+  gap,
+}: {
+  highlight: HighlightRect | null;
+  screenHeight: number;
+  cardHeight: number;
+  edgeMargin: number;
+  gap: number;
+}) {
+  const minTop = edgeMargin;
+  const maxTop = Math.max(edgeMargin, screenHeight - cardHeight - edgeMargin);
+
+  if (!highlight) {
+    return maxTop;
+  }
+
+  const spaceAbove = highlight.top;
+  const spaceBelow = screenHeight - (highlight.top + highlight.height);
+  const placeAbove = spaceBelow < cardHeight + gap && spaceAbove > spaceBelow;
+  const desiredTop = placeAbove
+    ? highlight.top - cardHeight - gap
+    : highlight.top + highlight.height + gap;
+
+  return Math.min(Math.max(desiredTop, minTop), maxTop);
+}
+
 const createOverlayStyles = (theme: AppTheme = DefaultAppTheme) =>
   StyleSheet.create({
     root: {
       flex: 1,
-      justifyContent: 'flex-end',
     },
     dim: {
       position: 'absolute',
@@ -513,10 +562,12 @@ const createOverlayStyles = (theme: AppTheme = DefaultAppTheme) =>
       backgroundColor: 'transparent',
     },
     cardContainer: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
       width: '100%',
       alignItems: 'center',
       paddingHorizontal: theme.spacing.base,
-      paddingBottom: theme.spacing.xl,
     },
     card: {
       width: '100%',

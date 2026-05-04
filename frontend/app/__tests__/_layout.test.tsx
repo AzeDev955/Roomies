@@ -12,6 +12,7 @@ jest.mock('expo-router', () => {
     Stack: function MockStack() {
       return null;
     },
+    usePathname: () => '/',
     useRouter: () => ({ replace: mockReplace }),
   };
 });
