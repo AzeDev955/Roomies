@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Esta guia concentra el flujo real de testeo con Expo Go contra Railway desarrollo, las variables de entorno, Dockerfile de Railway y despliegue de Roomies. Debe mantenerse alineada con:
+Esta guia concentra el flujo real de desarrollo con Docker Compose, las variables de entorno, Dockerfile de Railway y despliegue de Roomies. Debe mantenerse alineada con:
 
 - `docker-compose.yml`
 - `.env.example`
@@ -15,9 +15,9 @@ Esta guia concentra el flujo real de testeo con Expo Go contra Railway desarroll
 
 | Servicio | URL habitual |
 |---|---|
-| Backend Railway desarrollo | `https://roomies-dev.up.railway.app/api` |
-| Backend Railway produccion | `https://roomies-production-c884.up.railway.app/api` |
-| Expo local para Expo Go | Metro generado por `npx expo start --clear` |
+| Backend desarrollo Docker | `http://localhost:3001/api` |
+| Backend produccion Railway | `https://roomies-production-c884.up.railway.app/api` |
+| Expo local para Expo Go | `http://localhost:8080` con Compose o Metro generado por `npx expo start --clear` |
 
 URLs auxiliares si se revisa infraestructura local:
 
@@ -31,10 +31,10 @@ URLs auxiliares si se revisa infraestructura local:
 
 ### Frontend `.env` para Expo Go
 
-El flujo normal de testeo usa `frontend/.env` con Railway desarrollo:
+El flujo normal de testeo usa Docker local:
 
 ```env
-EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+EXPO_PUBLIC_API_URL=http://localhost:3001/api
 EXPO_PUBLIC_MAPBOX_TOKEN=pk.ey...
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=<web_client_id>
 EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=<android_client_id>
@@ -43,7 +43,7 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
 
 | Variable | Obligatoria | Uso |
 |---|---|---|
-| `EXPO_PUBLIC_API_URL` | Si | API Railway desarrollo para testeo diario o produccion para builds release. |
+| `EXPO_PUBLIC_API_URL` | Si | API local Docker en desarrollo o API Railway de produccion para builds release. |
 | `EXPO_PUBLIC_MAPBOX_TOKEN` | Si para autocompletado | Token publico de Mapbox. |
 | `EXPO_PUBLIC_GOOGLE_CLIENT_ID` | Si para Google OAuth | Web Client ID usado por Expo. |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | Recomendado | Client ID Android. |
@@ -57,31 +57,37 @@ npx expo start --clear
 
 ## Testeo diario
 
-1. Comprueba que los cambios de backend esten desplegados en Railway desarrollo.
-2. En `frontend/.env`, apunta a:
+1. Copia `.env.example` a `.env` y ajusta secretos, `HOST_IP` y tokens publicos.
+2. Levanta PostgreSQL, backend y Metro:
 
-```env
-EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+```bash
+.\dev.bat
 ```
 
-3. Arranca Expo:
+`dev.bat` se ejecuta desde la raiz, valida que exista `.env`, lanza `docker compose up --build -d --force-recreate`, espera a `http://localhost:3001/ping` y despues ejecuta `npx expo start --clear` en `frontend`.
+
+En Compose de desarrollo el backend siempre reinicia la BD con `npx prisma db push --force-reset` y ejecuta `npx prisma db seed` antes de arrancar `npm run dev`.
+
+3. En `frontend/.env`, apunta a Docker local si usas Metro fuera del contenedor:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+Para Expo Go en movil fisico:
+
+```env
+EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
+```
+
+4. Si no usas el Metro del contenedor, arranca Expo:
 
 ```bash
 cd frontend
 npx expo start --clear
 ```
 
-4. Abre la app desde Expo Go y valida contra Railway desarrollo.
-
-## Docker Compose opcional
-
-`docker-compose.yml` no es el flujo habitual de testeo. Queda para revisar integracion local si alguna vez hace falta levantar PostgreSQL, backend y Metro en contenedores.
-
-Si se usa, copia `.env.example` a `.env`, ajusta las variables y ejecuta:
-
-```bash
-docker-compose up --build
-```
+5. Abre la app desde Expo Go y valida contra Docker local.
 
 El servicio `backend` de Compose sobreescribe el comando de la imagen de Railway para trabajar en modo desarrollo:
 
@@ -89,7 +95,7 @@ El servicio `backend` de Compose sobreescribe el comando de la imagen de Railway
 2. `npx prisma db push --accept-data-loss`
 3. `npm run dev`
 
-Si `RESET_DB=true`, ejecuta `npx prisma db push --force-reset` y `npx prisma db seed` antes de arrancar.
+La BD local se reinicia y se siembra siempre al arrancar con `dev.bat`.
 
 ## Backend local opcional
 
@@ -126,7 +132,7 @@ npm test
 
 ### Backend Railway
 
-El backend se despliega con `backend/Dockerfile`; Railway lo usa para construir la imagen. Configura el servicio con root directory `/backend` y variables:
+Railway queda reservado para produccion y debe desplegar desde `main`. El backend se despliega con `backend/Dockerfile`; Railway lo usa para construir la imagen. Configura el servicio con root directory `/backend` y variables:
 
 - `DATABASE_URL`
 - `JWT_SECRET`
@@ -138,9 +144,11 @@ El backend se despliega con `backend/Dockerfile`; Railway lo usa para construir 
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
 
-El Dockerfile ejecuta `npm run build`. Al arrancar, `npm start` aplica `npx prisma db push --accept-data-loss`, ejecuta `npx prisma db seed` cuando `ROOMIES_APP_ENV` o `RAILWAY_ENVIRONMENT_NAME` identifica desarrollo (`development`, `dev` o `desarrollo`) y levanta `node dist/index.js`.
+El Dockerfile ejecuta `npm run build`. Al arrancar, `npm start` aplica `npx prisma db push --accept-data-loss` y levanta `node dist/index.js`.
 
-El seed queda bloqueado en Railway produccion salvo override explicito con `ROOMIES_ALLOW_PRODUCTION_SEED=true`. Si Railway dev esta montado como servicio/proyecto separado y el nombre automatico del entorno no es de desarrollo, define `ROOMIES_APP_ENV=development` solo en el backend de desarrollo.
+No configures servicios Railway contra `dev` para desarrollo diario. Si existe un Railway de pruebas, mantenerlo pausado o desconectado de auto-deploy para evitar costes; Docker local cubre el flujo de cambios en desarrollo.
+
+El seed automatico queda desactivado por defecto en `npm start`. Solo se ejecuta si `ROOMIES_SEED_ON_START=true`, y no debe habilitarse en produccion salvo una carga controlada.
 
 ### Frontend EAS
 

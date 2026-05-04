@@ -1,4 +1,4 @@
-const LOCAL_DEV_API_URL = 'http://localhost:3000/api';
+const LOCAL_DEV_API_URL = 'http://localhost:3001/api';
 
 type ApiEnv = {
   EXPO_PUBLIC_API_URL?: string;

@@ -19,7 +19,7 @@ services:
     build: ./backend
     ports:
       - "3001:3000"
-    command: sh -c "npx prisma generate && if [ \"${RESET_DB:-false}\" = \"true\" ]; then until npx prisma db push --force-reset; do echo 'DB not ready, retrying...'; sleep 3; done && npx prisma db seed; else until npx prisma db push --accept-data-loss; do echo 'DB not ready, retrying...'; sleep 3; done; fi && npm run dev"
+    command: sh -c "npx prisma generate && until npx prisma db push --force-reset; do echo 'DB not ready, retrying...'; sleep 3; done && npx prisma db seed && npm run dev"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
@@ -30,7 +30,9 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
-      RESET_DB: ${RESET_DB:-false}
+      SEED_CASERO_PASSWORD: ${SEED_CASERO_PASSWORD:-pass}
+      SEED_INQUILINO_PASSWORD: ${SEED_INQUILINO_PASSWORD:-pass}
+      SEED_DEMO_DOMAIN: ${SEED_DEMO_DOMAIN:-example.test}
     depends_on:
       db:
         condition: service_healthy
@@ -44,7 +46,7 @@ services:
       - "8080:8080"
     command: npx expo start --host lan --port 8080 --clear
     environment:
-      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-https://roomies-dev.up.railway.app/api}
+      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-http://${HOST_IP}:3001/api}
       REACT_NATIVE_PACKAGER_HOSTNAME: ${HOST_IP}
       EXPO_PUBLIC_MAPBOX_TOKEN: ${EXPO_PUBLIC_MAPBOX_TOKEN}
       EXPO_PUBLIC_GOOGLE_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_CLIENT_ID:-}

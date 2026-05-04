@@ -8,7 +8,7 @@ describe('getApiBaseUrl', () => {
   });
 
   it('permite localhost solo fuera de produccion', () => {
-    expect(getApiBaseUrl({ NODE_ENV: 'test' })).toBe('http://localhost:3000/api');
+    expect(getApiBaseUrl({ NODE_ENV: 'test' })).toBe('http://localhost:3001/api');
   });
 
   it('falla en produccion si falta EXPO_PUBLIC_API_URL', () => {
