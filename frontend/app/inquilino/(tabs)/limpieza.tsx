@@ -70,7 +70,7 @@ type Turno = {
   estado: 'PENDIENTE' | 'HECHO' | 'NO_HECHO';
   tipo_espacio: 'HABITACION' | 'ZONA_COMUN' | 'ESPACIO';
   zona: { id: number; nombre: string; peso: number; habitacion: Habitacion | null };
-  habitacion: Habitacion;
+  habitacion?: Habitacion | null;
   responsable_actual: { id: number; nombre: string; apellidos: string | null } | null;
 };
 
@@ -79,6 +79,8 @@ const getTipoEspacioLabel = (tipo: Turno['tipo_espacio']) => {
   if (tipo === 'ZONA_COMUN') return 'Zona común';
   return 'Espacio';
 };
+
+const getHabitacionNombre = (turno: Turno) => turno.habitacion?.nombre ?? `Habitacion ${turno.habitacion_id}`;
 
 export default function LimpiezaInquilinoTab() {
   const { theme } = useAppTheme();
@@ -262,7 +264,7 @@ export default function LimpiezaInquilinoTab() {
             {turnosRelacionados.map((turno) => {
               const esPendiente = turno.estado === 'PENDIENTE';
               const nombreResponsable =
-                turno.responsable_actual?.nombre ?? turno.habitacion.nombre;
+                turno.responsable_actual?.nombre ?? getHabitacionNombre(turno);
               const apellidosResponsable = turno.responsable_actual?.apellidos ?? null;
               return (
                 <View key={turno.id} style={styles.companeroRow}>

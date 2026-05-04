@@ -506,18 +506,20 @@ export const asignarZonaFija: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  if (habitacion_ids.length > 0) {
+  const habitacionIdsUnicos = [...new Set(habitacion_ids)];
+
+  if (habitacionIdsUnicos.length > 0) {
     const habitaciones = await prisma.habitacion.findMany({
       where: {
         vivienda_id: viviendaId,
-        id: { in: habitacion_ids },
+        id: { in: habitacionIdsUnicos },
         es_habitable: true,
         tipo: TipoHabitacion.DORMITORIO,
       },
       select: { id: true },
     });
     const validos = new Set(habitaciones.map((habitacion) => habitacion.id));
-    const invalidos = habitacion_ids.filter((habitacionId) => !validos.has(habitacionId));
+    const invalidos = habitacionIdsUnicos.filter((habitacionId) => !validos.has(habitacionId));
     if (invalidos.length > 0) {
       res.status(403).json({ error: 'Una o mas habitaciones no pueden ser responsables fijas.' });
       return;
@@ -526,9 +528,9 @@ export const asignarZonaFija: express.RequestHandler = async (req, res) => {
 
   const asignaciones = await prisma.$transaction(async (tx) => {
     await tx.asignacionLimpiezaFija.deleteMany({ where: { zona_id: zonaId } });
-    if (habitacion_ids.length === 0) return [];
+    if (habitacionIdsUnicos.length === 0) return [];
     await tx.asignacionLimpiezaFija.createMany({
-      data: habitacion_ids.map((habitacionId) => ({ zona_id: zonaId, habitacion_id: habitacionId })),
+      data: habitacionIdsUnicos.map((habitacionId) => ({ zona_id: zonaId, habitacion_id: habitacionId })),
     });
     return tx.asignacionLimpiezaFija.findMany({
       where: { zona_id: zonaId },
@@ -599,13 +601,12 @@ export const quitarAsignacionFija: express.RequestHandler = async (req, res) => 
     return;
   }
 
-  const asignacion = await prisma.asignacionLimpiezaFija.findFirst({ where: { zona_id: zonaId } });
-  if (!asignacion) {
+  const resultado = await prisma.asignacionLimpiezaFija.deleteMany({ where: { zona_id: zonaId } });
+  if (resultado.count === 0) {
     res.status(404).json({ error: 'Esta zona no tiene asignacion fija.' });
     return;
   }
 
-  await prisma.asignacionLimpiezaFija.delete({ where: { id: asignacion.id } });
   res.status(204).send();
 };
 
