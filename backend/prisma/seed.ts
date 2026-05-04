@@ -125,7 +125,7 @@ async function main() {
       nombre: "Ana",
       apellidos: "Martinez Ruiz",
       documento_identidad: "22222222B",
-      email: `ana@${DEMO_EMAIL_DOMAIN}`,
+      email: `inquilino@${DEMO_EMAIL_DOMAIN}`,
       tel: "600222222",
     },
     {
@@ -446,7 +446,7 @@ async function main() {
     casero@${DEMO_EMAIL_DOMAIN} / ${LOCAL_CASERO_PASSWORD}
 
   Inquilinos (password: ${LOCAL_INQUILINO_PASSWORD}):
-    ana@${DEMO_EMAIL_DOMAIN}    -> Habitacion 1
+    inquilino@${DEMO_EMAIL_DOMAIN} -> Habitacion 1
     bruno@${DEMO_EMAIL_DOMAIN}  -> Habitacion 2
     carmen@${DEMO_EMAIL_DOMAIN} -> Habitacion 3
     diego@${DEMO_EMAIL_DOMAIN}  -> Habitacion 4

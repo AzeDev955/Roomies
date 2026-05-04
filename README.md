@@ -81,7 +81,7 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 .\dev.bat
 ```
 
-El script ejecuta `docker compose up --build -d --force-recreate` desde la raiz. El backend reinicia la BD con `prisma db push --force-reset`, ejecuta `npx prisma db seed`, espera a que responda y despues lanza `npx expo start --clear` en `frontend`.
+El script ejecuta `docker compose up --build -d --force-recreate db backend` desde la raiz. El backend reinicia la BD con `prisma db push --force-reset`, ejecuta `npx prisma db seed`, espera a que responda y despues lanza `npx expo start --lan --port 8081 --clear` en `frontend`.
 
 3. Usa Docker local como API en `frontend/.env` si arrancas Expo fuera de Compose:
 
@@ -109,7 +109,7 @@ npx expo start --clear
 
 ## Docker y Railway
 
-El desarrollo diario usa `docker-compose.yml`, que levanta PostgreSQL, backend en `http://localhost:3001` y el servicio frontend de Compose. El `.bat` deja Docker en segundo plano y abre Expo local para que tengas el QR y los logs a mano.
+El desarrollo diario usa `docker-compose.yml` para PostgreSQL y backend en `http://localhost:3001`. El `.bat` deja Docker en segundo plano, para cualquier Metro viejo del contenedor `frontend` y abre Expo local para que tengas un unico QR y los logs a mano.
 
 En Windows, `dev.bat` levanta los contenedores y Expo con un solo comando.
 
@@ -117,8 +117,8 @@ Credenciales locales tras el seed:
 
 | Rol | Email | Password |
 |---|---|---|
-| CASERO | `casero@example.test` | `pass` |
-| INQUILINO | `ana@example.test` | `pass` |
+| CASERO | `casero@test.com` | `casero123` |
+| INQUILINO | `inquilino@test.com` | `inquilino123` |
 
 El `backend/Dockerfile` se usa para que Railway construya la imagen del backend de produccion desde `main`. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, aplica `prisma db push --accept-data-loss` y levanta `dist/index.js`.
 

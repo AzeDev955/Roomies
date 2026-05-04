@@ -64,7 +64,7 @@ npx expo start --clear
 .\dev.bat
 ```
 
-`dev.bat` se ejecuta desde la raiz, valida que exista `.env`, lanza `docker compose up --build -d --force-recreate`, espera a `http://localhost:3001/ping` y despues ejecuta `npx expo start --clear` en `frontend`.
+`dev.bat` se ejecuta desde la raiz, valida que exista `.env`, para cualquier Metro viejo del contenedor `frontend`, lanza `docker compose up --build -d --force-recreate db backend`, espera a `http://localhost:3001/ping` y despues ejecuta `npx expo start --lan --port 8081 --clear` en `frontend`.
 
 En Compose de desarrollo el backend siempre reinicia la BD con `npx prisma db push --force-reset` y ejecuta `npx prisma db seed` antes de arrancar `npm run dev`.
 

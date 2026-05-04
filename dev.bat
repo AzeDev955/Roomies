@@ -35,7 +35,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
-docker compose up --build -d --force-recreate
+docker compose stop frontend >nul 2>&1
+
+docker compose up --build -d --force-recreate db backend
 if errorlevel 1 (
   echo No se pudieron levantar los contenedores.
   echo Revisa la salida anterior de Docker Compose.
@@ -67,4 +69,4 @@ echo.
 
 cd frontend
 set "EXPO_PUBLIC_API_URL=%ROOMIES_API_URL%"
-npx expo start --clear
+npx expo start --lan --port 8081 --clear

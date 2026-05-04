@@ -469,7 +469,7 @@ Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados
 El testeo funcional diario se hace con Docker Compose local:
 
 1. `.env` define PostgreSQL, secretos, `HOST_IP` y `EXPO_PUBLIC_API_URL`.
-2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env`, lanza `docker compose up --build -d --force-recreate`, espera a `/ping` y arranca `npx expo start --clear` en `frontend`.
+2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env`, para cualquier Metro viejo del contenedor `frontend`, lanza `docker compose up --build -d --force-recreate db backend`, espera a `/ping` y arranca `npx expo start --lan --port 8081 --clear` en `frontend`.
    - El backend de Compose reinicia la BD con `prisma db push --force-reset` y ejecuta seed antes de `npm run dev`.
 3. La app se abre desde Expo Go usando el QR de Expo local.
 
@@ -651,7 +651,7 @@ Usuarios de prueba creados por `prisma db seed`:
 | Email              | Password    | Rol       |
 | ------------------ | ----------- | --------- |
 | casero@test.com    | `casero123` | CASERO    |
-| inquilino@test.com | `casero123` | INQUILINO |
+| inquilino@test.com | `inquilino123` | INQUILINO |
 
 ---
 
