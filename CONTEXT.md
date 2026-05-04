@@ -469,8 +469,8 @@ Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados
 El testeo funcional diario se hace con Docker Compose local:
 
 1. `.env` define PostgreSQL, secretos, `HOST_IP` y `EXPO_PUBLIC_API_URL`.
-2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env` y lanza `docker compose up --build`.
-3. La app se abre desde Expo Go usando Metro en `http://localhost:8080`.
+2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env`, lanza `docker compose up --build -d` y arranca `npx expo start --clear` en `frontend`.
+3. La app se abre desde Expo Go usando el QR de Expo local.
 
 Railway queda reservado para produccion y debe desplegar desde `main`. `backend/Dockerfile` existe para que Railway construya la imagen del backend.
 

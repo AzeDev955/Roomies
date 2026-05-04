@@ -46,7 +46,7 @@ El flujo habitual es levantar backend y base de datos con Docker Compose desde l
 .\dev.bat
 ```
 
-El script ejecuta `docker compose up --build` desde la raiz. Compose publica la API en `http://localhost:3001/api` y Metro en `http://localhost:8080`. Para un movil fisico, `EXPO_PUBLIC_API_URL` debe apuntar a la IP LAN de la maquina, por ejemplo `http://192.168.1.50:3001/api`, no a `localhost`.
+El script ejecuta `docker compose up --build -d` desde la raiz y despues `npx expo start --clear` en `frontend`. Compose publica la API en `http://localhost:3001/api`. Para un movil fisico, `EXPO_PUBLIC_API_URL` debe apuntar a la IP LAN de la maquina, por ejemplo `http://192.168.1.50:3001/api`, no a `localhost`.
 
 Si se prefiere arrancar Metro fuera del contenedor:
 

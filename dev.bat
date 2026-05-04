@@ -13,7 +13,6 @@ if not exist ".env" (
 
 echo Levantando Roomies con Docker Compose...
 echo Backend: http://localhost:3001/api
-echo Metro:   http://localhost:8080
 echo.
 
 docker info >nul 2>&1
@@ -25,4 +24,18 @@ if errorlevel 1 (
   exit /b 1
 )
 
-docker compose up --build
+docker compose up --build -d
+if errorlevel 1 (
+  echo No se pudieron levantar los contenedores.
+  echo Revisa la salida anterior de Docker Compose.
+  echo.
+  pause
+  exit /b 1
+)
+
+echo.
+echo Contenedores levantados. Arrancando Expo local...
+echo.
+
+cd frontend
+npx expo start --clear

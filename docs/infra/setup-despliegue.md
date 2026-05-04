@@ -64,7 +64,7 @@ npx expo start --clear
 .\dev.bat
 ```
 
-`dev.bat` se ejecuta desde la raiz, valida que exista `.env` y lanza `docker compose up --build`.
+`dev.bat` se ejecuta desde la raiz, valida que exista `.env`, lanza `docker compose up --build -d` y despues ejecuta `npx expo start --clear` en `frontend`.
 
 3. En `frontend/.env`, apunta a Docker local si usas Metro fuera del contenedor:
 
