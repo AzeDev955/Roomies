@@ -346,14 +346,7 @@ function TutorialOverlay({
   const currentTarget = targets[currentStep.targetId];
   const isLastStep = session.index === session.steps.length - 1;
   const overlayStyles = createOverlayStyles(theme);
-  const highlight = currentTarget
-    ? {
-        top: Math.max(currentTarget.y - HIGHLIGHT_PADDING, 0),
-        left: Math.max(currentTarget.x - HIGHLIGHT_PADDING, 0),
-        width: Math.min(currentTarget.width + HIGHLIGHT_PADDING * 2, width),
-        height: Math.min(currentTarget.height + HIGHLIGHT_PADDING * 2, height),
-      }
-    : null;
+  const highlight = currentTarget ? getHighlightRect(currentTarget, width, height) : null;
   const measuredCardHeight = cardHeight || CARD_ESTIMATED_HEIGHT;
   const cardTop = getCardTop({
     highlight,
@@ -457,7 +450,7 @@ function TutorialOverlay({
 
         <View style={[overlayStyles.cardContainer, { top: cardTop }]} pointerEvents="box-none">
           <View
-            style={overlayStyles.card}
+            style={[overlayStyles.card, { maxHeight: height - theme.spacing.xl * 2 }]}
             onLayout={({ nativeEvent }) => setCardHeight(nativeEvent.layout.height)}
           >
             <View style={overlayStyles.cardHeader}>
@@ -513,6 +506,20 @@ function TutorialOverlay({
       </View>
     </Modal>
   );
+}
+
+function getHighlightRect(target: TargetRect, screenWidth: number, screenHeight: number): HighlightRect {
+  const top = Math.max(target.y - HIGHLIGHT_PADDING, 0);
+  const left = Math.max(target.x - HIGHLIGHT_PADDING, 0);
+  const right = Math.min(target.x + target.width + HIGHLIGHT_PADDING, screenWidth);
+  const bottom = Math.min(target.y + target.height + HIGHLIGHT_PADDING, screenHeight);
+
+  return {
+    top,
+    left,
+    width: Math.max(right - left, 0),
+    height: Math.max(bottom - top, 0),
+  };
 }
 
 function getCardTop({

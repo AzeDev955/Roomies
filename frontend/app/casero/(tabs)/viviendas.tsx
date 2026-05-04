@@ -56,13 +56,13 @@ export default function ViviendasScreen() {
   if (loading) return <LoadingScreen />;
 
   return (
-    <View ref={mainTarget.ref} onLayout={mainTarget.onLayout} style={styles.container}>
+    <View style={styles.container}>
       <FlatList
         data={viviendas}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <View ref={mainTarget.ref} onLayout={mainTarget.onLayout} style={styles.header}>
             <Text style={styles.headerTitulo}>Mis Propiedades</Text>
             <Text style={styles.headerSubtitulo}>Gestiona tus pisos y habitaciones</Text>
           </View>
@@ -135,7 +135,7 @@ export default function ViviendasScreen() {
       />
 
       {viviendas.length > 0 && (
-        <View ref={actionTarget.ref} onLayout={actionTarget.onLayout}>
+        <View ref={actionTarget.ref} onLayout={actionTarget.onLayout} style={styles.fabTarget}>
           <Pressable
             style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
             onPress={() => router.push('/casero/nueva-vivienda')}

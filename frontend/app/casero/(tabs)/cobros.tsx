@@ -995,7 +995,7 @@ export default function CaseroCobrosScreen() {
   }
 
   return (
-    <View ref={tutorialTarget.ref} onLayout={tutorialTarget.onLayout} style={styles.container}>
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.headerEyebrow}>Dashboard financiero</Text>
@@ -1035,7 +1035,7 @@ export default function CaseroCobrosScreen() {
         )}
 
         {resumen && (
-          <View style={styles.heroCard}>
+          <View ref={tutorialTarget.ref} onLayout={tutorialTarget.onLayout} style={styles.heroCard}>
             <View style={styles.heroTop}>
               <Text style={styles.heroLabel}>Vivienda activa</Text>
               <Text style={styles.heroTitle}>{resumen.vivienda.alias_nombre}</Text>
