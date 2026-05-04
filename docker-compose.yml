@@ -44,7 +44,7 @@ services:
       - "8080:8080"
     command: npx expo start --host lan --port 8080 --clear
     environment:
-      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-https://roomies-dev.up.railway.app/api}
+      EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-http://localhost:3001/api}
       REACT_NATIVE_PACKAGER_HOSTNAME: ${HOST_IP}
       EXPO_PUBLIC_MAPBOX_TOKEN: ${EXPO_PUBLIC_MAPBOX_TOKEN}
       EXPO_PUBLIC_GOOGLE_CLIENT_ID: ${EXPO_PUBLIC_GOOGLE_CLIENT_ID:-}

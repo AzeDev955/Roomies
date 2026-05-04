@@ -20,18 +20,11 @@ const run = (label, command, args) => {
   }
 };
 
-const normalized = (value) => (value ?? '').toLowerCase();
-const railwayEnvironment = normalized(
-  process.env.ROOMIES_APP_ENV ??
-    process.env.RAILWAY_ENVIRONMENT_NAME ??
-    process.env.RAILWAY_ENVIRONMENT,
-);
 const seedOnStart = process.env.ROOMIES_SEED_ON_START === 'true';
-const isRailwayDevelopment = ['development', 'dev', 'desarrollo'].includes(railwayEnvironment);
 
 run('prisma db push', npx, ['prisma', 'db', 'push', '--accept-data-loss']);
 
-if (isRailwayDevelopment || seedOnStart) {
+if (seedOnStart) {
   run('prisma db seed', npx, ['prisma', 'db', 'seed']);
 }
 

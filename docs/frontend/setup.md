@@ -5,7 +5,7 @@
 - Node.js 20+
 - Expo Go o una build nativa para probar la app
 - Cuenta en `expo.dev` si vas a generar builds con EAS
-- Backend desplegado en Railway desarrollo para testeo funcional diario
+- Docker Desktop para el backend y PostgreSQL de desarrollo
 
 ## Variables de entorno
 
@@ -13,12 +13,12 @@ Copia `frontend/.env.example` a `frontend/.env`.
 
 | Entorno | URL |
 |---|---|
-| Testeo diario | `https://roomies-dev.up.railway.app/api` |
-| Produccion | `https://roomies-production-c884.up.railway.app/api` |
-| Local auxiliar | `http://localhost:3001/api` o `http://<TU_IP>:3001/api` |
+| Desarrollo Docker local | `http://localhost:3001/api` |
+| Desarrollo Docker en movil fisico | `http://<TU_IP>:3001/api` |
+| Produccion Railway | `https://roomies-production-c884.up.railway.app/api` |
 
 ```env
-EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+EXPO_PUBLIC_API_URL=http://localhost:3001/api
 
 EXPO_PUBLIC_MAPBOX_TOKEN=pk.ey...
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=<web_client_id>
@@ -40,7 +40,15 @@ Variables obligatorias para flujos completos:
 
 ## Instalacion y testeo con Expo Go
 
-El flujo habitual es levantar solo Expo y consumir Railway desarrollo:
+El flujo habitual es levantar backend y base de datos con Docker Compose desde la raiz:
+
+```bash
+.\dev.bat
+```
+
+El script ejecuta `docker compose up --build` desde la raiz. Compose publica la API en `http://localhost:3001/api` y Metro en `http://localhost:8080`. Para un movil fisico, `EXPO_PUBLIC_API_URL` debe apuntar a la IP LAN de la maquina, por ejemplo `http://192.168.1.50:3001/api`, no a `localhost`.
+
+Si se prefiere arrancar Metro fuera del contenedor:
 
 ```bash
 cd frontend
@@ -48,17 +56,7 @@ npm install
 npx expo start --clear
 ```
 
-Abre el QR desde Expo Go. No hace falta levantar backend ni base de datos local para pruebas funcionales habituales.
-
-### Docker Compose auxiliar
-
-Docker Compose no es el flujo habitual de testeo. Si se necesita revisar integracion local de contenedores, desde la raiz del repo:
-
-```bash
-docker-compose up --build
-```
-
-Metro queda accesible para Expo Go en `http://localhost:8080`. El compose lee `EXPO_PUBLIC_API_URL` desde el `.env` raiz; para un movil fisico debe apuntar al host LAN, por ejemplo `http://192.168.1.50:3001/api`, no a `localhost`.
+Railway queda reservado para produccion desde `main`.
 
 ## Tests y calidad
 

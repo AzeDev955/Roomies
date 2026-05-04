@@ -57,31 +57,45 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 - [ ] Chat integrado Inquilino <-> Casero
 - [ ] Notificaciones push avanzadas para incidencias y cambios de estado
 
-## Entornos Railway
+## Entornos
 
 | Entorno | URL de API |
 |---|---|
-| Desarrollo | `https://roomies-dev.up.railway.app/api` |
-| Produccion | `https://roomies-production-c884.up.railway.app/api` |
+| Desarrollo local Docker | `http://localhost:3001/api` |
+| Produccion Railway | `https://roomies-production-c884.up.railway.app/api` |
 
-## Testeo habitual con Expo Go y Railway dev
+## Testeo habitual con Docker y Expo Go
 
 ### Prerrequisitos
 
 - Node.js 20+
+- Docker Desktop
 - Expo Go instalado en el movil
-- Backend desplegado en Railway desarrollo
 
 ### Pasos
 
-1. Copia `frontend/.env.example` a `frontend/.env`.
-2. Usa Railway desarrollo como API:
+1. Copia `.env.example` a `.env` y ajusta `HOST_IP` si vas a probar en movil fisico.
+2. Levanta PostgreSQL, backend y Metro con Docker Compose:
 
-```env
-EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+```bash
+.\dev.bat
 ```
 
-3. Arranca Expo con cache limpia:
+El script ejecuta `docker compose up --build` desde la raiz y comprueba que exista `.env`.
+
+3. Usa Docker local como API en `frontend/.env` si arrancas Expo fuera de Compose:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+Para Expo Go en movil fisico, usa la IP LAN:
+
+```env
+EXPO_PUBLIC_API_URL=http://192.168.1.X:3001/api
+```
+
+4. Si prefieres Metro fuera del contenedor:
 
 ```bash
 cd frontend
@@ -89,15 +103,17 @@ npm install
 npx expo start --clear
 ```
 
-4. Abre el QR con Expo Go.
+5. Abre el QR con Expo Go.
 
-> Hay dos entornos Railway: desarrollo para pruebas funcionales y produccion para releases.
+> Railway queda reservado para produccion desde `main`; no debe usarse como backend de desarrollo diario.
 
 ## Docker y Railway
 
-El `backend/Dockerfile` se usa para que Railway construya la imagen del backend. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, que aplica `prisma db push --accept-data-loss`, ejecuta el seed automaticamente en Railway desarrollo y levanta `dist/index.js`.
+El desarrollo diario usa `docker-compose.yml`, que levanta PostgreSQL, backend en `http://localhost:3001` y Metro en `http://localhost:8080`.
 
-`docker-compose.yml` queda como apoyo para revisar infraestructura local si hace falta, pero no es el flujo habitual de testeo.
+En Windows, `dev.bat` levanta todos los contenedores con un solo comando.
+
+El `backend/Dockerfile` se usa para que Railway construya la imagen del backend de produccion desde `main`. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, aplica `prisma db push --accept-data-loss` y levanta `dist/index.js`.
 
 Consulta `docs/infra/setup-despliegue.md` para el detalle completo de variables, URLs por entorno y despliegue.
 

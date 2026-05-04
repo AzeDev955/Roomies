@@ -97,7 +97,7 @@ Estos valores permiten importar controladores, rutas y Prisma sin depender de `.
 
 ## Despliegue en Railway
 
-El backend se prueba y despliega en Railway. En este proyecto Railway usa `backend/Dockerfile` para construir la imagen; el Dockerfile compila con `npm run build` y el contenedor arranca con `npm start`.
+El backend se desarrolla y prueba contra Docker local. Railway queda reservado para produccion desde `main`. En este proyecto Railway usa `backend/Dockerfile` para construir la imagen; el Dockerfile compila con `npm run build` y el contenedor arranca con `npm start`.
 
 ### 1. Base de datos
 
@@ -138,6 +138,8 @@ npx prisma db push --accept-data-loss
 node dist/index.js
 ```
 
+Solo ejecuta `npx prisma db seed` al arrancar si `ROOMIES_SEED_ON_START=true`; no se debe activar en Railway produccion salvo una carga controlada.
+
 ### 5. Cron jobs incluidos en el arranque
 
 Al levantar `src/index.ts`, el backend inicia dos tareas programadas:
@@ -157,7 +159,7 @@ https://<nombre-proyecto>.up.railway.app
 
 ### 7. Conectar el frontend
 
-Actualiza `frontend/.env` con la URL generada:
+Actualiza `frontend/.env` con la URL generada solo para builds o validaciones de produccion:
 
 ```env
 EXPO_PUBLIC_API_URL=https://<nombre-proyecto>.up.railway.app/api
@@ -197,7 +199,7 @@ npx expo start --clear
 | `ItemInventario.revisado_por_inquilino_id` y `revisado_por_inquilino_en` auditan la conformidad | El casero puede saber quien valido un item y cuando; los inquilinos no pueden validar dormitorios ajenos. |
 | Importes monetarios siguen como `Float` por compatibilidad MVP | La logica de reparto convierte a centimos antes de comparar o dividir. Migrar a `Decimal` o centimos enteros queda pendiente de migracion coordinada con frontend, API y datos existentes. |
 
-El seed de demo esta pensado para desarrollo local y Railway desarrollo: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway no desarrollo salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
+El seed de demo esta pensado para desarrollo local: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
 
 ## Update 2026-04-09 - Backend real
 

@@ -434,17 +434,17 @@ CLOUDINARY_API_SECRET=<api_secret de Cloudinary>
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)
 
-El proyecto tiene tres entornos de API — descomenta el que quieras usar:
+El flujo de desarrollo usa Docker local. Railway queda reservado para produccion desde `main`:
 
 ```
-# Desarrollo en Railway (por defecto)
-EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+# Desarrollo local con Docker Compose
+EXPO_PUBLIC_API_URL=http://localhost:3001/api
+
+# Expo Go en movil fisico con Docker Compose
+#EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
 
 # Producción en Railway
 #EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api
-
-# Local con Docker Compose
-#EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
 
 EXPO_PUBLIC_MAPBOX_TOKEN=<token Mapbox>
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=<Web Client ID>
@@ -460,28 +460,28 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<iOS Client ID o vacío>
 Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados:
 - `.env.example` — raíz (Docker Compose)
 - `backend/.env.example` — backend local / Railway
-- `frontend/.env.example` — frontend con los tres entornos de API comentados
+- `frontend/.env.example` — frontend con Docker local por defecto y Railway produccion comentado
 
 ---
 
-## Railway, Expo Go y Docker
+## Docker, Expo Go y Railway
 
-El testeo funcional diario se hace levantando Expo Go contra Railway desarrollo:
+El testeo funcional diario se hace con Docker Compose local:
 
-1. `frontend/.env` apunta a `EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api`.
-2. Se ejecuta `npx expo start --clear` en `frontend`.
-3. La app se abre desde Expo Go.
+1. `.env` define PostgreSQL, secretos, `HOST_IP` y `EXPO_PUBLIC_API_URL`.
+2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env` y lanza `docker compose up --build`.
+3. La app se abre desde Expo Go usando Metro en `http://localhost:8080`.
 
-El backend usa dos servicios Railway: desarrollo para pruebas y produccion para releases. `backend/Dockerfile` existe para que Railway construya la imagen del backend.
+Railway queda reservado para produccion y debe desplegar desde `main`. `backend/Dockerfile` existe para que Railway construya la imagen del backend.
 
 El `backend/Dockerfile` ejecuta:
 
 1. `npm run build` durante la construccion de la imagen.
 2. `npm start` al arrancar el contenedor.
 
-`npm start` ejecuta `node scripts/start.js`: aplica `npx prisma db push --accept-data-loss`, ejecuta `npx prisma db seed` automaticamente en Railway desarrollo y levanta `node dist/index.js`.
+`npm start` ejecuta `node scripts/start.js`: aplica `npx prisma db push --accept-data-loss` y levanta `node dist/index.js`. Solo ejecuta seed si `ROOMIES_SEED_ON_START=true`.
 
-`docker-compose.yml` queda como apoyo opcional para revisar infraestructura local. En ese modo, el servicio backend sobreescribe el comando de la imagen Railway y ejecuta:
+`docker-compose.yml` es el flujo principal de desarrollo. En ese modo, el servicio backend sobreescribe el comando de la imagen Railway y ejecuta:
 
 1. `npx prisma generate` - regenera el cliente despues del bind mount.
 2. `npx prisma db push --accept-data-loss` - aplica el schema.
@@ -688,10 +688,10 @@ Usuarios de prueba creados por `prisma db seed`:
 
 - `docker-compose.yml` deja de fijar la API del frontend a produccion y consume `EXPO_PUBLIC_API_URL` desde `.env`.
 - `backend/Dockerfile` queda orientado a Railway: compila con `npm run build` y arranca con `npm start`.
-- `backend/scripts/start.js` aplica el schema y recupera el seed automatico en Railway desarrollo sin habilitarlo en produccion.
+- `backend/scripts/start.js` aplica el schema al arrancar la imagen Railway de produccion.
 - `docker-compose.yml` mantiene un comando de desarrollo propio para regenerar Prisma Client y arrancar con nodemon solo cuando se use Compose.
 - `.env.example`, `backend/.env.example` y `frontend/.env.example` documentan variables obligatorias, opcionales, URLs locales y tokens por entorno.
-- `docs/infra/setup-despliegue.md` concentra el flujo Railway desarrollo + Expo Go, Dockerfile, Compose auxiliar y comandos de build/test/lint.
+- `docs/infra/setup-despliegue.md` concentra el flujo Docker Compose + Expo Go, Dockerfile Railway de produccion y comandos de build/test/lint.
 
 ## Update 2026-04-12 - Epica 16 issue 257
 

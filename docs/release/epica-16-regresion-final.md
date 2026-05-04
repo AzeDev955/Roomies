@@ -16,7 +16,7 @@ Cerrar la revision integral de calidad con una comprobacion transversal de los f
 
 ## Checklist manual de producto
 
-Usar Railway desarrollo como backend y Expo Go o build nativa segun el modulo a revisar. Marcar cada punto en la PR con OK, N/A o issue de seguimiento.
+Usar Docker Compose local como backend de desarrollo y Expo Go o build nativa segun el modulo a revisar. Marcar cada punto en la PR con OK, N/A o issue de seguimiento.
 
 | Flujo | Validacion manual minima | Estado |
 |---|---|---|
@@ -83,7 +83,7 @@ Usar Railway desarrollo como backend y Expo Go o build nativa segun el modulo a 
 | Riesgo | Decision |
 |---|---|
 | Push real no se valida en Expo Go. | Documentado: requiere build nativa o development build. Checklist manual obliga a validarlo en entorno compatible antes de release. |
-| Tests smoke no sustituyen E2E con base real. | Decision documentada: se cubren rutas, permisos y servicios criticos con mocks; persistencia real queda en checklist manual contra Railway desarrollo. |
+| Tests smoke no sustituyen E2E con base real. | Decision documentada: se cubren rutas, permisos y servicios criticos con mocks; persistencia real queda en checklist manual contra Docker Compose local. |
 | Mojibake historico visible en algunos textos/docs. | Revisado en #255 y documentado como deuda de limpieza continua si aparece en areas no tocadas. |
 | Importes usan `Float` en Prisma. | Revisado en #250; no se migra en esta epica por riesgo de cambio de datos, se mantiene test de centimos y decision documentada. |
 | Docker Compose no se levanta durante la suite automatica. | Se valida `docker compose config --quiet`; levantar servicios queda como paso manual opcional por coste y duracion. |
