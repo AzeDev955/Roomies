@@ -239,6 +239,23 @@ export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.cr
     textTransform: 'uppercase',
     letterSpacing: 0,
   },
+  recurringActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    flexShrink: 0,
+  },
+  recurringIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recurringDeleteButton: {
+    backgroundColor: theme.colors.dangerLight,
+  },
   recurringEmptyCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',

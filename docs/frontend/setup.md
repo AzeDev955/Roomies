@@ -308,8 +308,9 @@ La app usa `expo-notifications`.
 
 ### Mensualidades del casero
 
-- `casero/vivienda/[id]/(tabs)/index.tsx` lista y crea gastos fijos de la vivienda con `GET/POST /api/viviendas/:viviendaId/gastos-recurrentes`.
+- `casero/vivienda/[id]/(tabs)/index.tsx` lista, crea, edita y elimina gastos fijos de la vivienda con `GET`, `POST`, `PATCH` y `DELETE /api/viviendas/:viviendaId/gastos-recurrentes`.
 - El alta de mensualidad vive en el contexto de una vivienda concreta para que el backend pueda validar al casero propietario.
+- El mismo modal se reutiliza para crear y editar; cada tarjeta activa muestra acciones de editar y eliminar.
 - El inquilino no carga ni crea mensualidades recurrentes desde su tab de gastos.
 
 ### Gastos del inquilino

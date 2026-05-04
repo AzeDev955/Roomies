@@ -54,6 +54,8 @@ const rutasProtegidas: Array<{
   { metodo: 'get', ruta: '/api/viviendas/1/cobros', flujo: 'cobros consultar' },
   { metodo: 'get', ruta: '/api/viviendas/1/gastos-recurrentes', flujo: 'mensualidades listar' },
   { metodo: 'post', ruta: '/api/viviendas/1/gastos-recurrentes', flujo: 'mensualidades crear' },
+  { metodo: 'patch', ruta: '/api/viviendas/1/gastos-recurrentes/1', flujo: 'mensualidades editar' },
+  { metodo: 'delete', ruta: '/api/viviendas/1/gastos-recurrentes/1', flujo: 'mensualidades eliminar' },
   { metodo: 'get', ruta: '/api/viviendas/1/inventario', flujo: 'inventario listar' },
   { metodo: 'post', ruta: '/api/viviendas/1/inventario', flujo: 'inventario crear item' },
   { metodo: 'patch', ruta: '/api/inventario/1/conformidad', flujo: 'inventario conformidad' },

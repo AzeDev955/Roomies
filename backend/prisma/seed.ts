@@ -410,15 +410,6 @@ async function main() {
   await prisma.gastoRecurrente.createMany({
     data: [
       {
-        concepto: "Alquiler mensual",
-        importe: 1800,
-        tipo: TipoGasto.FACTURA_MENSUAL,
-        dia_del_mes: 1,
-        vivienda_id: vivienda.id,
-        pagador_id: casero.id,
-        activo: true,
-      },
-      {
         concepto: "Internet fibra",
         importe: 60,
         tipo: TipoGasto.FACTURA_MENSUAL,
@@ -454,7 +445,7 @@ async function main() {
 
   Datos de prueba creados:
     - 5 gastos con deudas pendientes y pagadas
-    - 3 mensualidades (2 activas y 1 inactiva)
+    - 2 mensualidades (1 activa y 1 inactiva)
     - deudas del casero para probar cobros y justificantes
     - deudas entre inquilinos para probar balance del piso
   `);
