@@ -56,6 +56,21 @@ enum TipoGasto {
   ALQUILER_HABITACION
 }
 
+enum CategoriaFiscalGasto {
+  FINANCIACION_INTERESES
+  CONSERVACION_REPARACION
+  COMUNIDAD
+  IBI_TASAS
+  SEGUROS
+  SUMINISTROS
+  SERVICIOS_PROFESIONALES
+  LIMPIEZA
+  MOBILIARIO_ENSERES
+  AMORTIZACION
+  OTROS
+  SIN_CLASIFICAR
+}
+
 enum EstadoItem {
   NUEVO
   BUENO
@@ -167,6 +182,10 @@ model Gasto {
   importe            Float
   tipo               TipoGasto @default(ENTRE_COMPANEROS)
   factura_url        String?
+  categoria_fiscal   CategoriaFiscalGasto @default(SIN_CLASIFICAR)
+  deducible_previsto Boolean?
+  notas_fiscales     String?
+  prorrateo_fiscal   Float?
   fecha_creacion     DateTime  @default(now())
   fecha_modificacion DateTime?
   pagador_id         Int
