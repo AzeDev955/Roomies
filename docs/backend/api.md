@@ -1334,6 +1334,51 @@ Crea una mensualidad recurrente para la vivienda como `FACTURA_MENSUAL`. Es un f
 
 ---
 
+### PATCH `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId`
+
+Actualiza una mensualidad recurrente de la vivienda. Es un flujo exclusivo del casero propietario.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+Todos los campos son opcionales, pero debe enviarse al menos uno.
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | No | Nuevo nombre de la mensualidad; no puede estar vacio |
+| `importe` | number | No | Importe total, mayor que `0` |
+| `dia_del_mes` | number | No | Entero entre `1` y `31` |
+| `activo` | boolean | No | Activa o desactiva la generacion automatica |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Mensualidad actualizada, incluyendo `pagador { id, nombre, apellidos }`. |
+| `400` | Parametros invalidos, payload invalido o sin campos actualizables. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto fijo no encontrado en esa vivienda. |
+
+---
+
+### DELETE `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId`
+
+Elimina una mensualidad recurrente de la vivienda. No borra gastos ya generados por el cron; solo impide nuevas generaciones desde esa plantilla.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | `{ "ok": true, "gasto_recurrente_id": number }`. |
+| `400` | `viviendaId` o `gastoRecurrenteId` invalidos. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto fijo no encontrado en esa vivienda. |
+
+---
+
 ### GET `/viviendas/:viviendaId/cobros`
 
 Devuelve el dashboard financiero mensual del casero para una vivienda.

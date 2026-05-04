@@ -217,7 +217,7 @@ El seed de demo esta pensado para desarrollo local: usa emails `example.test`, c
 ## Update 2026-04-10 - Epica 12 (cobros y push)
 
 - `GastoRecurrente` forma parte del schema y su cron diario se inicia automaticamente al arrancar el backend.
-- Las mensualidades recurrentes son gestionadas por el casero propietario de la vivienda; al generarse, el casero queda como acreedor y se reparte entre inquilinos activos.
+- Las mensualidades recurrentes son gestionadas por el casero propietario de la vivienda con `GET/POST/PATCH/DELETE /api/viviendas/:viviendaId/gastos-recurrentes`; al generarse, el casero queda como acreedor y se reparte entre inquilinos activos.
 - `POST /api/deudas/:deudaId/justificante` reutiliza Cloudinary para guardar comprobantes en `roomies-justificantes`.
 - `PATCH /api/usuarios/me/push-token` permite registrar o limpiar el `expo_push_token` del usuario autenticado.
 - El cron mensual del dia 5 a las 12:00 envia recordatorios push de pago pendiente usando `expo-server-sdk`.

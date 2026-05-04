@@ -141,6 +141,7 @@ export default function ResumenViviendaTab() {
   const [loading, setLoading] = useState(true);
   const [codigosRevelados, setCodigosRevelados] = useState<Record<number, boolean>>({});
   const [mensualidadModalVisible, setMensualidadModalVisible] = useState(false);
+  const [mensualidadEditando, setMensualidadEditando] = useState<GastoRecurrente | null>(null);
   const [conceptoMensualidad, setConceptoMensualidad] = useState('');
   const [importeMensualidad, setImporteMensualidad] = useState('');
   const [diaMensualidad, setDiaMensualidad] = useState('');
@@ -283,9 +284,26 @@ export default function ResumenViviendaTab() {
 
   const cerrarModalMensualidad = () => {
     setMensualidadModalVisible(false);
+    setMensualidadEditando(null);
     setConceptoMensualidad('');
     setImporteMensualidad('');
     setDiaMensualidad('');
+  };
+
+  const abrirModalCrearMensualidad = () => {
+    setMensualidadEditando(null);
+    setConceptoMensualidad('');
+    setImporteMensualidad('');
+    setDiaMensualidad('');
+    setMensualidadModalVisible(true);
+  };
+
+  const abrirModalEditarMensualidad = (gasto: GastoRecurrente) => {
+    setMensualidadEditando(gasto);
+    setConceptoMensualidad(gasto.concepto);
+    setImporteMensualidad(String(gasto.importe).replace('.', ','));
+    setDiaMensualidad(String(gasto.dia_del_mes));
+    setMensualidadModalVisible(true);
   };
 
   const handleGuardarMensualidad = async () => {
@@ -311,26 +329,58 @@ export default function ResumenViviendaTab() {
 
     setGuardandoMensualidad(true);
     try {
-      await api.post(`/viviendas/${id}/gastos-recurrentes`, {
+      const payload = {
         concepto: conceptoMensualidad.trim(),
         importe: importeNum,
         dia_del_mes: diaNum,
-      });
+      };
+
+      if (mensualidadEditando) {
+        await api.patch(`/viviendas/${id}/gastos-recurrentes/${mensualidadEditando.id}`, payload);
+      } else {
+        await api.post(`/viviendas/${id}/gastos-recurrentes`, payload);
+      }
       await cargarGastosRecurrentes();
       cerrarModalMensualidad();
       Toast.show({
         type: 'success',
-        text1: 'Gasto fijo creado',
+        text1: mensualidadEditando ? 'Gasto fijo actualizado' : 'Gasto fijo creado',
         text2: `${conceptoMensualidad.trim()} · ${formatearImporte(importeNum)} · Día ${diaNum}`,
       });
     } catch (err: any) {
       Toast.show({
         type: 'error',
-        text1: err.response?.data?.error ?? 'No se pudo crear el gasto fijo.',
+        text1: err.response?.data?.error ?? 'No se pudo guardar el gasto fijo.',
       });
     } finally {
       setGuardandoMensualidad(false);
     }
+  };
+
+  const handleEliminarMensualidad = (gasto: GastoRecurrente) => {
+    Alert.alert(
+      'Eliminar gasto fijo',
+      `¿Quieres eliminar "${gasto.concepto}"? No se generarán más cargos automáticos desde este gasto fijo.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/viviendas/${id}/gastos-recurrentes/${gasto.id}`);
+              setGastosRecurrentes((prev) => prev.filter((item) => item.id !== gasto.id));
+              Toast.show({ type: 'success', text1: 'Gasto fijo eliminado' });
+            } catch (err: any) {
+              Toast.show({
+                type: 'error',
+                text1: err.response?.data?.error ?? 'No se pudo eliminar el gasto fijo.',
+              });
+            }
+          },
+        },
+      ],
+    );
   };
 
   const puedeGuardarMensualidad =
@@ -409,7 +459,7 @@ export default function ResumenViviendaTab() {
           </View>
           <Pressable
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
-            onPress={() => setMensualidadModalVisible(true)}
+            onPress={abrirModalCrearMensualidad}
             accessibilityRole="button"
             accessibilityLabel="Crear nuevo gasto fijo"
           >
@@ -443,8 +493,33 @@ export default function ResumenViviendaTab() {
                   {formatearImporte(gasto.importe)} · Día {gasto.dia_del_mes}
                 </Text>
               </View>
-              <View style={styles.recurringBadge}>
-                <Text style={styles.recurringBadgeText}>Activa</Text>
+              <View style={styles.recurringActions}>
+                <View style={styles.recurringBadge}>
+                  <Text style={styles.recurringBadgeText}>Activa</Text>
+                </View>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.recurringIconButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                  onPress={() => abrirModalEditarMensualidad(gasto)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Editar ${gasto.concepto}`}
+                >
+                  <Ionicons name="create-outline" size={18} color={theme.colors.primary} />
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.recurringIconButton,
+                    styles.recurringDeleteButton,
+                    pressed && styles.secondaryButtonPressed,
+                  ]}
+                  onPress={() => handleEliminarMensualidad(gasto)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Eliminar ${gasto.concepto}`}
+                >
+                  <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
+                </Pressable>
               </View>
             </View>
           ))
@@ -586,7 +661,9 @@ export default function ResumenViviendaTab() {
           <Pressable style={{ flex: 1 }} onPress={cerrarModalMensualidad} />
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitulo}>Nuevo gasto fijo</Text>
+            <Text style={styles.modalTitulo}>
+              {mensualidadEditando ? 'Editar gasto fijo' : 'Nuevo gasto fijo'}
+            </Text>
             <Text style={styles.modalSubtitulo}>
               Configura un recibo recurrente para esta vivienda y Roomies se encargará del reparto.
             </Text>
@@ -632,7 +709,7 @@ export default function ResumenViviendaTab() {
                 style={styles.modalBoton}
               />
               <CustomButton
-                label="Crear"
+                label={mensualidadEditando ? 'Guardar' : 'Crear'}
                 onPress={handleGuardarMensualidad}
                 disabled={!puedeGuardarMensualidad}
                 loading={guardandoMensualidad}

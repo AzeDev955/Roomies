@@ -61,11 +61,11 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 ### Cobros, mensualidades y push (Epica 12)
 
-- El backend expone `GET /api/viviendas/:viviendaId/gastos`, `POST /api/viviendas/:viviendaId/gastos`, `GET /api/viviendas/:viviendaId/deudas`, `PATCH /api/viviendas/:viviendaId/deudas/:deudaId/saldar`, `GET /api/viviendas/:viviendaId/gastos-recurrentes`, `POST /api/viviendas/:viviendaId/gastos-recurrentes` y `GET /api/viviendas/:viviendaId/cobros`.
+- El backend expone `GET /api/viviendas/:viviendaId/gastos`, `POST /api/viviendas/:viviendaId/gastos`, `GET /api/viviendas/:viviendaId/deudas`, `PATCH /api/viviendas/:viviendaId/deudas/:deudaId/saldar`, `GET/POST/PATCH/DELETE /api/viviendas/:viviendaId/gastos-recurrentes` y `GET /api/viviendas/:viviendaId/cobros`.
 - `GastoRecurrente` guarda mensualidades activas por vivienda y el cron diario de las `02:00` las transforma en `Gasto` normal con reparto automatico entre inquilinos activos.
 - `Deuda` incorpora `justificante_url`; el deudor puede subir imagen con `POST /api/deudas/:deudaId/justificante` usando `multipart/form-data` en el campo `justificante`.
 - El casero dispone de una pestana global `Cobros` con selector de vivienda, resumen mensual de pagado/pendiente y visualizacion del justificante cuando existe.
-- Las mensualidades se gestionan desde el resumen de cada vivienda del casero; el inquilino no ve ni crea gastos recurrentes.
+- Las mensualidades se gestionan desde el resumen de cada vivienda del casero; el casero puede crear, editar y eliminar gastos fijos, y el inquilino no ve ni crea gastos recurrentes.
 - El frontend del inquilino mantiene la pestana `Gastos` para gastos puntuales, deudas, facturas originales y bottom sheet de justificante antes de marcar una deuda como pagada.
 - El backend expone `PATCH /api/usuarios/me/push-token` y el alias legado `PUT /api/usuarios/push-token` para registrar el `expo_push_token` del usuario autenticado.
 - El frontend sincroniza el token push desde `app/_layout.tsx`, login, registro y selector de rol; en Expo Go el registro se omite y solo funciona en dispositivo fisico o build nativa.
@@ -390,6 +390,8 @@ Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e in
 | PATCH  | `/viviendas/:viviendaId/deudas/:deudaId/saldar` | Si | Marca una deuda como `PAGADA`; solo el deudor puede hacerlo |
 | GET    | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Lista mensualidades activas o inactivas de la vivienda |
 | POST   | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Crea una mensualidad recurrente con `concepto`, `importe` y `dia_del_mes` |
+| PATCH  | `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId` | Si | Edita `concepto`, `importe`, `dia_del_mes` o `activo` de una mensualidad recurrente |
+| DELETE | `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId` | Si | Elimina una mensualidad recurrente sin afectar gastos ya generados |
 | GET    | `/viviendas/:viviendaId/cobros` | Si | Dashboard mensual del casero con resumen pagado o pendiente y detalle de justificantes |
 
 ### Deudas - `/deudas`
@@ -652,6 +654,8 @@ Usuarios de prueba creados por `prisma db seed`:
 | ------------------ | ----------- | --------- |
 | casero@test.com    | `casero123` | CASERO    |
 | inquilino@test.com | `inquilino123` | INQUILINO |
+
+El seed demo crea gastos puntuales, deudas del casero, deudas entre inquilinos y mensualidades de servicios. No crea la mensualidad de alquiler, porque el alquiler por habitacion se gestiona con `Habitacion.precio` y cargos de alquiler propios.
 
 ---
 
