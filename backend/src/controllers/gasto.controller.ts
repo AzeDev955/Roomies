@@ -2,7 +2,10 @@ import express from 'express';
 import { cloudinaryEstaConfigurado } from '../config/cloudinary.config';
 import { prisma } from '../lib/prisma';
 import {
+  CategoriaFiscalGastoRoomies,
   crearGastoDividido,
+  esCategoriaFiscalGasto,
+  MetadataFiscalGastoInput,
   normalizarImporteMonetario,
   repartirImporteEnCentimos,
   TIPOS_GASTO_CASERO,
@@ -32,6 +35,28 @@ const normalizarNumero = (valor: unknown) => {
   return NaN;
 };
 
+const normalizarBooleanoOpcional = (valor: unknown) => {
+  if (valor == null || valor === '') {
+    return null;
+  }
+
+  if (typeof valor === 'boolean') {
+    return valor;
+  }
+
+  if (typeof valor === 'string') {
+    const normalizado = valor.trim().toLowerCase();
+    if (['true', '1', 'si', 'sí'].includes(normalizado)) {
+      return true;
+    }
+    if (['false', '0', 'no'].includes(normalizado)) {
+      return false;
+    }
+  }
+
+  throw new Error('deducible_previsto debe ser booleano.');
+};
+
 const normalizarRepartoManual = (valor: unknown) => {
   if (valor == null || valor === '') {
     return undefined;
@@ -47,6 +72,104 @@ const normalizarRepartoManual = (valor: unknown) => {
     usuario_id: normalizarNumero(linea.usuario_id),
     importe: normalizarNumero(linea.importe),
   }));
+};
+
+const obtenerValorFiscal = (body: Record<string, unknown>, snake: string, camel: string) =>
+  body[snake] ?? body[camel];
+
+const tieneMetadataFiscalEnBody = (body: Record<string, unknown>) =>
+  [
+    'categoria_fiscal',
+    'categoriaFiscal',
+    'deducible_previsto',
+    'deduciblePrevisto',
+    'notas_fiscales',
+    'notasFiscales',
+    'prorrateo_fiscal',
+    'prorrateoFiscal',
+  ].some((campo) => Object.prototype.hasOwnProperty.call(body, campo));
+
+const normalizarMetadataFiscal = (body: Record<string, unknown>): MetadataFiscalGastoInput | undefined => {
+  if (!tieneMetadataFiscalEnBody(body)) {
+    return undefined;
+  }
+
+  const categoria = obtenerValorFiscal(body, 'categoria_fiscal', 'categoriaFiscal');
+  const deducible = obtenerValorFiscal(body, 'deducible_previsto', 'deduciblePrevisto');
+  const notas = obtenerValorFiscal(body, 'notas_fiscales', 'notasFiscales');
+  const prorrateo = obtenerValorFiscal(body, 'prorrateo_fiscal', 'prorrateoFiscal');
+  const metadata: MetadataFiscalGastoInput = {};
+
+  if (categoria !== undefined && categoria !== null && categoria !== '') {
+    if (!esCategoriaFiscalGasto(categoria)) {
+      throw new Error('categoria_fiscal no es una categoria fiscal valida.');
+    }
+
+    metadata.categoriaFiscal = categoria as CategoriaFiscalGastoRoomies;
+  }
+
+  if (deducible !== undefined) {
+    metadata.deduciblePrevisto = normalizarBooleanoOpcional(deducible);
+  }
+
+  if (notas !== undefined) {
+    if (notas == null || notas === '') {
+      metadata.notasFiscales = null;
+    } else if (typeof notas !== 'string') {
+      throw new Error('notas_fiscales debe ser texto.');
+    } else {
+      const notasNormalizadas = notas.trim();
+      if (notasNormalizadas.length > 1000) {
+        throw new Error('notas_fiscales no puede superar 1000 caracteres.');
+      }
+      metadata.notasFiscales = notasNormalizadas || null;
+    }
+  }
+
+  if (prorrateo !== undefined) {
+    if (prorrateo == null || prorrateo === '') {
+      metadata.prorrateoFiscal = null;
+    } else {
+      const prorrateoNormalizado = normalizarNumero(prorrateo);
+      if (!Number.isFinite(prorrateoNormalizado) || prorrateoNormalizado < 0 || prorrateoNormalizado > 100) {
+        throw new Error('prorrateo_fiscal debe estar entre 0 y 100.');
+      }
+      metadata.prorrateoFiscal = prorrateoNormalizado;
+    }
+  }
+
+  return metadata;
+};
+
+const construirActualizacionFiscal = (metadataFiscal?: MetadataFiscalGastoInput) => {
+  if (!metadataFiscal) {
+    return {};
+  }
+
+  return {
+    ...(metadataFiscal.categoriaFiscal !== undefined
+      ? { categoria_fiscal: metadataFiscal.categoriaFiscal }
+      : {}),
+    ...(metadataFiscal.deduciblePrevisto !== undefined
+      ? { deducible_previsto: metadataFiscal.deduciblePrevisto }
+      : {}),
+    ...(metadataFiscal.notasFiscales !== undefined ? { notas_fiscales: metadataFiscal.notasFiscales } : {}),
+    ...(metadataFiscal.prorrateoFiscal !== undefined
+      ? { prorrateo_fiscal: metadataFiscal.prorrateoFiscal }
+      : {}),
+  };
+};
+
+const ocultarMetadataFiscal = <T extends Record<string, unknown>>(gasto: T) => {
+  const {
+    categoria_fiscal: _categoriaFiscal,
+    deducible_previsto: _deduciblePrevisto,
+    notas_fiscales: _notasFiscales,
+    prorrateo_fiscal: _prorrateoFiscal,
+    ...gastoPublico
+  } = gasto;
+
+  return gastoPublico;
 };
 
 const obtenerUrlArchivo = (file: Express.Multer.File | undefined) => {
@@ -112,7 +235,7 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
     },
   });
 
-  res.status(200).json(gastos);
+  res.status(200).json(viviendaCasero ? gastos : gastos.map((gasto) => ocultarMetadataFiscal(gasto)));
 };
 
 export const listarDeudas: express.RequestHandler = async (req, res) => {
@@ -212,6 +335,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
+  const body = req.body as Record<string, unknown>;
   const { concepto, importe, implicadosIds, fecha } = req.body as {
     concepto: string;
     importe: number | string;
@@ -264,6 +388,20 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
+  let metadataFiscal: MetadataFiscalGastoInput | undefined;
+  try {
+    metadataFiscal = normalizarMetadataFiscal(body);
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : 'Los metadatos fiscales no son válidos.';
+    res.status(400).json({ error: mensaje });
+    return;
+  }
+
+  if (metadataFiscal && req.usuario!.rol !== 'CASERO') {
+    res.status(403).json({ error: 'Solo el casero puede informar metadatos fiscales del gasto.' });
+    return;
+  }
+
   // Verificar que el pagador pertenece a la vivienda (es inquilino de alguna habitación)
   const habitacionPagador = await usuarioPuedeAccederAVivienda(viviendaId, pagadorId);
 
@@ -291,6 +429,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
       repartoManual,
       facturaUrl,
       fecha: fechaGasto,
+      metadataFiscal,
     });
 
     res.status(201).json(gasto);
@@ -315,6 +454,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
+  const body = req.body as Record<string, unknown>;
   const { concepto, importe, fecha } = req.body as {
     concepto?: string;
     importe?: number;
@@ -327,6 +467,10 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     fecha_creacion?: Date;
     fecha_modificacion?: Date;
     modificado_por_id?: number;
+    categoria_fiscal?: CategoriaFiscalGastoRoomies;
+    deducible_previsto?: boolean | null;
+    notas_fiscales?: string | null;
+    prorrateo_fiscal?: number | null;
   } = {};
 
   if (concepto !== undefined) {
@@ -358,6 +502,17 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     datosActualizacion.fecha_creacion = fechaActualizada;
   }
 
+  let metadataFiscal: MetadataFiscalGastoInput | undefined;
+  try {
+    metadataFiscal = normalizarMetadataFiscal(body);
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : 'Los metadatos fiscales no son válidos.';
+    res.status(400).json({ error: mensaje });
+    return;
+  }
+
+  Object.assign(datosActualizacion, construirActualizacionFiscal(metadataFiscal));
+
   if (Object.keys(datosActualizacion).length === 0) {
     res.status(400).json({ error: 'No hay campos válidos para actualizar.' });
     return;
@@ -381,8 +536,12 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
   }
 
   const hayPagosRegistrados = gasto.deudas.some((deuda) => deuda.estado === 'PAGADA');
+  const actualizaDatosEconomicos =
+    datosActualizacion.concepto !== undefined ||
+    datosActualizacion.importe !== undefined ||
+    datosActualizacion.fecha_creacion !== undefined;
 
-  if (hayPagosRegistrados) {
+  if (hayPagosRegistrados && actualizaDatosEconomicos) {
     res.status(400).json({
       error: 'Esta factura no puede modificarse porque ya existen pagos registrados.',
     });

@@ -35,6 +35,9 @@ const prisma = vi.hoisted(() => ({
     findFirst: async (_args: unknown): Promise<unknown> => {
       throw new Error('Unexpected prisma call: gasto.findFirst');
     },
+    update: async (_args: unknown): Promise<unknown> => {
+      throw new Error('Unexpected prisma call: gasto.update');
+    },
   },
   deuda: {
     findMany: async (_args: unknown): Promise<unknown> => {
@@ -58,6 +61,7 @@ const { crearGastoDividido } = await import('../src/services/gasto.service');
 const { crearCargosMensualesHabitacion } = await import('../src/services/gasto.service');
 const {
   actualizarGasto,
+  crearGasto,
   eliminarGasto,
   listarGastos,
   saldarDeuda,
@@ -65,12 +69,13 @@ const {
 const { listarCobrosVivienda } = await import('../src/controllers/cobros.controller');
 
 let ultimoGastoCreate: {
-  data: { deudas: { create: unknown[] }; importe: number; tipo?: string };
+  data: Record<string, unknown> & { deudas: { create: unknown[] }; importe: number; tipo?: string };
 } | null = null;
 let deudaUpdateCalls: unknown[] = [];
 let ultimoGastoFindMany: unknown = null;
 let ultimoGastoFindFirst: unknown = null;
 let ultimoGastoDelete: unknown = null;
+let ultimoGastoUpdate: unknown = null;
 let ultimaDeudaFindMany: unknown = null;
 let transactionCalled = false;
 
@@ -80,6 +85,7 @@ function resetPrisma() {
   ultimoGastoFindMany = null;
   ultimoGastoFindFirst = null;
   ultimoGastoDelete = null;
+  ultimoGastoUpdate = null;
   ultimaDeudaFindMany = null;
   transactionCalled = false;
 
@@ -116,6 +122,10 @@ function resetPrisma() {
   prisma.gasto.delete = async (args: unknown) => {
     ultimoGastoDelete = args;
     return { id: 1 };
+  };
+  prisma.gasto.update = async (args: unknown) => {
+    ultimoGastoUpdate = args;
+    return { id: 1, ...(args as { data: unknown }).data };
   };
   prisma.deuda.findMany = async (args: unknown) => {
     ultimaDeudaFindMany = args;
@@ -217,6 +227,68 @@ describe('modulo economico', () => {
     });
 
     assert.equal(ultimoGastoCreate?.data.tipo, 'FACTURA_PUNTUAL');
+  });
+
+  test('marca gastos antiguos como sin clasificar por defecto', async () => {
+    await crearGastoDividido({
+      concepto: 'Factura antigua',
+      importe: 90,
+      tipo: 'FACTURA_PUNTUAL',
+      viviendaId: 1,
+      pagadorId: 99,
+    });
+
+    assert.equal(ultimoGastoCreate?.data.categoria_fiscal, 'SIN_CLASIFICAR');
+    assert.equal(ultimoGastoCreate?.data.deducible_previsto, null);
+    assert.equal(ultimoGastoCreate?.data.notas_fiscales, null);
+    assert.equal(ultimoGastoCreate?.data.prorrateo_fiscal, null);
+  });
+
+  test('el casero crea gastos con metadatos fiscales validados', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+
+    const res = await invoke(
+      crearGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1' },
+        body: {
+          concepto: 'Seguro hogar',
+          importe: 120,
+          categoria_fiscal: 'SEGUROS',
+          deducible_previsto: true,
+          notas_fiscales: 'Poliza anual',
+          prorrateo_fiscal: 75,
+        },
+      }),
+    );
+
+    assert.equal(res.statusCode, 201);
+    assert.equal(ultimoGastoCreate?.data.tipo, 'FACTURA_PUNTUAL');
+    assert.equal(ultimoGastoCreate?.data.categoria_fiscal, 'SEGUROS');
+    assert.equal(ultimoGastoCreate?.data.deducible_previsto, true);
+    assert.equal(ultimoGastoCreate?.data.notas_fiscales, 'Poliza anual');
+    assert.equal(ultimoGastoCreate?.data.prorrateo_fiscal, 75);
+  });
+
+  test('rechaza metadatos fiscales en gastos creados por inquilinos', async () => {
+    prisma.habitacion.findFirst = async () => ({ id: 1 });
+
+    const res = await invoke(
+      crearGasto,
+      request({
+        usuario: { id: 1, rol: 'INQUILINO' },
+        params: { viviendaId: '1' },
+        body: {
+          concepto: 'Compra comun',
+          importe: 30,
+          categoria_fiscal: 'SUMINISTROS',
+        },
+      }),
+    );
+
+    assert.equal(res.statusCode, 403);
+    assert.equal(ultimoGastoCreate, null);
   });
 
   test('acepta reparto manual correcto con cuota cero sin crear deuda de importe cero', async () => {
@@ -355,6 +427,43 @@ describe('modulo economico', () => {
     );
   });
 
+  test('el listado de inquilino no expone metadatos fiscales privados', async () => {
+    prisma.habitacion.findFirst = async () => ({ id: 1 });
+    prisma.gasto.findMany = async (args: unknown) => {
+      ultimoGastoFindMany = args;
+      return [
+        {
+          id: 12,
+          concepto: 'Seguro hogar',
+          importe: 120,
+          categoria_fiscal: 'SEGUROS',
+          deducible_previsto: true,
+          notas_fiscales: 'Privado del casero',
+          prorrateo_fiscal: 75,
+          deudas: [],
+        },
+      ];
+    };
+
+    const res = await invoke(
+      listarGastos,
+      request({
+        usuario: { id: 2, rol: 'INQUILINO' },
+        params: { viviendaId: '1' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, [
+      {
+        id: 12,
+        concepto: 'Seguro hogar',
+        importe: 120,
+        deudas: [],
+      },
+    ]);
+  });
+
   test('el dashboard de cobros excluye gastos entre companeros por tipo', async () => {
     prisma.vivienda.findUnique = async () => ({
       id: 1,
@@ -376,6 +485,12 @@ describe('modulo economico', () => {
       (ultimaDeudaFindMany as { where: { gasto: { tipo: { in: string[] } } } }).where.gasto.tipo.in,
       ['FACTURA_PUNTUAL', 'FACTURA_MENSUAL', 'CARGO_RECURRENTE', 'ALQUILER_HABITACION'],
     );
+    const gastoSelect = (ultimaDeudaFindMany as { include: { gasto: { select: Record<string, boolean> } } }).include
+      .gasto.select;
+    assert.equal(gastoSelect.categoria_fiscal, true);
+    assert.equal(gastoSelect.deducible_previsto, true);
+    assert.equal(gastoSelect.notas_fiscales, true);
+    assert.equal(gastoSelect.prorrateo_fiscal, true);
   });
 
   test('genera alquiler mensual de habitacion como deuda del inquilino con el casero', async () => {
@@ -533,6 +648,36 @@ describe('modulo economico', () => {
       error: 'Esta factura no puede modificarse porque ya existen pagos registrados.',
     });
     assert.equal(transactionCalled, false);
+  });
+
+  test('permite reclasificar fiscalmente una factura con pagos registrados', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+    prisma.gasto.findFirst = async () => ({
+      id: 12,
+      importe: 100,
+      deudas: [{ id: 20, deudor_id: 2, estado: 'PAGADA' }],
+    });
+
+    const res = await invoke(
+      actualizarGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1', gastoId: '12' },
+        body: {
+          categoria_fiscal: 'COMUNIDAD',
+          deducible_previsto: true,
+          notas_fiscales: 'Revisado por gestor',
+          prorrateo_fiscal: 50,
+        },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(transactionCalled, true);
+    assert.equal((res.body as { categoria_fiscal: string }).categoria_fiscal, 'COMUNIDAD');
+    assert.equal((res.body as { deducible_previsto: boolean }).deducible_previsto, true);
+    assert.equal((res.body as { notas_fiscales: string }).notas_fiscales, 'Revisado por gestor');
+    assert.equal((res.body as { prorrateo_fiscal: number }).prorrateo_fiscal, 50);
   });
 
   test('edita importes abiertos redistribuyendo en centimos exactos', async () => {

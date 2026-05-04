@@ -78,6 +78,10 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
           importe: true,
           tipo: true,
           factura_url: true,
+          categoria_fiscal: true,
+          deducible_previsto: true,
+          notas_fiscales: true,
+          prorrateo_fiscal: true,
           fecha_creacion: true,
           fecha_modificacion: true,
           modificado_por: {

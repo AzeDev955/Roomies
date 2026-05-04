@@ -11,7 +11,7 @@ Este contrato define los datos internos que Roomies debe preparar para convertir
 | `Vivienda` | Unidad de agrupacion fiscal y propiedad del casero. | `id`, `casero_id`, `alias_nombre`, `direccion`, `codigo_postal`, `ciudad`, `provincia` |
 | `Habitacion` | Subunidad opcional para alquiler por habitacion. | `id`, `vivienda_id`, `inquilino_id`, `nombre`, `tipo`, `es_habitable`, `precio` |
 | `Usuario` | Casero, inquilino, deudor, acreedor o pagador. | `id`, `nombre`, `apellidos`, `documento_identidad`, `email`, `rol` |
-| `Gasto` | Documento economico emitido o registrado. | `id`, `concepto`, `importe`, `tipo`, `factura_url`, `fecha_creacion`, `periodo_facturacion`, `habitacion_cargo_id`, `inquilino_cargo_id`, `vivienda_id`, `pagador_id` |
+| `Gasto` | Documento economico emitido o registrado. | `id`, `concepto`, `importe`, `tipo`, `factura_url`, `categoria_fiscal`, `deducible_previsto`, `notas_fiscales`, `prorrateo_fiscal`, `fecha_creacion`, `periodo_facturacion`, `habitacion_cargo_id`, `inquilino_cargo_id`, `vivienda_id`, `pagador_id` |
 | `GastoRecurrente` | Plantilla de cargos mensuales futuros. | `id`, `concepto`, `importe`, `tipo`, `dia_del_mes`, `vivienda_id`, `pagador_id`, `activo` |
 | `Deuda` | Linea exigible/cobrada asociada a un gasto. | `id`, `gasto_id`, `deudor_id`, `acreedor_id`, `importe`, `estado`, `justificante_url` |
 | Facturas | Soporte documental del gasto o cargo emitido. | `Gasto.factura_url` |
@@ -41,17 +41,17 @@ No se debe mezclar caja real con facturacion emitida: los totales de caja usan s
 
 ## Gastos fiscalmente deducibles
 
-El modelo actual no tiene una categoria fiscal dedicada ni marca de deducibilidad. Por eso, el contrato distingue entre gastos potencialmente deducibles y gastos pendientes de clasificar:
+El modelo guarda metadatos fiscales del propietario en `Gasto`: categoria fiscal, deducibilidad prevista, notas internas y prorrateo opcional. Por eso, el contrato distingue entre gastos potencialmente deducibles y gastos pendientes de clasificar:
 
 | Fuente | Tratamiento inicial |
 |---|---|
 | `Gasto` con `factura_url` y tipo de flujo del casero | Potencialmente deducible si la factura corresponde a un gasto soportado por el propietario, pero requiere categoria fiscal antes de exportar como deducible. |
 | `Gasto` sin `factura_url` | Pendiente de documentacion; puede aparecer en revision interna, pero no debe exportarse como deducible confirmado. |
-| `Gasto` sin categoria fiscal futura | Pendiente de clasificacion aunque tenga factura. |
+| `Gasto` con `categoria_fiscal = SIN_CLASIFICAR` | Pendiente de clasificacion aunque tenga factura. |
 | `ENTRE_COMPANEROS` | Excluido del bloque fiscal del propietario salvo que una funcionalidad futura lo reclasifique explicitamente. |
 | `GastoRecurrente` | No es gasto real hasta generar un `Gasto`; solo sirve para explicar origen y periodicidad. |
 
-Hasta que exista categoria fiscal persistida, Roomies debe emitir estas lineas con `deducibilidad = PENDIENTE_CLASIFICACION`. Las categorias futuras deberian vivir fuera de `concepto` para evitar inferencias por texto libre.
+Cuando `categoria_fiscal = SIN_CLASIFICAR`, Roomies debe emitir estas lineas con `deducibilidad = PENDIENTE_CLASIFICACION`. Las categorias viven fuera de `concepto` para evitar inferencias por texto libre.
 
 ## DTOs internos propuestos
 
@@ -65,6 +65,20 @@ type FiscalCategoriaIngreso =
   | 'FACTURA_MENSUAL'
   | 'CARGO_RECURRENTE'
   | 'FACTURA_PUNTUAL';
+
+type FiscalCategoriaGasto =
+  | 'FINANCIACION_INTERESES'
+  | 'CONSERVACION_REPARACION'
+  | 'COMUNIDAD'
+  | 'IBI_TASAS'
+  | 'SEGUROS'
+  | 'SUMINISTROS'
+  | 'SERVICIOS_PROFESIONALES'
+  | 'LIMPIEZA'
+  | 'MOBILIARIO_ENSERES'
+  | 'AMORTIZACION'
+  | 'OTROS'
+  | 'SIN_CLASIFICAR';
 
 type FiscalLineaDTO = {
   id: string;
@@ -100,7 +114,7 @@ type FiscalLineaDTO = {
     documentoIdentidad?: string | null;
   };
   concepto: string;
-  categoria: FiscalCategoriaIngreso | 'PENDIENTE_CLASIFICACION';
+  categoria: FiscalCategoriaIngreso | FiscalCategoriaGasto | 'PENDIENTE_CLASIFICACION';
   deducibilidad: FiscalDeducibilidad;
   importe: number;
   moneda: 'EUR';

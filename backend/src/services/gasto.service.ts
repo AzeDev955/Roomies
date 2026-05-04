@@ -9,9 +9,33 @@ export const TIPOS_GASTO_CASERO = [
 
 export const TIPOS_GASTO_COMPANEROS = ['ENTRE_COMPANEROS'] as const;
 
+export const CATEGORIAS_FISCALES_GASTO = [
+  'FINANCIACION_INTERESES',
+  'CONSERVACION_REPARACION',
+  'COMUNIDAD',
+  'IBI_TASAS',
+  'SEGUROS',
+  'SUMINISTROS',
+  'SERVICIOS_PROFESIONALES',
+  'LIMPIEZA',
+  'MOBILIARIO_ENSERES',
+  'AMORTIZACION',
+  'OTROS',
+  'SIN_CLASIFICAR',
+] as const;
+
 export type TipoGastoRoomies =
   | (typeof TIPOS_GASTO_CASERO)[number]
   | (typeof TIPOS_GASTO_COMPANEROS)[number];
+
+export type CategoriaFiscalGastoRoomies = (typeof CATEGORIAS_FISCALES_GASTO)[number];
+
+export type MetadataFiscalGastoInput = {
+  categoriaFiscal?: CategoriaFiscalGastoRoomies;
+  deduciblePrevisto?: boolean | null;
+  notasFiscales?: string | null;
+  prorrateoFiscal?: number | null;
+};
 
 type CrearGastoDivididoInput = {
   concepto: string;
@@ -29,6 +53,7 @@ type CrearGastoDivididoInput = {
   periodoFacturacion?: string | null;
   habitacionCargoId?: number | null;
   inquilinoCargoId?: number | null;
+  metadataFiscal?: MetadataFiscalGastoInput;
 };
 
 type CrearCargosMensualesHabitacionResultado = {
@@ -81,6 +106,17 @@ export const desdeCentimos = (centimos: number) => centimos / 100;
 
 export const normalizarImporteMonetario = (importe: number) => desdeCentimos(aCentimos(importe));
 
+export const esCategoriaFiscalGasto = (valor: unknown): valor is CategoriaFiscalGastoRoomies =>
+  typeof valor === 'string' &&
+  CATEGORIAS_FISCALES_GASTO.includes(valor as CategoriaFiscalGastoRoomies);
+
+export const construirDatosMetadataFiscal = (metadataFiscal?: MetadataFiscalGastoInput) => ({
+  categoria_fiscal: metadataFiscal?.categoriaFiscal ?? 'SIN_CLASIFICAR',
+  deducible_previsto: metadataFiscal?.deduciblePrevisto ?? null,
+  notas_fiscales: metadataFiscal?.notasFiscales ?? null,
+  prorrateo_fiscal: metadataFiscal?.prorrateoFiscal ?? null,
+});
+
 export const repartirImporteEnCentimos = (importe: number, participantesIds: number[]) => {
   const totalCentimos = aCentimos(importe);
   const base = Math.floor(totalCentimos / participantesIds.length);
@@ -105,6 +141,7 @@ export const crearGastoDividido = async ({
   periodoFacturacion,
   habitacionCargoId,
   inquilinoCargoId,
+  metadataFiscal,
 }: CrearGastoDivididoInput) => {
   const vivienda = await prisma.vivienda.findUnique({
     where: { id: viviendaId },
@@ -173,6 +210,7 @@ export const crearGastoDividido = async ({
         importe: importeNormalizado,
         tipo,
         factura_url: facturaUrl ?? null,
+        ...construirDatosMetadataFiscal(metadataFiscal),
         fecha_creacion: fecha,
         pagador_id: pagadorId,
         periodo_facturacion: periodoFacturacion ?? null,
@@ -212,6 +250,7 @@ export const crearGastoDividido = async ({
       importe: importeNormalizado,
       tipo,
       factura_url: facturaUrl ?? null,
+      ...construirDatosMetadataFiscal(metadataFiscal),
       fecha_creacion: fecha,
       pagador_id: pagadorId,
       periodo_facturacion: periodoFacturacion ?? null,
