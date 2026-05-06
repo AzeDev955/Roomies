@@ -1445,6 +1445,95 @@ Devuelve el dashboard financiero mensual del casero para una vivienda.
 
 ---
 
+## Fiscal (`/viviendas/:viviendaId`)
+
+### GET `/viviendas/:viviendaId/fiscal/ocupacion?ejercicio=YYYY`
+
+Devuelve la foto anual de ocupacion fiscal de una vivienda, con detalle por habitacion y prorrateos deterministas para gastos del ejercicio.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede consultar este endpoint.
+- `ejercicio` es obligatorio y representa un ano natural.
+
+**Comportamiento:**
+- Usa cargos `ALQUILER_HABITACION` con `periodo_facturacion` mensual (`YYYY-MM`) para calcular dias alquilados, meses equivalentes y porcentaje de ocupacion.
+- Distingue viviendas y habitaciones `SIN_ACTIVIDAD`, `PARCIAL` y `TODO_EL_ANO`.
+- Marca `requiere_revision` cuando faltan periodos de facturacion, hay ocupacion actual sin cargos del ejercicio o una habitacion con actividad no conserva precio valido.
+- Prorratea gastos del flujo del casero por porcentaje manual (`prorrateo_fiscal`) cuando existe; si no, usa el porcentaje anual de ocupacion de la vivienda.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Foto anual de ocupacion fiscal. |
+| `400` | `viviendaId` o `ejercicio` invalidos. |
+| `403` | El usuario no es casero o no puede consultar fiscalidad de la vivienda. |
+| `404` | Vivienda no encontrada. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "ejercicio": 2026,
+  "periodo": { "inicio": "2026-01-01", "fin": "2027-01-01", "dias": 365 },
+  "vivienda": {
+    "id": 3,
+    "alias_nombre": "Piso Centro",
+    "direccion": "Calle Mayor 10",
+    "codigo_postal": "28013",
+    "ciudad": "Madrid",
+    "provincia": "Madrid"
+  },
+  "resumen": {
+    "dias_alquilados": 90,
+    "meses_equivalentes": 2.96,
+    "porcentaje_ocupacion": 24.6575,
+    "estado": "PARCIAL",
+    "habitaciones_con_actividad": 1,
+    "habitaciones_requieren_revision": 0,
+    "requiere_revision": false
+  },
+  "habitaciones": [
+    {
+      "id": 7,
+      "nombre": "Habitacion azul",
+      "dias_alquilados": 90,
+      "meses_equivalentes": 2.96,
+      "porcentaje_ocupacion": 24.6575,
+      "estado": "PARCIAL",
+      "requiere_revision": false,
+      "periodos": [
+        {
+          "inicio": "2026-01-01",
+          "fin": "2026-02-01",
+          "dias": 31,
+          "periodo_facturacion": "2026-01",
+          "gasto_id": 18,
+          "importe": 450
+        }
+      ]
+    }
+  ],
+  "gastos_prorrateados": [
+    {
+      "id": 24,
+      "concepto": "Seguro hogar",
+      "importe": 120,
+      "tipo": "FACTURA_PUNTUAL",
+      "fecha": "2026-02-10",
+      "prorrateo": {
+        "modo": "OCUPACION",
+        "porcentaje": 24.6575,
+        "importe_prorrateado": 29.59
+      }
+    }
+  ]
+}
+```
+
+---
+
 ## Deudas (`/deudas`)
 
 ### POST `/deudas/:deudaId/justificante`
