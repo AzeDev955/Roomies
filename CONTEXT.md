@@ -34,6 +34,14 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 ## Actualizaciones recientes
 
+### Cierre fiscal del propietario (Epica Fiscal)
+
+- El modo fiscal del casero esta cerrado documentalmente en `docs/backend/fiscal-cierre-epica.md`, con flujo extremo a extremo, contrato de exportacion, checklist manual, matriz issue -> archivos -> tests y riesgos residuales.
+- El backend expone `GET /api/viviendas/:viviendaId/fiscal/:ejercicio`, `GET /api/viviendas/:viviendaId/fiscal/ocupacion?ejercicio=YYYY` y `GET /api/viviendas/:viviendaId/fiscal/:ejercicio/dossier`; todos son de casero propietario con `mod_gastos` activo.
+- El dossier fiscal exporta CSV con secciones `RESUMEN` y `DETALLE`, minimiza datos personales de inquilinos y marca `FALTA_FACTURA`, `FALTA_CATEGORIA`, `IMPORTE_PENDIENTE`, `PERIODO_INCOMPLETO` y `PRORRATEO_MANUAL`.
+- La pantalla `frontend/app/casero/(tabs)/fiscal.tsx` permite seleccionar vivienda/ejercicio, revisar ocupacion, editar metadatos fiscales y exportar CSV movil con `formato=base64`.
+- `ContratoAlquiler`, `EventoContratoAlquiler` y `PeriodoOcupacion` alimentan trazabilidad contractual y ocupacion fiscal; la firma interna no equivale a firma electronica avanzada/cualificada y debe validarse con proveedor si se requiere.
+
 ### Limpieza, inventario legal y cierre funcional (Epica 17)
 
 - El modulo de limpieza se reparte por habitaciones responsables: `ZonaLimpieza` puede vincularse a una habitacion objetivo, `AsignacionLimpiezaFija` guarda `habitacion_id` y `TurnoLimpieza` conserva `habitacion_id` como responsable estable con `usuario_id` solo como snapshot del ocupante al generar.
@@ -722,6 +730,16 @@ El seed demo crea gastos puntuales, deudas del casero, deudas entre inquilinos y
   - El inquilino ve tareas asociadas a su habitacion responsable y contexto de zonas comunes.
   - Login, registro, rol y perfil muestran documentos legales versionados; registro y selector de rol exigen aceptacion explicita cuando aplica.
   - Inventario del casero muestra estados de validacion y respeta modo claro/oscuro.
+
+## Update 2026-05-06 - Cierre epica fiscal
+
+- Backend:
+  - El resumen anual, la foto de ocupacion y el dossier fiscal quedan documentados como contrato de propietario en `docs/backend/api.md`.
+  - `docs/backend/fiscal-cierre-epica.md` centraliza checklist manual, matriz de issues #323-#330/#337/#338, pruebas relevantes y riesgos fiscales/legales.
+  - `docs/backend/contrato-fiscal-propietario.md` aclara limites de firma interna, dossier CSV y revision profesional.
+- Frontend:
+  - `docs/frontend/setup.md` documenta la tab `Fiscal`, estados principales, endpoints consumidos y exportacion base64.
+  - El cierre explicita que los inquilinos no tienen tab fiscal ni acceso a metadatos fiscales privados.
 
 ## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
 

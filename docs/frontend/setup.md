@@ -95,6 +95,8 @@ frontend/
         _layout.tsx
         viviendas.tsx
         cobros.tsx
+        fiscal.tsx
+        contratos.tsx
         inventario.tsx
         tablon.tsx
         perfil.tsx
@@ -120,6 +122,7 @@ frontend/
         limpieza.tsx
         gastos.tsx
         inventario.tsx
+        contratos.tsx
         perfil.tsx
     tablon/
       [viviendaId].tsx
@@ -161,6 +164,8 @@ frontend/
 | `/legal/privacidad` | `app/legal/privacidad.tsx` | Politica de privacidad versionada |
 | `/casero/viviendas` | `casero/(tabs)/viviendas.tsx` | Lista de viviendas del casero |
 | `/casero/cobros` | `casero/(tabs)/cobros.tsx` | Resumen mensual de cobros por vivienda |
+| `/casero/fiscal` | `casero/(tabs)/fiscal.tsx` | Resumen fiscal anual, ocupacion, revision de lineas y exportacion CSV |
+| `/casero/contratos` | `casero/(tabs)/contratos.tsx` | Gestion de contratos por vivienda, habitacion e inquilino |
 | `/casero/inventario` | `casero/(tabs)/inventario.tsx` | Inventario global del casero |
 | `/casero/tablon` | `casero/(tabs)/tablon.tsx` | Tablon global del casero |
 | `/casero/perfil` | `casero/(tabs)/perfil.tsx` | Perfil del casero |
@@ -178,6 +183,7 @@ frontend/
 | `/inquilino/limpieza` | `inquilino/(tabs)/limpieza.tsx` | Turnos de su habitacion responsable y zonas comunes |
 | `/inquilino/gastos` | `inquilino/(tabs)/gastos.tsx` | Gastos puntuales, deudas, facturas y justificantes |
 | `/inquilino/inventario` | `inquilino/(tabs)/inventario.tsx` | Revision visual del inventario |
+| `/inquilino/contratos` | `inquilino/(tabs)/contratos.tsx` | Revision, firma interna o rechazo de contratos propios |
 | `/inquilino/perfil` | `inquilino/(tabs)/perfil.tsx` | Perfil del inquilino |
 | `/inquilino/nueva-incidencia` | `inquilino/nueva-incidencia.tsx` | Alta de incidencia |
 | `/tablon/:viviendaId` | `tablon/[viviendaId].tsx` | Tablon con vivienda explicita |
@@ -189,9 +195,9 @@ Cada rol tiene su propio grupo `(tabs)`:
 
 | Grupo | Pestanas |
 |---|---|
-| Casero (global) | Mis viviendas · Cobros · Inventario · Tablon · Perfil |
+| Casero (global) | Mis viviendas · Cobros · Fiscal · Contratos · Inventario · Tablon · Perfil |
 | Casero (vivienda) | Resumen · Incidencias · Tablon · Limpieza · Opciones |
-| Inquilino | Mi vivienda · Tablon · Limpieza · Gastos · Inventario · Perfil |
+| Inquilino | Mi vivienda · Tablon · Limpieza · Gastos · Inventario · Contratos · Perfil |
 
 Las rutas fuera de tabs se apilan sobre el tab bar gracias a `casero/_layout.tsx` e `inquilino/_layout.tsx`.
 
@@ -199,6 +205,7 @@ La navegacion es modular por vivienda:
 
 - `mod_limpieza` oculta la tab `Limpieza` en el detalle de vivienda del casero y en el inquilino.
 - `mod_gastos` oculta `Gastos` en inquilino y `Cobros` en casero si ninguna vivienda del casero lo tiene activo.
+- `mod_gastos` tambien protege el modo fiscal y contratos; el casero solo ve `Fiscal` si tiene alguna vivienda con gastos activos.
 - `mod_inventario` oculta `Inventario` en inquilino y casero si no hay viviendas con el modulo activo.
 - El tab `Opciones` (`casero/vivienda/[id]/(tabs)/opciones.tsx`) muestra switches para activar o desactivar modulos via `PATCH /api/viviendas/:id`.
 - Los tabs anidados de vivienda usan `useViviendaIdParam()` para leer el id local con fallback al pathname y evitar colisiones con otras rutas dinamicas.
@@ -293,6 +300,23 @@ La app usa `expo-notifications`.
 - Si alguna deuda hija esta `PAGADA`, el modal deshabilita la edicion del importe y mantiene editables concepto/fecha.
 - Desde el modal y desde la tarjeta se puede subir, reemplazar o abrir la factura original (`factura_url`).
 - `inquilino/(tabs)/gastos.tsx` muestra "Ver factura original" cuando una deuda procede de un gasto con factura adjunta.
+
+## Flujos destacados de la epica fiscal
+
+### Modo fiscal del casero
+
+- `casero/(tabs)/fiscal.tsx` carga viviendas con gastos activos, permite seleccionar ejercicio y consume `GET /api/viviendas/:viviendaId/fiscal/:ejercicio`.
+- La pantalla combina resumen anual, foto de ocupacion, advertencias y lineas revisables de ingresos/gastos.
+- El editor de linea fiscal actualiza `categoria_fiscal`, `deducible_previsto`, `notas_fiscales` y `prorrateo_fiscal` mediante `PATCH /api/viviendas/:viviendaId/gastos/:gastoId`.
+- La accion `Exportar CSV` llama a `GET /api/viviendas/:viviendaId/fiscal/:ejercicio/dossier?formato=base64` para guardar el dossier compatible con Excel.
+- La documentacion de cierre y checklist manual estan en `docs/backend/fiscal-cierre-epica.md`.
+
+### Contratos e historico de ocupacion
+
+- `components/contratos/ContratosAlquilerScreen.tsx` se reutiliza para casero e inquilino.
+- El casero sube PDF o imagen de contrato asociado a vivienda, habitacion e inquilino.
+- El inquilino firma o rechaza desde su tab de contratos; la firma interna registra version, hash, usuario y origen tecnico.
+- La ocupacion fiscal usa `PeriodoOcupacion` como fuente preferente y conserva revision manual para periodos migrados o inferidos.
 
 ## Flujos destacados de la epica 12
 

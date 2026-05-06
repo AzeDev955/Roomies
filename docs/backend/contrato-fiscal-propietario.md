@@ -4,6 +4,8 @@
 
 Este contrato define los datos internos que Roomies debe preparar para convertir la actividad economica de alquiler en un resumen fiscal revisable por el casero o por su gestor. La app consolida fuentes, importes, fechas, estados y justificantes; no decide por si sola todas las casuisticas fiscales ni sustituye una revision profesional.
 
+El cierre funcional de la epica, checklist manual, matriz de issues y riesgos residuales viven en `docs/backend/fiscal-cierre-epica.md`.
+
 ## Fuentes auditadas
 
 | Modelo | Uso fiscal | Campos relevantes |
@@ -178,3 +180,5 @@ type FiscalResumenPropietarioDTO = {
 - `GastoRecurrente` no representa un hecho economico hasta generar un `Gasto`.
 - La ausencia de `documento_identidad` en usuarios no bloquea el contrato, pero debe marcarse como dato incompleto en exportaciones fiscales.
 - Las categorias fiscales futuras no deben inferirse desde `concepto` ni desde nombres de vivienda/habitacion.
+- La firma interna de contratos conserva trazabilidad operativa, hash y aceptacion, pero no equivale a firma electronica avanzada o cualificada sin proveedor especializado.
+- El dossier CSV es soporte de revision para gestor; no es un modelo tributario oficial ni valida normativa vigente.
