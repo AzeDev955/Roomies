@@ -75,6 +75,7 @@ describe('smoke navegacion principal', () => {
     });
     expect(ultimaScreen('viviendas').options.title).toBe('Viviendas');
     expect(ultimaScreen('cobros').options.href).toBeUndefined();
+    expect(ultimaScreen('fiscal').options.href).toBeUndefined();
     expect(ultimaScreen('inventario').options.href).toBeNull();
     expect(ultimaScreen('tablon').options.href).toBeNull();
     expect(ultimaScreen('perfil').options.title).toBe('Perfil');
