@@ -1,5 +1,12 @@
 import { prisma } from '../lib/prisma';
-import { aCentimos, desdeCentimos, normalizarImporteMonetario } from './gasto.service';
+import {
+  aCentimos,
+  CategoriaFiscalGastoRoomies,
+  desdeCentimos,
+  normalizarImporteMonetario,
+  TIPOS_GASTO_CASERO,
+  TipoGastoRoomies,
+} from './gasto.service';
 
 type InquilinoFiscal = {
   id: number;
@@ -23,6 +30,10 @@ type GastoFiscal = {
   concepto: string;
   importe: number;
   tipo: string;
+  factura_url?: string | null;
+  categoria_fiscal?: CategoriaFiscalGastoRoomies;
+  deducible_previsto?: boolean | null;
+  notas_fiscales?: string | null;
   fecha_creacion: Date;
   periodo_facturacion: string | null;
   habitacion_cargo_id: number | null;
@@ -118,6 +129,114 @@ type ConstruirFotoInput = {
   gastos: GastoFiscal[];
 };
 
+type CaseroFiscal = {
+  id: number;
+  nombre: string;
+  apellidos: string | null;
+  documento_identidad?: string | null;
+};
+
+type ViviendaResumenFiscal = {
+  id: number;
+  alias_nombre: string;
+  direccion: string;
+  codigo_postal: string;
+  ciudad: string;
+  provincia: string;
+  casero: CaseroFiscal;
+  habitaciones?: Array<{
+    id: number;
+    nombre: string;
+  }>;
+};
+
+type DeudaResumenFiscal = {
+  id: number;
+  importe: number;
+  estado: string;
+  justificante_url: string | null;
+  deudor: InquilinoFiscal;
+  gasto: GastoFiscal & {
+    habitacion_cargo?: { id: number; nombre: string } | null;
+    inquilino_cargo?: InquilinoFiscal | null;
+  };
+};
+
+export type FiscalAdvertenciaResumen = {
+  codigo:
+    | 'FALTA_FACTURA'
+    | 'FALTA_CATEGORIA'
+    | 'IMPORTE_PENDIENTE'
+    | 'PERIODO_INCOMPLETO'
+    | 'PRORRATEO_MANUAL';
+  mensaje: string;
+  gasto_id?: number;
+  deuda_id?: number;
+};
+
+type FiscalEstadoPagoResumen = 'COBRADO' | 'PENDIENTE' | 'ANULADO';
+type FiscalDeducibilidadResumen = 'NO_APLICA' | 'PENDIENTE_CLASIFICACION' | 'DEDUCIBLE' | 'NO_DEDUCIBLE';
+
+export type FiscalLineaResumen = {
+  id: string;
+  naturaleza: 'INGRESO' | 'GASTO_POTENCIALMENTE_DEDUCIBLE';
+  fuente: {
+    modelo: 'Deuda' | 'Gasto';
+    gasto_id: number;
+    deuda_id?: number;
+  };
+  concepto: string;
+  categoria: TipoGastoRoomies | CategoriaFiscalGastoRoomies | 'PENDIENTE_CLASIFICACION';
+  deducibilidad: FiscalDeducibilidadResumen;
+  importe: number;
+  moneda: 'EUR';
+  fecha: string;
+  periodo_facturacion: string | null;
+  estado_pago: FiscalEstadoPagoResumen;
+  factura_url: string | null;
+  justificante_url?: string | null;
+  habitacion?: {
+    id: number;
+    nombre: string;
+  } | null;
+  inquilino?: InquilinoFiscal | null;
+  advertencias: FiscalAdvertenciaResumen[];
+};
+
+export type FiscalResumenAnualVivienda = {
+  ejercicio: number;
+  generado_en: string;
+  vivienda: {
+    id: number;
+    alias_nombre: string;
+    direccion: string;
+    codigo_postal: string;
+    ciudad: string;
+    provincia: string;
+  };
+  casero: CaseroFiscal;
+  totales: {
+    ingresos: {
+      emitido: number;
+      cobrado: number;
+      pendiente: number;
+      anulado: number;
+      por_tipo: Record<string, number>;
+    };
+    gastos: {
+      potencialmente_deducible: number;
+      deducible_previsto: number;
+      no_deducible_previsto: number;
+      pendiente_clasificacion: number;
+      con_factura: number;
+      sin_factura: number;
+      por_categoria: Record<string, number>;
+    };
+  };
+  lineas: FiscalLineaResumen[];
+  advertencias: FiscalAdvertenciaResumen[];
+};
+
 const MS_DIA = 24 * 60 * 60 * 1000;
 
 const isoFecha = (fecha: Date) => fecha.toISOString().slice(0, 10);
@@ -158,6 +277,64 @@ const calcularEstado = (diasAlquilados: number, diasEjercicio: number): FiscalEs
 
 const calcularProrrateo = (importe: number, porcentaje: number) =>
   desdeCentimos(Math.round(aCentimos(importe) * (porcentaje / 100)));
+
+const sumarCentimos = (importes: number[]) =>
+  desdeCentimos(importes.reduce((total, importe) => total + aCentimos(importe), 0));
+
+const sumarEnMapa = (mapa: Record<string, number>, clave: string, importe: number) => {
+  mapa[clave] = sumarCentimos([mapa[clave] ?? 0, importe]);
+};
+
+const esPeriodoMensualDelEjercicio = (periodo: string | null, ejercicio: number) => {
+  if (!periodo) return false;
+  const periodoMensual = parsePeriodoMensual(periodo);
+  return periodoMensual !== null && periodo.startsWith(`${ejercicio}-`);
+};
+
+const construirAdvertenciasGasto = (gasto: GastoFiscal, ejercicio: number): FiscalAdvertenciaResumen[] => {
+  const advertencias: FiscalAdvertenciaResumen[] = [];
+
+  if (!gasto.factura_url) {
+    advertencias.push({
+      codigo: 'FALTA_FACTURA',
+      mensaje: `El gasto ${gasto.id} no tiene factura asociada.`,
+      gasto_id: gasto.id,
+    });
+  }
+
+  if ((gasto.categoria_fiscal ?? 'SIN_CLASIFICAR') === 'SIN_CLASIFICAR') {
+    advertencias.push({
+      codigo: 'FALTA_CATEGORIA',
+      mensaje: `El gasto ${gasto.id} esta sin categoria fiscal.`,
+      gasto_id: gasto.id,
+    });
+  }
+
+  if (gasto.tipo === 'ALQUILER_HABITACION' && !esPeriodoMensualDelEjercicio(gasto.periodo_facturacion, ejercicio)) {
+    advertencias.push({
+      codigo: 'PERIODO_INCOMPLETO',
+      mensaje: `El alquiler ${gasto.id} no conserva un periodo mensual valido del ejercicio.`,
+      gasto_id: gasto.id,
+    });
+  }
+
+  if (gasto.prorrateo_fiscal !== null && gasto.prorrateo_fiscal !== undefined) {
+    advertencias.push({
+      codigo: 'PRORRATEO_MANUAL',
+      mensaje: `El gasto ${gasto.id} usa prorrateo fiscal manual.`,
+      gasto_id: gasto.id,
+    });
+  }
+
+  return advertencias;
+};
+
+const deducibilidadDesdeGasto = (gasto: GastoFiscal): FiscalDeducibilidadResumen => {
+  if ((gasto.categoria_fiscal ?? 'SIN_CLASIFICAR') === 'SIN_CLASIFICAR') return 'PENDIENTE_CLASIFICACION';
+  if (gasto.deducible_previsto === true) return 'DEDUCIBLE';
+  if (gasto.deducible_previsto === false) return 'NO_DEDUCIBLE';
+  return 'PENDIENTE_CLASIFICACION';
+};
 
 const obtenerPorcentajeProrrateo = (manual: number | null, porcentajeOcupacion: number) => {
   if (manual !== null && Number.isFinite(manual) && manual >= 0 && manual <= 100) {
@@ -303,6 +480,151 @@ export const construirFotoOcupacionFiscal = ({
   };
 };
 
+export const construirResumenFiscalAnual = ({
+  ejercicio,
+  vivienda,
+  deudas,
+  gastos,
+  generadoEn = new Date(),
+}: {
+  ejercicio: number;
+  vivienda: ViviendaResumenFiscal;
+  deudas: DeudaResumenFiscal[];
+  gastos: GastoFiscal[];
+  generadoEn?: Date;
+}): FiscalResumenAnualVivienda => {
+  const ingresos = {
+    emitido: 0,
+    cobrado: 0,
+    pendiente: 0,
+    anulado: 0,
+    por_tipo: {} as Record<string, number>,
+  };
+  const gastosTotales = {
+    potencialmente_deducible: 0,
+    deducible_previsto: 0,
+    no_deducible_previsto: 0,
+    pendiente_clasificacion: 0,
+    con_factura: 0,
+    sin_factura: 0,
+    por_categoria: {} as Record<string, number>,
+  };
+
+  const lineasIngresos = deudas.map((deuda): FiscalLineaResumen => {
+    const importe = normalizarImporteMonetario(deuda.importe);
+    ingresos.emitido = sumarCentimos([ingresos.emitido, importe]);
+    sumarEnMapa(ingresos.por_tipo, deuda.gasto.tipo, importe);
+
+    if (deuda.estado === 'PAGADA') {
+      ingresos.cobrado = sumarCentimos([ingresos.cobrado, importe]);
+    } else {
+      ingresos.pendiente = sumarCentimos([ingresos.pendiente, importe]);
+    }
+
+    const advertencias = construirAdvertenciasGasto(deuda.gasto, ejercicio);
+    if (deuda.estado !== 'PAGADA') {
+      advertencias.push({
+        codigo: 'IMPORTE_PENDIENTE',
+        mensaje: `La deuda ${deuda.id} esta pendiente de cobro.`,
+        gasto_id: deuda.gasto.id,
+        deuda_id: deuda.id,
+      });
+    }
+
+    return {
+      id: `deuda-${deuda.id}`,
+      naturaleza: 'INGRESO',
+      fuente: {
+        modelo: 'Deuda',
+        gasto_id: deuda.gasto.id,
+        deuda_id: deuda.id,
+      },
+      concepto: deuda.gasto.concepto,
+      categoria: deuda.gasto.tipo as TipoGastoRoomies,
+      deducibilidad: 'NO_APLICA',
+      importe,
+      moneda: 'EUR',
+      fecha: isoFecha(deuda.gasto.fecha_creacion),
+      periodo_facturacion: deuda.gasto.periodo_facturacion,
+      estado_pago: deuda.estado === 'PAGADA' ? 'COBRADO' : 'PENDIENTE',
+      factura_url: deuda.gasto.factura_url ?? null,
+      justificante_url: deuda.justificante_url,
+      habitacion: deuda.gasto.habitacion_cargo ?? null,
+      inquilino: deuda.gasto.inquilino_cargo ?? deuda.deudor,
+      advertencias,
+    };
+  });
+
+  const lineasGastos = gastos.map((gasto): FiscalLineaResumen => {
+    const importe = normalizarImporteMonetario(gasto.importe);
+    const categoria = gasto.categoria_fiscal ?? 'SIN_CLASIFICAR';
+    const deducibilidad = deducibilidadDesdeGasto(gasto);
+
+    gastosTotales.potencialmente_deducible = sumarCentimos([gastosTotales.potencialmente_deducible, importe]);
+    sumarEnMapa(gastosTotales.por_categoria, categoria, importe);
+
+    if (gasto.factura_url) {
+      gastosTotales.con_factura = sumarCentimos([gastosTotales.con_factura, importe]);
+    } else {
+      gastosTotales.sin_factura = sumarCentimos([gastosTotales.sin_factura, importe]);
+    }
+
+    if (deducibilidad === 'DEDUCIBLE') {
+      gastosTotales.deducible_previsto = sumarCentimos([gastosTotales.deducible_previsto, importe]);
+    } else if (deducibilidad === 'NO_DEDUCIBLE') {
+      gastosTotales.no_deducible_previsto = sumarCentimos([gastosTotales.no_deducible_previsto, importe]);
+    } else {
+      gastosTotales.pendiente_clasificacion = sumarCentimos([gastosTotales.pendiente_clasificacion, importe]);
+    }
+
+    return {
+      id: `gasto-${gasto.id}`,
+      naturaleza: 'GASTO_POTENCIALMENTE_DEDUCIBLE',
+      fuente: {
+        modelo: 'Gasto',
+        gasto_id: gasto.id,
+      },
+      concepto: gasto.concepto,
+      categoria: categoria === 'SIN_CLASIFICAR' ? 'PENDIENTE_CLASIFICACION' : categoria,
+      deducibilidad,
+      importe,
+      moneda: 'EUR',
+      fecha: isoFecha(gasto.fecha_creacion),
+      periodo_facturacion: gasto.periodo_facturacion,
+      estado_pago: 'COBRADO',
+      factura_url: gasto.factura_url ?? null,
+      habitacion: null,
+      inquilino: null,
+      advertencias: construirAdvertenciasGasto(gasto, ejercicio),
+    };
+  });
+
+  const lineas = [...lineasIngresos, ...lineasGastos].sort((a, b) => {
+    const porFecha = a.fecha.localeCompare(b.fecha);
+    return porFecha !== 0 ? porFecha : a.id.localeCompare(b.id);
+  });
+
+  return {
+    ejercicio,
+    generado_en: generadoEn.toISOString(),
+    vivienda: {
+      id: vivienda.id,
+      alias_nombre: vivienda.alias_nombre,
+      direccion: vivienda.direccion,
+      codigo_postal: vivienda.codigo_postal,
+      ciudad: vivienda.ciudad,
+      provincia: vivienda.provincia,
+    },
+    casero: vivienda.casero,
+    totales: {
+      ingresos,
+      gastos: gastosTotales,
+    },
+    lineas,
+    advertencias: lineas.flatMap((linea) => linea.advertencias),
+  };
+};
+
 export const obtenerFotoOcupacionFiscalVivienda = async (
   viviendaId: number,
   caseroId: number,
@@ -386,4 +708,135 @@ export const obtenerFotoOcupacionFiscalVivienda = async (
   });
 
   return construirFotoOcupacionFiscal({ ejercicio, vivienda, gastos });
+};
+
+export const obtenerResumenFiscalAnualVivienda = async (
+  viviendaId: number,
+  caseroId: number,
+  ejercicio: number,
+) => {
+  const vivienda = await prisma.vivienda.findFirst({
+    where: { id: viviendaId, casero_id: caseroId },
+    select: {
+      id: true,
+      alias_nombre: true,
+      direccion: true,
+      codigo_postal: true,
+      ciudad: true,
+      provincia: true,
+      casero: {
+        select: {
+          id: true,
+          nombre: true,
+          apellidos: true,
+          documento_identidad: true,
+        },
+      },
+    },
+  });
+
+  if (!vivienda) return null;
+
+  const inicioEjercicio = new Date(Date.UTC(ejercicio, 0, 1));
+  const finEjercicio = new Date(Date.UTC(ejercicio + 1, 0, 1));
+  const filtroGastoEjercicio = {
+    tipo: { in: [...TIPOS_GASTO_CASERO] },
+    OR: [
+      {
+        fecha_creacion: {
+          gte: inicioEjercicio,
+          lt: finEjercicio,
+        },
+      },
+      {
+        periodo_facturacion: {
+          gte: `${ejercicio}-01`,
+          lte: `${ejercicio}-12`,
+        },
+      },
+    ],
+  };
+
+  const [deudas, gastos] = await Promise.all([
+    prisma.deuda.findMany({
+      where: {
+        acreedor_id: caseroId,
+        gasto: {
+          vivienda_id: viviendaId,
+          ...filtroGastoEjercicio,
+        },
+      },
+      orderBy: [{ gasto: { fecha_creacion: 'asc' } }, { id: 'asc' }],
+      include: {
+        deudor: {
+          select: {
+            id: true,
+            nombre: true,
+            apellidos: true,
+            documento_identidad: true,
+          },
+        },
+        gasto: {
+          select: {
+            id: true,
+            concepto: true,
+            importe: true,
+            tipo: true,
+            factura_url: true,
+            categoria_fiscal: true,
+            deducible_previsto: true,
+            notas_fiscales: true,
+            prorrateo_fiscal: true,
+            fecha_creacion: true,
+            periodo_facturacion: true,
+            habitacion_cargo_id: true,
+            inquilino_cargo_id: true,
+            habitacion_cargo: {
+              select: {
+                id: true,
+                nombre: true,
+              },
+            },
+            inquilino_cargo: {
+              select: {
+                id: true,
+                nombre: true,
+                apellidos: true,
+                documento_identidad: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.gasto.findMany({
+      where: {
+        vivienda_id: viviendaId,
+        ...filtroGastoEjercicio,
+      },
+      orderBy: [{ fecha_creacion: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        concepto: true,
+        importe: true,
+        tipo: true,
+        factura_url: true,
+        categoria_fiscal: true,
+        deducible_previsto: true,
+        notas_fiscales: true,
+        prorrateo_fiscal: true,
+        fecha_creacion: true,
+        periodo_facturacion: true,
+        habitacion_cargo_id: true,
+        inquilino_cargo_id: true,
+      },
+    }),
+  ]);
+
+  return construirResumenFiscalAnual({
+    ejercicio,
+    vivienda,
+    deudas,
+    gastos,
+  });
 };

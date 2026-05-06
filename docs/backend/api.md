@@ -1447,6 +1447,79 @@ Devuelve el dashboard financiero mensual del casero para una vivienda.
 
 ## Fiscal (`/viviendas/:viviendaId`)
 
+### GET `/viviendas/:viviendaId/fiscal/:ejercicio`
+
+Devuelve el resumen fiscal anual del propietario para una vivienda concreta, con totales auditables, detalle linea a linea y advertencias de revision.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede consultar este endpoint.
+- `ejercicio` es obligatorio en la ruta y representa un ano natural.
+- Los importes se suman en centimos y se devuelven normalizados a euros.
+
+**Comportamiento:**
+- Los ingresos parten de `Deuda` donde el acreedor es el casero y el `Gasto.tipo` pertenece al flujo del propietario (`ALQUILER_HABITACION`, `FACTURA_MENSUAL`, `CARGO_RECURRENTE`, `FACTURA_PUNTUAL`).
+- Se separan ingresos `emitido`, `cobrado`, `pendiente` y `anulado`, con desglose por tipo de gasto.
+- Los gastos potencialmente deducibles se agrupan por `categoria_fiscal`, factura disponible y deducibilidad prevista.
+- Las lineas incompletas no rompen el endpoint: se devuelven en `advertencias` con codigos `FALTA_FACTURA`, `FALTA_CATEGORIA`, `IMPORTE_PENDIENTE`, `PERIODO_INCOMPLETO` o `PRORRATEO_MANUAL`.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Resumen fiscal anual de la vivienda. |
+| `400` | `viviendaId` o `ejercicio` invalidos. |
+| `403` | El usuario no es casero. |
+| `404` | Vivienda no encontrada para ese casero. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "ejercicio": 2026,
+  "generado_en": "2026-05-06T10:00:00.000Z",
+  "vivienda": {
+    "id": 3,
+    "alias_nombre": "Piso Centro",
+    "direccion": "Calle Mayor 10",
+    "codigo_postal": "28013",
+    "ciudad": "Madrid",
+    "provincia": "Madrid"
+  },
+  "totales": {
+    "ingresos": {
+      "emitido": 900,
+      "cobrado": 450,
+      "pendiente": 450,
+      "anulado": 0,
+      "por_tipo": { "ALQUILER_HABITACION": 900 }
+    },
+    "gastos": {
+      "potencialmente_deducible": 120,
+      "deducible_previsto": 120,
+      "no_deducible_previsto": 0,
+      "pendiente_clasificacion": 0,
+      "con_factura": 120,
+      "sin_factura": 0,
+      "por_categoria": { "SEGUROS": 120 }
+    }
+  },
+  "lineas": [
+    {
+      "id": "deuda-41",
+      "naturaleza": "INGRESO",
+      "concepto": "Alquiler Habitacion azul 2026-01",
+      "categoria": "ALQUILER_HABITACION",
+      "importe": 450,
+      "estado_pago": "COBRADO",
+      "factura_url": "https://cdn.example/factura.pdf",
+      "advertencias": []
+    }
+  ],
+  "advertencias": []
+}
+```
+
 ### GET `/viviendas/:viviendaId/fiscal/ocupacion?ejercicio=YYYY`
 
 Devuelve la foto anual de ocupacion fiscal de una vivienda, con detalle por habitacion y prorrateos deterministas para gastos del ejercicio.

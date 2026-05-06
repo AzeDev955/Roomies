@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'vitest';
-import { construirFotoOcupacionFiscal } from '../src/services/fiscal.service';
+import { construirFotoOcupacionFiscal, construirResumenFiscalAnual } from '../src/services/fiscal.service';
 
 const viviendaBase = {
   id: 1,
@@ -180,5 +180,103 @@ describe('fiscal.service', () => {
         },
       },
     ]);
+  });
+
+  test('construye resumen anual con totales en centimos, categorias y pendientes', () => {
+    const resumen = construirResumenFiscalAnual({
+      ejercicio: 2026,
+      generadoEn: new Date('2026-05-01T10:00:00.000Z'),
+      vivienda: {
+        ...viviendaBase,
+        casero: {
+          id: 99,
+          nombre: 'Clara',
+          apellidos: 'Propietaria',
+          documento_identidad: '99999999Z',
+        },
+      },
+      deudas: [
+        {
+          id: 1,
+          importe: 10.005,
+          estado: 'PAGADA',
+          justificante_url: 'https://cdn.test/justificante-1.jpg',
+          deudor: inquilinoAna,
+          gasto: {
+            ...alquiler({ id: 101, mes: '2026-01', habitacionId: 7, inquilino: inquilinoAna, importe: 20.01 }),
+            factura_url: 'https://cdn.test/factura-101.pdf',
+            categoria_fiscal: 'SIN_CLASIFICAR',
+            deducible_previsto: null,
+            notas_fiscales: null,
+          },
+        },
+        {
+          id: 2,
+          importe: 10.005,
+          estado: 'PENDIENTE',
+          justificante_url: null,
+          deudor: inquilinoLuis,
+          gasto: {
+            ...alquiler({ id: 101, mes: '2026-01', habitacionId: 7, inquilino: inquilinoAna, importe: 20.01 }),
+            factura_url: 'https://cdn.test/factura-101.pdf',
+            categoria_fiscal: 'SIN_CLASIFICAR',
+            deducible_previsto: null,
+            notas_fiscales: null,
+          },
+        },
+      ],
+      gastos: [
+        {
+          id: 201,
+          concepto: 'Seguro hogar',
+          importe: 120.335,
+          tipo: 'FACTURA_PUNTUAL',
+          factura_url: 'https://cdn.test/seguro.pdf',
+          categoria_fiscal: 'SEGUROS',
+          deducible_previsto: true,
+          notas_fiscales: 'Poliza anual',
+          fecha_creacion: new Date('2026-02-10T00:00:00.000Z'),
+          periodo_facturacion: null,
+          habitacion_cargo_id: null,
+          inquilino_cargo_id: null,
+          prorrateo_fiscal: 75,
+          inquilino_cargo: null,
+        },
+        {
+          id: 202,
+          concepto: 'Reparacion sin clasificar',
+          importe: 80,
+          tipo: 'FACTURA_PUNTUAL',
+          factura_url: null,
+          categoria_fiscal: 'SIN_CLASIFICAR',
+          deducible_previsto: null,
+          notas_fiscales: null,
+          fecha_creacion: new Date('2026-03-10T00:00:00.000Z'),
+          periodo_facturacion: null,
+          habitacion_cargo_id: null,
+          inquilino_cargo_id: null,
+          prorrateo_fiscal: null,
+          inquilino_cargo: null,
+        },
+      ],
+    });
+
+    assert.equal(resumen.generado_en, '2026-05-01T10:00:00.000Z');
+    assert.equal(resumen.totales.ingresos.emitido, 20.02);
+    assert.equal(resumen.totales.ingresos.cobrado, 10.01);
+    assert.equal(resumen.totales.ingresos.pendiente, 10.01);
+    assert.equal(resumen.totales.ingresos.por_tipo.ALQUILER_HABITACION, 20.02);
+    assert.equal(resumen.totales.gastos.potencialmente_deducible, 200.34);
+    assert.equal(resumen.totales.gastos.deducible_previsto, 120.34);
+    assert.equal(resumen.totales.gastos.pendiente_clasificacion, 80);
+    assert.equal(resumen.totales.gastos.con_factura, 120.34);
+    assert.equal(resumen.totales.gastos.sin_factura, 80);
+    assert.equal(resumen.totales.gastos.por_categoria.SEGUROS, 120.34);
+    assert.equal(resumen.totales.gastos.por_categoria.SIN_CLASIFICAR, 80);
+    assert.equal(resumen.lineas.length, 4);
+    assert.ok(resumen.advertencias.some((advertencia) => advertencia.codigo === 'IMPORTE_PENDIENTE'));
+    assert.ok(resumen.advertencias.some((advertencia) => advertencia.codigo === 'FALTA_CATEGORIA'));
+    assert.ok(resumen.advertencias.some((advertencia) => advertencia.codigo === 'FALTA_FACTURA'));
+    assert.ok(resumen.advertencias.some((advertencia) => advertencia.codigo === 'PRORRATEO_MANUAL'));
   });
 });
