@@ -14,7 +14,11 @@ const fiscalService = vi.hoisted(() => ({
 
 vi.mock('../src/services/fiscal.service', () => fiscalService);
 
-const { exportarDossierFiscalVivienda, obtenerResumenFiscalVivienda } = await import('../src/controllers/fiscal.controller');
+const {
+  exportarDossierFiscalVivienda,
+  obtenerOcupacionFiscalVivienda,
+  obtenerResumenFiscalVivienda,
+} = await import('../src/controllers/fiscal.controller');
 
 function request({
   usuario,
@@ -67,6 +71,7 @@ async function invoke(handler: Handler, req: express.Request) {
 
 beforeEach(() => {
   fiscalService.obtenerResumenFiscalAnualVivienda.mockReset();
+  fiscalService.obtenerFotoOcupacionFiscalVivienda.mockReset();
   fiscalService.obtenerDossierFiscalVivienda.mockReset();
   fiscalService.generarBufferCsvExcel.mockClear();
 });
@@ -84,6 +89,35 @@ describe('fiscal.controller', () => {
     assert.equal(res.statusCode, 403);
     assert.deepEqual(res.body, { error: 'Solo el casero propietario puede consultar el resumen fiscal.' });
     assert.equal(fiscalService.obtenerResumenFiscalAnualVivienda.mock.calls.length, 0);
+  });
+
+  test('rechaza ocupacion fiscal para inquilinos', async () => {
+    const res = await invoke(
+      obtenerOcupacionFiscalVivienda,
+      request({
+        usuario: { id: 12, rol: 'INQUILINO' },
+        params: { viviendaId: '1' },
+        query: { ejercicio: '2026' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 403);
+    assert.deepEqual(res.body, { error: 'Solo el casero puede consultar la ocupacion fiscal.' });
+    assert.equal(fiscalService.obtenerFotoOcupacionFiscalVivienda.mock.calls.length, 0);
+  });
+
+  test('rechaza exportar dossier fiscal para inquilinos', async () => {
+    const res = await invoke(
+      exportarDossierFiscalVivienda,
+      request({
+        usuario: { id: 12, rol: 'INQUILINO' },
+        params: { viviendaId: '1', ejercicio: '2026' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 403);
+    assert.deepEqual(res.body, { error: 'Solo el casero propietario puede exportar el dossier fiscal.' });
+    assert.equal(fiscalService.obtenerDossierFiscalVivienda.mock.calls.length, 0);
   });
 
   test('devuelve 404 cuando la vivienda no pertenece al casero', async () => {

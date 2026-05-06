@@ -340,12 +340,14 @@ describe('fiscal.service', () => {
     assert.equal(dossier.mimeType, 'text/csv');
     assert.deepEqual(dossier.columnas.resumen, ['Clave', 'Valor', 'Moneda', 'Notas']);
     assert.ok(dossier.columnas.detalle.includes('Advertencias'));
+    assert.ok(!dossier.columnas.detalle.includes('Documento inquilino'));
     assert.match(dossier.contenido, /# RESUMEN/);
     assert.match(dossier.contenido, /# DETALLE/);
     assert.match(dossier.contenido, /"revision\.lineas_problematicas";"2";"";""/);
     assert.match(dossier.contenido, /"deuda-7";"INGRESO";"Deuda";"101";"7"/);
     assert.match(dossier.contenido, /IMPORTE_PENDIENTE/);
     assert.match(dossier.contenido, /"'=Formula peligrosa"/);
+    assert.doesNotMatch(dossier.contenido, /11111111A|22222222B|99999999Z/);
     assert.equal(generarBufferCsvExcel(dossier.contenido).subarray(0, 2).toString('hex'), 'fffe');
   });
 });
