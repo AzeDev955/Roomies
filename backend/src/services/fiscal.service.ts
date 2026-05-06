@@ -195,6 +195,12 @@ export type FiscalLineaResumen = {
   estado_pago: FiscalEstadoPagoResumen;
   factura_url: string | null;
   justificante_url?: string | null;
+  metadata_fiscal?: {
+    categoria_fiscal: CategoriaFiscalGastoRoomies;
+    deducible_previsto: boolean | null;
+    notas_fiscales: string | null;
+    prorrateo_fiscal: number | null;
+  };
   habitacion?: {
     id: number;
     nombre: string;
@@ -747,6 +753,12 @@ export const construirResumenFiscalAnual = ({
       periodo_facturacion: gasto.periodo_facturacion,
       estado_pago: 'COBRADO',
       factura_url: gasto.factura_url ?? null,
+      metadata_fiscal: {
+        categoria_fiscal: categoria,
+        deducible_previsto: gasto.deducible_previsto ?? null,
+        notas_fiscales: gasto.notas_fiscales ?? null,
+        prorrateo_fiscal: gasto.prorrateo_fiscal ?? null,
+      },
       habitacion: null,
       inquilino: null,
       advertencias: construirAdvertenciasGasto(gasto, ejercicio),

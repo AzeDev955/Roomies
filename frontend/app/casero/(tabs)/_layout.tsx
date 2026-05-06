@@ -107,6 +107,16 @@ export default function CaseroTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="fiscal"
+        options={{
+          title: 'Fiscal',
+          href: modulos.gastos ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="briefcase-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="inventario"
         options={{
           title: 'Invent.',

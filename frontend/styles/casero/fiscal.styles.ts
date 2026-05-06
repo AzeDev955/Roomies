@@ -1,0 +1,446 @@
+import { StyleSheet } from 'react-native';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
+
+export const getFiscalStatusColors = (theme: AppTheme = DefaultAppTheme) => ({
+  ready: {
+    bg: theme.colors.successLight,
+    text: theme.colors.successText,
+    border: `${theme.colors.success}30`,
+  },
+  review: {
+    bg: theme.colors.warningLight,
+    text: theme.colors.warningText,
+    border: `${theme.colors.warning}34`,
+  },
+  pending: {
+    bg: theme.colors.infoLight,
+    text: theme.colors.info,
+    border: `${theme.colors.info}30`,
+  },
+  danger: {
+    bg: theme.colors.dangerLight,
+    text: theme.colors.danger,
+    border: `${theme.colors.danger}28`,
+  },
+} as const);
+
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  content: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: 120,
+  },
+  header: {
+    marginBottom: theme.spacing.lg,
+    gap: theme.spacing.sm,
+  },
+  headerEyebrow: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.textTertiary,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  headerTitle: {
+    fontSize: theme.typography.hero,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  headerSubtitle: {
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
+    lineHeight: 22,
+  },
+  selector: {
+    marginBottom: theme.spacing.lg,
+  },
+  selectorContent: {
+    gap: theme.spacing.sm,
+    paddingRight: theme.spacing.sm,
+  },
+  chip: {
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+  },
+  chipText: {
+    fontSize: theme.typography.label,
+    fontWeight: '800',
+    color: theme.colors.textSecondary,
+  },
+  chipTextActive: {
+    color: theme.colors.primary,
+  },
+  yearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.lg,
+  },
+  yearButton: {
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yearPill: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadows.sm,
+  },
+  yearText: {
+    fontSize: theme.typography.subtitle,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  heroCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    ...theme.shadows.sm,
+  },
+  heroTop: {
+    gap: theme.spacing.xs,
+  },
+  heroLabel: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  heroTitle: {
+    fontSize: theme.typography.heading,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  heroAddress: {
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.base,
+  },
+  metricCard: {
+    flexGrow: 1,
+    flexBasis: '45%',
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.base,
+    gap: theme.spacing.xs,
+  },
+  metricLabel: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: theme.typography.heading,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  metricHelp: {
+    fontSize: theme.typography.caption,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.sm,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.base,
+    borderWidth: 1,
+    marginBottom: theme.spacing.lg,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: theme.typography.label,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  section: {
+    marginBottom: theme.spacing.xl,
+  },
+  sectionHeader: {
+    marginBottom: theme.spacing.base,
+    gap: theme.spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: theme.typography.subtitle,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  sectionSubtitle: {
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  list: {
+    gap: theme.spacing.base,
+  },
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.base,
+    gap: theme.spacing.base,
+    ...theme.shadows.sm,
+  },
+  lineHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.base,
+  },
+  lineIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: theme.radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  lineBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: theme.spacing.xs,
+  },
+  lineTitle: {
+    fontSize: theme.typography.body,
+    fontWeight: '800',
+    color: theme.colors.text,
+    lineHeight: 21,
+  },
+  lineMeta: {
+    fontSize: theme.typography.caption,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+  },
+  lineAmount: {
+    fontSize: theme.typography.subtitle,
+    fontWeight: '800',
+    color: theme.colors.text,
+    textAlign: 'right',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  badge: {
+    borderRadius: theme.radius.full,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  badgeText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+  },
+  lineActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  smallButton: {
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  smallButtonText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+  },
+  occupancyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.base,
+  },
+  occupancyMeter: {
+    flex: 1,
+    height: 10,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.surface2,
+    overflow: 'hidden',
+  },
+  occupancyFill: {
+    height: '100%',
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primary,
+  },
+  occupancyPercent: {
+    width: 64,
+    textAlign: 'right',
+    fontSize: theme.typography.label,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  warningText: {
+    fontSize: theme.typography.caption,
+    color: theme.colors.warningText,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xxl,
+    paddingHorizontal: theme.spacing.xl,
+  },
+  emptyIconBox: {
+    width: 92,
+    height: 92,
+    borderRadius: theme.radius.xl,
+    backgroundColor: `${theme.colors.primary}12`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: theme.typography.heading,
+    fontWeight: '800',
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    marginTop: theme.spacing.sm,
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: theme.colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    maxHeight: '92%',
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.radius.xl,
+    borderTopRightRadius: theme.radius.xl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
+  },
+  modalContent: {
+    gap: theme.spacing.base,
+    paddingBottom: theme.spacing.lg,
+  },
+  modalHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.textMuted,
+    alignSelf: 'center',
+    marginBottom: theme.spacing.base,
+  },
+  modalTitle: {
+    fontSize: theme.typography.heading,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  modalSubtitle: {
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+  formGroup: {
+    gap: theme.spacing.xs,
+  },
+  inputLabel: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  textInput: {
+    minHeight: 52,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
+    fontSize: theme.typography.input,
+    color: theme.colors.text,
+  },
+  notesInput: {
+    minHeight: 96,
+    textAlignVertical: 'top',
+  },
+  optionGrid: {
+    gap: theme.spacing.sm,
+  },
+  optionButton: {
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.base,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.base,
+  },
+  optionButtonActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  optionText: {
+    flex: 1,
+    fontSize: theme.typography.label,
+    fontWeight: '800',
+    color: theme.colors.textSecondary,
+  },
+  optionTextActive: {
+    color: theme.colors.primary,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+  },
+  modalAction: {
+    flex: 1,
+  },
+});
+
+export const styles = createStyles();
