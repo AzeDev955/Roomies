@@ -74,5 +74,6 @@ export const uploadInventarioFoto = crearUploaderImagen('roomies-inventario');
 export const uploadJustificanteFoto = crearUploaderImagen('roomies-justificantes');
 export const uploadFacturaGasto = crearUploaderDocumento('roomies-facturas');
 export const uploadFacturaFoto = crearUploaderImagen('roomies-facturas');
+export const uploadContratoAlquiler = crearUploaderDocumento('roomies-contratos');
 
 export { cloudinary };

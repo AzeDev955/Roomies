@@ -1445,6 +1445,55 @@ Devuelve el dashboard financiero mensual del casero para una vivienda.
 
 ---
 
+## Contratos de alquiler (`/viviendas/:viviendaId/contratos`)
+
+Todos los endpoints de esta seccion estan protegidos por `mod_gastos`, porque alimentan el modo fiscal y la trazabilidad de ocupacion.
+
+### GET `/viviendas/:viviendaId/contratos`
+
+Lista contratos visibles para el usuario autenticado. El casero propietario ve los contratos de la vivienda; el inquilino solo ve los contratos donde aparece como parte.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de contratos con vivienda, habitacion, inquilino y eventos. |
+| `403` | Sin acceso a la vivienda o modulo desactivado. |
+
+### POST `/viviendas/:viviendaId/contratos`
+
+Sube un PDF o imagen del contrato y crea una nueva version para la habitacion e inquilino indicados. Por defecto queda en `PENDIENTE_FIRMA`.
+
+**Auth requerida:** Si - rol `CASERO`
+
+**Body multipart:**
+
+| Campo | Tipo | Obligatorio | Notas |
+|---|---|---|---|
+| `contrato` | file | Si | PDF o imagen. |
+| `habitacion_id` | number | Si | Debe pertenecer a la vivienda y tener el inquilino asignado. |
+| `inquilino_id` | number | Si | Parte que firmara el contrato. |
+| `renta_mensual` | number | Si | Importe pactado para uso fiscal. |
+| `fecha_inicio` | string | Si | Fecha ISO del inicio del contrato. |
+| `fecha_fin` | string | No | Fecha ISO de fin si existe. |
+| `notas` | string | No | Notas internas del casero. |
+
+### PATCH `/viviendas/:viviendaId/contratos/:contratoId/firmar`
+
+Firma internamente un contrato pendiente. Solo puede hacerlo el inquilino implicado y registra usuario, fecha, version, hash, documento de identidad si existe y origen tecnico disponible.
+
+### PATCH `/viviendas/:viviendaId/contratos/:contratoId/rechazar`
+
+Rechaza un contrato pendiente. Solo puede hacerlo el inquilino implicado.
+
+### PATCH `/viviendas/:viviendaId/contratos/:contratoId/anular`
+
+Anula un contrato pendiente o rechazado. Solo puede hacerlo el casero propietario; no se anulan contratos ya firmados.
+
+---
+
 ## Fiscal (`/viviendas/:viviendaId`)
 
 ### GET `/viviendas/:viviendaId/fiscal/:ejercicio`
