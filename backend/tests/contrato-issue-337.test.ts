@@ -22,6 +22,12 @@ const prisma = vi.hoisted(() => ({
   eventoContratoAlquiler: {
     create: async (_args: unknown): Promise<unknown> => ({}),
   },
+  periodoOcupacion: {
+    create: async (_args: unknown): Promise<unknown> => ({}),
+    findFirst: async (_args: unknown): Promise<unknown> => null,
+    update: async (_args: unknown): Promise<unknown> => ({}),
+    updateMany: async (_args: unknown): Promise<unknown> => ({ count: 0 }),
+  },
   $transaction: async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma),
 }));
 
@@ -43,6 +49,10 @@ function resetPrisma() {
   prisma.contratoAlquiler.findUnique = async () => null;
   prisma.contratoAlquiler.update = async (args: any) => ({ id: args.where.id, ...args.data });
   prisma.eventoContratoAlquiler.create = async () => ({});
+  prisma.periodoOcupacion.create = async () => ({});
+  prisma.periodoOcupacion.findFirst = async () => null;
+  prisma.periodoOcupacion.update = async () => ({});
+  prisma.periodoOcupacion.updateMany = async () => ({ count: 0 });
 }
 
 beforeEach(() => {
@@ -146,17 +156,28 @@ describe('issue 337 - contratos de alquiler', () => {
 
   test('el inquilino solo firma contratos propios pendientes', async () => {
     let updateData: any;
+    let periodoCreate: any;
 
     prisma.contratoAlquiler.findFirst = async () => ({
       id: 99,
       version: 1,
       estado: 'PENDIENTE_FIRMA',
       documento_hash: 'a'.repeat(64),
+      vivienda: { id: 7 },
+      habitacion: { id: 3 },
+      inquilino_id: 20,
+      fecha_inicio: new Date('2026-06-01T00:00:00.000Z'),
+      fecha_fin: null,
+      renta_mensual: 450,
       inquilino: { id: 20, documento_identidad: '12345678Z' },
     });
     prisma.contratoAlquiler.update = async (args: any) => {
       updateData = args.data;
       return { id: args.where.id, ...args.data };
+    };
+    prisma.periodoOcupacion.create = async (args: any) => {
+      periodoCreate = args;
+      return { id: 1, ...args.data };
     };
 
     const response = await invoke(
@@ -169,6 +190,8 @@ describe('issue 337 - contratos de alquiler', () => {
     assert.equal(updateData.firma_usuario_id, 20);
     assert.equal(updateData.firma_documento_identidad, '12345678Z');
     assert.match(updateData.firma_origen_tecnico, /ua=vitest/);
+    assert.equal(periodoCreate.data.contrato_id, 99);
+    assert.equal(periodoCreate.data.origen, 'CONTRATO_FIRMADO');
   });
 
   test('el inquilino no lista contratos de otros ocupantes de la vivienda', async () => {

@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { RolUsuario } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
+import { registrarPeriodoContratoFirmado } from '../services/ocupacion.service';
 
 const ESTADOS_CONTRATO = {
   BORRADOR: 'BORRADOR',
@@ -368,7 +369,7 @@ export const firmarContratoAlquiler: express.RequestHandler = async (req, res) =
       },
     });
 
-    return tx.contratoAlquiler.update({
+    const actualizado = await tx.contratoAlquiler.update({
       where: { id: contrato.id },
       data: {
         estado: ESTADOS_CONTRATO.FIRMADO,
@@ -379,6 +380,18 @@ export const firmarContratoAlquiler: express.RequestHandler = async (req, res) =
       },
       include: includeContrato,
     });
+
+    await registrarPeriodoContratoFirmado(tx, {
+      id: contrato.id,
+      vivienda_id: contrato.vivienda.id,
+      habitacion_id: contrato.habitacion?.id ?? null,
+      inquilino_id: usuario.id,
+      fecha_inicio: contrato.fecha_inicio,
+      fecha_fin: contrato.fecha_fin,
+      renta_mensual: contrato.renta_mensual,
+    });
+
+    return actualizado;
   });
 
   res.status(200).json(contratoActualizado);

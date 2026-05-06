@@ -94,6 +94,19 @@ enum TipoEventoContratoAlquiler {
   ANULADO
 }
 
+enum EstadoPeriodoOcupacion {
+  ACTIVO
+  FINALIZADO
+  PENDIENTE_REVISION
+}
+
+enum OrigenPeriodoOcupacion {
+  CONTRATO_FIRMADO
+  ALTA_MANUAL
+  INFERIDO_CARGO_ALQUILER
+  MIGRADO
+}
+
 model Usuario {
   id                 Int                      @id @default(autoincrement())
   nombre             String
@@ -125,6 +138,7 @@ model Usuario {
   contratos_inquilino ContratoAlquiler[]      @relation("InquilinoContrato")
   contratos_firmados ContratoAlquiler[]       @relation("FirmanteContrato")
   eventos_contrato   EventoContratoAlquiler[]
+  periodos_ocupacion PeriodoOcupacion[]       @relation("InquilinoPeriodoOcupacion")
 }
 
 model Vivienda {
@@ -147,6 +161,7 @@ model Vivienda {
   gastos_recurrentes GastoRecurrente[]
   items_inventario ItemInventario[]
   contratos_alquiler ContratoAlquiler[]
+  periodos_ocupacion PeriodoOcupacion[]
 }
 
 model Habitacion {
@@ -168,6 +183,7 @@ model Habitacion {
   zonas_limpieza_objetivo ZonaLimpieza[] @relation("ZonaLimpiezaObjetivoHabitacion")
   asignaciones_limpieza_fijas AsignacionLimpiezaFija[] @relation("AsignacionLimpiezaFijaHabitacion")
   turnos_limpieza_responsable TurnoLimpieza[] @relation("TurnoLimpiezaHabitacionResponsable")
+  periodos_ocupacion PeriodoOcupacion[]
 }
 
 model Incidencia {
@@ -310,6 +326,7 @@ model ContratoAlquiler {
   fecha_creacion            DateTime               @default(now())
   fecha_actualizacion       DateTime               @updatedAt
   eventos                   EventoContratoAlquiler[]
+  periodos_ocupacion        PeriodoOcupacion[]
 
   @@index([vivienda_id, estado])
   @@index([inquilino_id, estado])
@@ -330,6 +347,32 @@ model EventoContratoAlquiler {
   fecha          DateTime                    @default(now())
 
   @@index([contrato_id, fecha])
+}
+
+model PeriodoOcupacion {
+  id                Int                     @id @default(autoincrement())
+  vivienda_id       Int
+  vivienda          Vivienda                @relation(fields: [vivienda_id], references: [id], onDelete: Cascade)
+  habitacion_id     Int?
+  habitacion        Habitacion?             @relation(fields: [habitacion_id], references: [id], onDelete: SetNull)
+  inquilino_id      Int
+  inquilino         Usuario                 @relation("InquilinoPeriodoOcupacion", fields: [inquilino_id], references: [id])
+  contrato_id       Int?
+  contrato          ContratoAlquiler?       @relation(fields: [contrato_id], references: [id], onDelete: SetNull)
+  fecha_inicio      DateTime
+  fecha_fin         DateTime?
+  estado            EstadoPeriodoOcupacion  @default(ACTIVO)
+  origen            OrigenPeriodoOcupacion
+  renta_mensual     Float?
+  requiere_revision Boolean                 @default(false)
+  notas             String?
+  fecha_creacion    DateTime                @default(now())
+  fecha_actualizacion DateTime              @updatedAt
+
+  @@index([vivienda_id, fecha_inicio])
+  @@index([habitacion_id, fecha_inicio])
+  @@index([inquilino_id, fecha_inicio])
+  @@index([contrato_id])
 }
 
 // ── Módulo de limpieza ────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../lib/prisma';
 import { RolUsuario, TipoHabitacion, EstadoIncidencia } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
+import { registrarBajaOcupacion } from '../services/ocupacion.service';
 
 const parsePrecioHabitacion = (precio: unknown): number | null => {
   if (precio === undefined || precio === null || precio === '') return null;
@@ -315,9 +316,18 @@ export const expulsarInquilino: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  await prisma.habitacion.update({
-    where: { id: habId },
-    data: { inquilino_id: null },
+  await prisma.$transaction(async (tx) => {
+    await registrarBajaOcupacion(tx as any, {
+      viviendaId,
+      habitacionId: habId,
+      inquilinoId: habitacion.inquilino_id!,
+      notas: 'Baja registrada al expulsar al inquilino.',
+    });
+
+    await tx.habitacion.update({
+      where: { id: habId },
+      data: { inquilino_id: null },
+    });
   });
 
   res.status(200).json({ mensaje: 'Inquilino desvinculado correctamente.' });
