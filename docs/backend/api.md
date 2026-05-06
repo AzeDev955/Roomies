@@ -1520,6 +1520,39 @@ Devuelve el resumen fiscal anual del propietario para una vivienda concreta, con
 }
 ```
 
+### GET `/viviendas/:viviendaId/fiscal/:ejercicio/dossier`
+
+Descarga un dossier fiscal anual en CSV compatible con Excel para revisar o enviar a gestoria.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede exportar este dossier.
+- `ejercicio` es obligatorio en la ruta y representa un ano natural.
+- El nombre del archivo sigue el formato `dossier-fiscal-{vivienda}-{ejercicio}-{fecha-generacion}.csv`.
+
+**Query params:**
+
+| Parametro | Valor | Descripcion |
+|---|---|---|
+| `formato` | `base64` | Devuelve JSON con el CSV codificado en base64 y bytes compatibles con Excel para escritura movil. |
+
+**Contenido del CSV:**
+- Seccion `RESUMEN`, con columnas estables: `Clave`, `Valor`, `Moneda`, `Notas`.
+- Seccion `DETALLE`, con columnas estables: `Linea ID`, `Naturaleza`, `Modelo origen`, `Gasto ID`, `Deuda ID`, `Concepto`, `Categoria`, `Deducibilidad`, `Importe`, `Moneda`, `Fecha`, `Periodo facturacion`, `Estado pago`, `Factura URL`, `Justificante URL`, `Habitacion ID`, `Habitacion`, `Inquilino ID`, `Inquilino`, `Documento inquilino`, `Advertencias`.
+- Las lineas con importes pendientes, facturas ausentes, categorias fiscales pendientes, periodos incompletos o prorrateos manuales quedan marcadas en la columna `Advertencias`.
+- Las referencias documentales se incluyen como URL (`factura_url` y `justificante_url`) sin duplicar archivos pesados.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Devuelve `text/csv; charset=utf-8` con `Content-Disposition` de descarga. |
+| `200` | Con `formato=base64`, devuelve `{ nombreArchivo, mimeType, columnas, contenidoBase64 }`. |
+| `400` | `viviendaId` o `ejercicio` invalidos. |
+| `403` | El usuario no es casero. |
+| `404` | Vivienda no encontrada para ese casero. |
+
 ### GET `/viviendas/:viviendaId/fiscal/ocupacion?ejercicio=YYYY`
 
 Devuelve la foto anual de ocupacion fiscal de una vivienda, con detalle por habitacion y prorrateos deterministas para gastos del ejercicio.
