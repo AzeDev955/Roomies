@@ -1539,7 +1539,8 @@ Descarga un dossier fiscal anual en CSV compatible con Excel para revisar o envi
 
 **Contenido del CSV:**
 - Seccion `RESUMEN`, con columnas estables: `Clave`, `Valor`, `Moneda`, `Notas`.
-- Seccion `DETALLE`, con columnas estables: `Linea ID`, `Naturaleza`, `Modelo origen`, `Gasto ID`, `Deuda ID`, `Concepto`, `Categoria`, `Deducibilidad`, `Importe`, `Moneda`, `Fecha`, `Periodo facturacion`, `Estado pago`, `Factura URL`, `Justificante URL`, `Habitacion ID`, `Habitacion`, `Inquilino ID`, `Inquilino`, `Documento inquilino`, `Advertencias`.
+- Seccion `DETALLE`, con columnas estables: `Linea ID`, `Naturaleza`, `Modelo origen`, `Gasto ID`, `Deuda ID`, `Concepto`, `Categoria`, `Deducibilidad`, `Importe`, `Moneda`, `Fecha`, `Periodo facturacion`, `Estado pago`, `Factura URL`, `Justificante URL`, `Habitacion ID`, `Habitacion`, `Inquilino ID`, `Inquilino`, `Advertencias`.
+- El CSV minimiza datos personales de inquilinos: conserva referencia interna y nombre para trazabilidad de cobros, pero no exporta `documento_identidad`, email ni telefono.
 - Las lineas con importes pendientes, facturas ausentes, categorias fiscales pendientes, periodos incompletos o prorrateos manuales quedan marcadas en la columna `Advertencias`.
 - Las referencias documentales se incluyen como URL (`factura_url` y `justificante_url`) sin duplicar archivos pesados.
 

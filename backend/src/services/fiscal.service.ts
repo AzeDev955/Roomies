@@ -12,7 +12,6 @@ type InquilinoFiscal = {
   id: number;
   nombre: string;
   apellidos: string | null;
-  documento_identidad?: string | null;
 };
 
 type HabitacionFiscal = {
@@ -276,7 +275,6 @@ const COLUMNAS_DOSSIER_DETALLE = [
   'Habitacion',
   'Inquilino ID',
   'Inquilino',
-  'Documento inquilino',
   'Advertencias',
 ] as const;
 
@@ -407,7 +405,6 @@ const generarCsvDossierFiscal = (resumen: FiscalResumenAnualVivienda) => {
     linea.habitacion?.nombre ?? '',
     linea.inquilino?.id ?? '',
     nombreCompleto(linea.inquilino),
-    linea.inquilino?.documento_identidad ?? '',
     serializarAdvertencias(linea.advertencias),
   ]);
 
@@ -819,7 +816,6 @@ export const obtenerFotoOcupacionFiscalVivienda = async (
               id: true,
               nombre: true,
               apellidos: true,
-              documento_identidad: true,
             },
           },
         },
@@ -867,7 +863,6 @@ export const obtenerFotoOcupacionFiscalVivienda = async (
           id: true,
           nombre: true,
           apellidos: true,
-          documento_identidad: true,
         },
       },
     },
@@ -895,7 +890,6 @@ export const obtenerResumenFiscalAnualVivienda = async (
           id: true,
           nombre: true,
           apellidos: true,
-          documento_identidad: true,
         },
       },
     },
@@ -939,7 +933,6 @@ export const obtenerResumenFiscalAnualVivienda = async (
             id: true,
             nombre: true,
             apellidos: true,
-            documento_identidad: true,
           },
         },
         gasto: {
@@ -968,7 +961,6 @@ export const obtenerResumenFiscalAnualVivienda = async (
                 id: true,
                 nombre: true,
                 apellidos: true,
-                documento_identidad: true,
               },
             },
           },
