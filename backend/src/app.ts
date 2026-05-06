@@ -13,6 +13,7 @@ import deudaRoutes from './routes/deuda.routes';
 import userRoutes from './routes/user.routes';
 import inventarioRoutes from './routes/inventario.routes';
 import fiscalRoutes from './routes/fiscal.routes';
+import contratoRoutes from './routes/contrato.routes';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/viviendas', limpiezaRoutes);
 app.use('/api/viviendas', gastoRoutes);
 app.use('/api/viviendas', gastoRecurrenteRoutes);
 app.use('/api/viviendas', fiscalRoutes);
+app.use('/api/viviendas', contratoRoutes);
 app.use('/api', deudaRoutes);
 app.use('/api', inventarioRoutes);
 app.use('/api/usuarios', userRoutes);

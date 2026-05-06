@@ -78,6 +78,22 @@ enum EstadoItem {
   ROTO
 }
 
+enum EstadoContratoAlquiler {
+  BORRADOR
+  PENDIENTE_FIRMA
+  FIRMADO
+  RECHAZADO
+  ANULADO
+}
+
+enum TipoEventoContratoAlquiler {
+  CREADO
+  ENVIADO_FIRMA
+  FIRMADO
+  RECHAZADO
+  ANULADO
+}
+
 model Usuario {
   id                 Int                      @id @default(autoincrement())
   nombre             String
@@ -105,6 +121,10 @@ model Usuario {
   deudas_a_pagar     Deuda[]                  @relation("DeudorDeuda")
   deudas_a_cobrar    Deuda[]                  @relation("AcreedorDeuda")
   items_inventario_validados ItemInventario[] @relation("ValidadorInventario")
+  contratos_casero   ContratoAlquiler[]       @relation("CaseroContrato")
+  contratos_inquilino ContratoAlquiler[]      @relation("InquilinoContrato")
+  contratos_firmados ContratoAlquiler[]       @relation("FirmanteContrato")
+  eventos_contrato   EventoContratoAlquiler[]
 }
 
 model Vivienda {
@@ -126,6 +146,7 @@ model Vivienda {
   gastos           Gasto[]
   gastos_recurrentes GastoRecurrente[]
   items_inventario ItemInventario[]
+  contratos_alquiler ContratoAlquiler[]
 }
 
 model Habitacion {
@@ -143,6 +164,7 @@ model Habitacion {
   incidencias       Incidencia[]
   items_inventario  ItemInventario[]
   cargos_alquiler   Gasto[]          @relation("CargoHabitacion")
+  contratos_alquiler ContratoAlquiler[]
   zonas_limpieza_objetivo ZonaLimpieza[] @relation("ZonaLimpiezaObjetivoHabitacion")
   asignaciones_limpieza_fijas AsignacionLimpiezaFija[] @relation("AsignacionLimpiezaFijaHabitacion")
   turnos_limpieza_responsable TurnoLimpieza[] @relation("TurnoLimpiezaHabitacionResponsable")
@@ -255,6 +277,59 @@ model FotoAsset {
   item_id      Int
   item         ItemInventario @relation(fields: [item_id], references: [id], onDelete: Cascade)
   fecha_subida DateTime       @default(now())
+}
+
+model ContratoAlquiler {
+  id                        Int                    @id @default(autoincrement())
+  vivienda_id               Int
+  vivienda                  Vivienda               @relation(fields: [vivienda_id], references: [id], onDelete: Cascade)
+  habitacion_id             Int?
+  habitacion                Habitacion?            @relation(fields: [habitacion_id], references: [id], onDelete: SetNull)
+  casero_id                 Int
+  casero                    Usuario                @relation("CaseroContrato", fields: [casero_id], references: [id])
+  inquilino_id              Int
+  inquilino                 Usuario                @relation("InquilinoContrato", fields: [inquilino_id], references: [id])
+  version                   Int
+  estado                    EstadoContratoAlquiler @default(BORRADOR)
+  documento_url             String
+  documento_nombre          String?
+  documento_mime            String?
+  documento_hash            String
+  renta_mensual             Float
+  fecha_inicio              DateTime
+  fecha_fin                 DateTime?
+  notas                     String?
+  enviado_en                DateTime?
+  firmado_en                DateTime?
+  rechazado_en              DateTime?
+  anulado_en                DateTime?
+  firma_usuario_id          Int?
+  firma_usuario             Usuario?               @relation("FirmanteContrato", fields: [firma_usuario_id], references: [id], onDelete: SetNull)
+  firma_documento_identidad String?
+  firma_origen_tecnico      String?
+  fecha_creacion            DateTime               @default(now())
+  fecha_actualizacion       DateTime               @updatedAt
+  eventos                   EventoContratoAlquiler[]
+
+  @@index([vivienda_id, estado])
+  @@index([inquilino_id, estado])
+  @@unique([vivienda_id, habitacion_id, inquilino_id, version])
+}
+
+model EventoContratoAlquiler {
+  id             Int                         @id @default(autoincrement())
+  contrato_id    Int
+  contrato       ContratoAlquiler            @relation(fields: [contrato_id], references: [id], onDelete: Cascade)
+  usuario_id     Int
+  usuario        Usuario                     @relation(fields: [usuario_id], references: [id])
+  tipo           TipoEventoContratoAlquiler
+  estado_desde   EstadoContratoAlquiler?
+  estado_hasta   EstadoContratoAlquiler?
+  origen_tecnico String?
+  metadata       Json?
+  fecha          DateTime                    @default(now())
+
+  @@index([contrato_id, fecha])
 }
 
 // ── Módulo de limpieza ────────────────────────────────────────────────────────

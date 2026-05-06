@@ -41,6 +41,19 @@ type GastoFiscal = {
   inquilino_cargo?: InquilinoFiscal | null;
 };
 
+type ContratoFiscal = {
+  id: number;
+  version: number;
+  estado: string;
+  documento_hash: string;
+  renta_mensual: number;
+  fecha_inicio: Date;
+  fecha_fin: Date | null;
+  habitacion_id: number | null;
+  inquilino_id: number;
+  inquilino?: InquilinoFiscal | null;
+};
+
 export type FiscalEstadoOcupacion = 'SIN_ACTIVIDAD' | 'PARCIAL' | 'TODO_EL_ANO';
 
 export type FiscalRevision = {
@@ -53,7 +66,11 @@ export type FiscalPeriodoOcupacion = {
   fin: string;
   dias: number;
   periodo_facturacion: string;
-  gasto_id: number;
+  gasto_id?: number;
+  contrato_id?: number;
+  fuente: 'CARGO_ALQUILER' | 'CONTRATO_FIRMADO';
+  contrato_version?: number;
+  documento_hash?: string;
   inquilino: InquilinoFiscal | null;
   importe: number;
 };
@@ -126,6 +143,7 @@ type ConstruirFotoInput = {
     habitaciones: HabitacionFiscal[];
   };
   gastos: GastoFiscal[];
+  contratos?: ContratoFiscal[];
 };
 
 type CaseroFiscal = {
@@ -505,6 +523,7 @@ export const construirFotoOcupacionFiscal = ({
   ejercicio,
   vivienda,
   gastos,
+  contratos = [],
 }: ConstruirFotoInput): FiscalFotoOcupacionVivienda => {
   const inicioEjercicio = new Date(Date.UTC(ejercicio, 0, 1));
   const finEjercicio = new Date(Date.UTC(ejercicio + 1, 0, 1));
@@ -515,9 +534,13 @@ export const construirFotoOcupacionFiscal = ({
   const habitaciones = vivienda.habitaciones.map((habitacion) => {
     const revisiones: FiscalRevision[] = [];
     const cargosHabitacion = cargosAlquiler.filter((gasto) => gasto.habitacion_cargo_id === habitacion.id);
+    const contratosHabitacion = contratos.filter(
+      (contrato) => contrato.estado === 'FIRMADO' && contrato.habitacion_id === habitacion.id,
+    );
+    const usarContratosFirmados = contratosHabitacion.length > 0;
     const periodos: FiscalPeriodoOcupacion[] = [];
 
-    for (const cargo of cargosHabitacion) {
+    for (const cargo of usarContratosFirmados ? [] : cargosHabitacion) {
       if (!cargo.periodo_facturacion) {
         const revision = {
           codigo: 'SIN_PERIODO_FACTURACION' as const,
@@ -548,8 +571,28 @@ export const construirFotoOcupacionFiscal = ({
         dias: diasEntre(recortado.inicio, recortado.fin),
         periodo_facturacion: cargo.periodo_facturacion,
         gasto_id: cargo.id,
+        fuente: 'CARGO_ALQUILER',
         inquilino: cargo.inquilino_cargo ?? null,
         importe: normalizarImporteMonetario(cargo.importe),
+      });
+    }
+
+    for (const contrato of contratosHabitacion) {
+      const finContrato = contrato.fecha_fin ?? finEjercicio;
+      const recortado = recortarPeriodo(contrato.fecha_inicio, finContrato, inicioEjercicio, finEjercicio);
+      if (!recortado) continue;
+
+      periodos.push({
+        inicio: isoFecha(recortado.inicio),
+        fin: isoFecha(recortado.fin),
+        dias: diasEntre(recortado.inicio, recortado.fin),
+        periodo_facturacion: `${isoFecha(recortado.inicio)}..${isoFecha(recortado.fin)}`,
+        contrato_id: contrato.id,
+        contrato_version: contrato.version,
+        documento_hash: contrato.documento_hash,
+        fuente: 'CONTRATO_FIRMADO',
+        inquilino: contrato.inquilino ?? null,
+        importe: normalizarImporteMonetario(contrato.renta_mensual),
       });
     }
 
@@ -827,48 +870,77 @@ export const obtenerFotoOcupacionFiscalVivienda = async (
 
   const inicioEjercicio = new Date(Date.UTC(ejercicio, 0, 1));
   const finEjercicio = new Date(Date.UTC(ejercicio + 1, 0, 1));
-  const gastos = await prisma.gasto.findMany({
-    where: {
-      vivienda_id: viviendaId,
-      OR: [
-        {
-          tipo: 'ALQUILER_HABITACION',
-          periodo_facturacion: {
-            gte: `${ejercicio}-01`,
-            lte: `${ejercicio}-12`,
+  const [gastos, contratos] = await Promise.all([
+    prisma.gasto.findMany({
+      where: {
+        vivienda_id: viviendaId,
+        OR: [
+          {
+            tipo: 'ALQUILER_HABITACION',
+            periodo_facturacion: {
+              gte: `${ejercicio}-01`,
+              lte: `${ejercicio}-12`,
+            },
           },
-        },
-        {
-          tipo: { not: 'ENTRE_COMPANEROS' },
-          fecha_creacion: {
-            gte: inicioEjercicio,
-            lt: finEjercicio,
+          {
+            tipo: { not: 'ENTRE_COMPANEROS' },
+            fecha_creacion: {
+              gte: inicioEjercicio,
+              lt: finEjercicio,
+            },
           },
-        },
-      ],
-    },
-    orderBy: [{ fecha_creacion: 'asc' }, { id: 'asc' }],
-    select: {
-      id: true,
-      concepto: true,
-      importe: true,
-      tipo: true,
-      fecha_creacion: true,
-      periodo_facturacion: true,
-      habitacion_cargo_id: true,
-      inquilino_cargo_id: true,
-      prorrateo_fiscal: true,
-      inquilino_cargo: {
-        select: {
-          id: true,
-          nombre: true,
-          apellidos: true,
+        ],
+      },
+      orderBy: [{ fecha_creacion: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        concepto: true,
+        importe: true,
+        tipo: true,
+        fecha_creacion: true,
+        periodo_facturacion: true,
+        habitacion_cargo_id: true,
+        inquilino_cargo_id: true,
+        prorrateo_fiscal: true,
+        inquilino_cargo: {
+          select: {
+            id: true,
+            nombre: true,
+            apellidos: true,
+          },
         },
       },
-    },
-  });
+    }),
+    (prisma as typeof prisma & { contratoAlquiler: any }).contratoAlquiler.findMany({
+      where: {
+        vivienda_id: viviendaId,
+        estado: 'FIRMADO',
+        fecha_inicio: { lt: finEjercicio },
+        OR: [{ fecha_fin: null }, { fecha_fin: { gt: inicioEjercicio } }],
+      },
+      orderBy: [{ fecha_inicio: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        version: true,
+        estado: true,
+        documento_hash: true,
+        renta_mensual: true,
+        fecha_inicio: true,
+        fecha_fin: true,
+        habitacion_id: true,
+        inquilino_id: true,
+        inquilino: {
+          select: {
+            id: true,
+            nombre: true,
+            apellidos: true,
+          },
+        },
+      },
+    }),
+  ]);
 
-  return construirFotoOcupacionFiscal({ ejercicio, vivienda, gastos });
+  return construirFotoOcupacionFiscal({ ejercicio, vivienda, gastos, contratos });
 };
 
 export const obtenerResumenFiscalAnualVivienda = async (

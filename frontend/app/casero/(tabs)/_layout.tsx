@@ -117,6 +117,16 @@ export default function CaseroTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="contratos"
+        options={{
+          title: 'Contratos',
+          href: modulos.gastos ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="inventario"
         options={{
           title: 'Invent.',
