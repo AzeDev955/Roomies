@@ -1,6 +1,6 @@
 # Roomies
 
-Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilinos para centralizar viviendas, incidencias, tablones, limpieza, inventario y ahora tambien cobros recurrentes con recordatorios push.
+Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilinos para centralizar viviendas, incidencias, tablones, limpieza, inventario, contratos, cobros recurrentes y preparacion fiscal del propietario.
 
 ## Que incluye hoy
 
@@ -9,14 +9,15 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 - Gestion multipropiedad con alta de viviendas y habitaciones.
 - Centro de mando por vivienda con resumen, incidencias, tablon y limpieza.
 - Limpieza por habitaciones responsables, asignaciones fijas y exportacion CSV compatible con Excel.
-- Pestanas globales de `Mis viviendas`, `Cobros`, `Inventario`, `Tablon` y `Perfil`.
+- Pestanas globales de `Mis viviendas`, `Cobros`, `Fiscal`, `Contratos`, `Inventario`, `Tablon` y `Perfil`.
 - Dashboard de cobros mensuales con detalle de deudas pagadas, pendientes y justificantes.
 - Inventario por vivienda con subida de imagenes a Cloudinary y estado de validacion del inquilino.
+- Modo fiscal con resumen anual, ocupacion, revision de metadatos, contratos/historico como soporte y exportacion CSV para gestoria.
 
 ### Inquilino
 
 - Onboarding por codigo de invitacion y dashboard de vivienda.
-- Tablon, limpieza, gastos, inventario y perfil en navegacion principal.
+- Tablon, limpieza, gastos, inventario, contratos y perfil en navegacion principal.
 - Gestion de gastos puntuales y mensualidades.
 - Subida de justificantes de pago y saldado de deudas desde la app.
 - Check-in visual del inventario con conformidad por item visible: vivienda, zonas comunes y habitacion propia.
@@ -54,6 +55,8 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 - [x] Cobros mensuales del casero
 - [x] Mensualidades recurrentes
 - [x] Recordatorios de pago por push
+- [x] Modo fiscal para casero y dossier CSV revisable
+- [x] Contratos de alquiler con firma interna e historico de ocupacion
 - [ ] Chat integrado Inquilino <-> Casero
 - [ ] Notificaciones push avanzadas para incidencias y cambios de estado
 
@@ -184,6 +187,8 @@ Los tests cargan valores de entorno de prueba y no necesitan `.env` privados. El
 | Contexto de proyecto | `CONTEXT.md` |
 | Setup backend | `docs/backend/setup.md` |
 | API REST | `docs/backend/api.md` |
+| Contrato fiscal propietario | `docs/backend/contrato-fiscal-propietario.md` |
+| Cierre epica fiscal | `docs/backend/fiscal-cierre-epica.md` |
 | Setup frontend | `docs/frontend/setup.md` |
 | Infraestructura y despliegue | `docs/infra/setup-despliegue.md` |
 | Changelog tecnico | `docs/changelog/` |

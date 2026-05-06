@@ -1496,6 +1496,8 @@ Anula un contrato pendiente o rechazado. Solo puede hacerlo el casero propietari
 
 ## Fiscal (`/viviendas/:viviendaId`)
 
+El flujo fiscal completo y el checklist manual de cierre estan documentados en `docs/backend/fiscal-cierre-epica.md`. Todos los endpoints de esta seccion son superficies de propietario: no exponen metadatos fiscales privados a inquilinos y dependen del modulo de gastos de la vivienda.
+
 ### GET `/viviendas/:viviendaId/fiscal/:ejercicio`
 
 Devuelve el resumen fiscal anual del propietario para una vivienda concreta, con totales auditables, detalle linea a linea y advertencias de revision.
@@ -1592,6 +1594,11 @@ Descarga un dossier fiscal anual en CSV compatible con Excel para revisar o envi
 - El CSV minimiza datos personales de inquilinos: conserva referencia interna y nombre para trazabilidad de cobros, pero no exporta `documento_identidad`, email ni telefono.
 - Las lineas con importes pendientes, facturas ausentes, categorias fiscales pendientes, periodos incompletos o prorrateos manuales quedan marcadas en la columna `Advertencias`.
 - Las referencias documentales se incluyen como URL (`factura_url` y `justificante_url`) sin duplicar archivos pesados.
+
+**Limites del dossier:**
+- Roomies prepara un dossier revisable, no un modelo tributario oficial.
+- Las categorias, deducibilidad y prorrateos deben confirmarse con asesor fiscal o normativa oficial actualizada.
+- La firma interna de contratos aporta trazabilidad operativa, pero no sustituye un proveedor de firma electronica avanzada/cualificada.
 
 **Respuestas:**
 
@@ -2275,3 +2282,9 @@ Marca un turno como `HECHO`. No tiene body.
 - Inventario guarda quien valido cada item y cuando lo hizo. El listado de casero incluye `revisado_por_inquilino_user`; el de inquilino queda filtrado a vivienda, zonas comunes y habitacion propia.
 - Limpieza usa habitaciones responsables para asignaciones fijas y turnos; `usuario_id` en turnos es un snapshot opcional del ocupante al generar.
 - La exportacion CSV de limpieza puede devolverse como `formato=base64` para escritura nativa movil compatible con Excel.
+
+## Update 2026-05-06 - Cierre epica fiscal
+
+- `GET /api/viviendas/:viviendaId/fiscal/:ejercicio`, `GET /api/viviendas/:viviendaId/fiscal/ocupacion` y `GET /api/viviendas/:viviendaId/fiscal/:ejercicio/dossier` quedan documentados como flujo fiscal completo de propietario.
+- `docs/backend/fiscal-cierre-epica.md` centraliza contrato de exportacion, columnas, checklist manual, matriz issue-archivos-tests y riesgos residuales.
+- El dossier CSV se declara soporte de revision para gestor, no declaracion oficial ni sustituto de asesor fiscal.
