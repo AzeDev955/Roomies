@@ -8,22 +8,27 @@ type UsuarioTest = { id: number; rol: 'CASERO' | 'INQUILINO' };
 const fiscalService = vi.hoisted(() => ({
   obtenerResumenFiscalAnualVivienda: vi.fn(),
   obtenerFotoOcupacionFiscalVivienda: vi.fn(),
+  obtenerDossierFiscalVivienda: vi.fn(),
+  generarBufferCsvExcel: vi.fn((csv: string) => Buffer.from(`excel:${csv}`)),
 }));
 
 vi.mock('../src/services/fiscal.service', () => fiscalService);
 
-const { obtenerResumenFiscalVivienda } = await import('../src/controllers/fiscal.controller');
+const { exportarDossierFiscalVivienda, obtenerResumenFiscalVivienda } = await import('../src/controllers/fiscal.controller');
 
 function request({
   usuario,
   params = {},
+  query = {},
 }: {
   usuario: UsuarioTest;
   params?: Record<string, string>;
+  query?: Record<string, string>;
 }) {
   return {
     usuario,
     params,
+    query,
   } as unknown as express.Request;
 }
 
@@ -31,12 +36,22 @@ function response() {
   const res = {
     statusCode: 200,
     body: undefined as unknown,
+    sent: undefined as unknown,
+    headers: {} as Record<string, string>,
     status(code: number) {
       this.statusCode = code;
       return this;
     },
+    setHeader(nombre: string, valor: string) {
+      this.headers[nombre] = valor;
+      return this;
+    },
     json(payload: unknown) {
       this.body = payload;
+      return this;
+    },
+    send(payload: unknown) {
+      this.sent = payload;
       return this;
     },
   };
@@ -52,6 +67,8 @@ async function invoke(handler: Handler, req: express.Request) {
 
 beforeEach(() => {
   fiscalService.obtenerResumenFiscalAnualVivienda.mockReset();
+  fiscalService.obtenerDossierFiscalVivienda.mockReset();
+  fiscalService.generarBufferCsvExcel.mockClear();
 });
 
 describe('fiscal.controller', () => {
@@ -108,5 +125,67 @@ describe('fiscal.controller', () => {
     assert.equal(res.statusCode, 200);
     assert.equal(res.body, resumen);
     assert.deepEqual(fiscalService.obtenerResumenFiscalAnualVivienda.mock.calls[0], [7, 99, 2026]);
+  });
+
+  test('exporta dossier fiscal como csv descargable', async () => {
+    fiscalService.obtenerDossierFiscalVivienda.mockResolvedValueOnce({
+      nombreArchivo: 'dossier-fiscal-piso-centro-2026-2026-05-06.csv',
+      mimeType: 'text/csv',
+      contenido: '\uFEFF# RESUMEN\r\n# DETALLE',
+      columnas: {
+        resumen: ['Clave', 'Valor', 'Moneda', 'Notas'],
+        detalle: ['Linea ID', 'Advertencias'],
+      },
+    });
+
+    const res = await invoke(
+      exportarDossierFiscalVivienda,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '7', ejercicio: '2026' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.headers['Content-Type'], 'text/csv; charset=utf-8');
+    assert.equal(
+      res.headers['Content-Disposition'],
+      'attachment; filename="dossier-fiscal-piso-centro-2026-2026-05-06.csv"',
+    );
+    assert.equal(res.sent, '\uFEFF# RESUMEN\r\n# DETALLE');
+    assert.deepEqual(fiscalService.obtenerDossierFiscalVivienda.mock.calls[0], [7, 99, 2026]);
+  });
+
+  test('exporta dossier fiscal en base64 para escritura movil', async () => {
+    fiscalService.obtenerDossierFiscalVivienda.mockResolvedValueOnce({
+      nombreArchivo: 'dossier-fiscal-piso-centro-2026-2026-05-06.csv',
+      mimeType: 'text/csv',
+      contenido: 'csv',
+      columnas: {
+        resumen: ['Clave'],
+        detalle: ['Linea ID'],
+      },
+    });
+
+    const res = await invoke(
+      exportarDossierFiscalVivienda,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '7', ejercicio: '2026' },
+        query: { formato: 'base64' },
+      }),
+    );
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body, {
+      nombreArchivo: 'dossier-fiscal-piso-centro-2026-2026-05-06.csv',
+      mimeType: 'text/csv',
+      columnas: {
+        resumen: ['Clave'],
+        detalle: ['Linea ID'],
+      },
+      contenidoBase64: Buffer.from('excel:csv').toString('base64'),
+    });
+    assert.deepEqual(fiscalService.generarBufferCsvExcel.mock.calls[0], ['csv']);
   });
 });

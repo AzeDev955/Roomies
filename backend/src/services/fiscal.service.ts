@@ -237,7 +237,42 @@ export type FiscalResumenAnualVivienda = {
   advertencias: FiscalAdvertenciaResumen[];
 };
 
+export type FiscalDossierFiscal = {
+  nombreArchivo: string;
+  mimeType: 'text/csv';
+  contenido: string;
+  columnas: {
+    resumen: string[];
+    detalle: string[];
+  };
+};
+
 const MS_DIA = 24 * 60 * 60 * 1000;
+const MIME_CSV = 'text/csv' as const;
+const COLUMNAS_DOSSIER_RESUMEN = ['Clave', 'Valor', 'Moneda', 'Notas'] as const;
+const COLUMNAS_DOSSIER_DETALLE = [
+  'Linea ID',
+  'Naturaleza',
+  'Modelo origen',
+  'Gasto ID',
+  'Deuda ID',
+  'Concepto',
+  'Categoria',
+  'Deducibilidad',
+  'Importe',
+  'Moneda',
+  'Fecha',
+  'Periodo facturacion',
+  'Estado pago',
+  'Factura URL',
+  'Justificante URL',
+  'Habitacion ID',
+  'Habitacion',
+  'Inquilino ID',
+  'Inquilino',
+  'Documento inquilino',
+  'Advertencias',
+] as const;
 
 const isoFecha = (fecha: Date) => fecha.toISOString().slice(0, 10);
 
@@ -283,6 +318,125 @@ const sumarCentimos = (importes: number[]) =>
 
 const sumarEnMapa = (mapa: Record<string, number>, clave: string, importe: number) => {
   mapa[clave] = sumarCentimos([mapa[clave] ?? 0, importe]);
+};
+
+const escaparCsv = (valor: unknown) => {
+  const texto = String(valor ?? '');
+  const seguro = /^[=+\-@]/.test(texto) ? `'${texto}` : texto;
+  return `"${seguro.replace(/"/g, '""')}"`;
+};
+
+const limpiarNombreArchivo = (valor: string) =>
+  valor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+
+const nombreCompleto = (usuario: { nombre: string; apellidos: string | null } | null | undefined) =>
+  usuario ? `${usuario.nombre}${usuario.apellidos ? ` ${usuario.apellidos}` : ''}` : '';
+
+const serializarAdvertencias = (advertencias: FiscalAdvertenciaResumen[]) =>
+  advertencias.map((advertencia) => `${advertencia.codigo}: ${advertencia.mensaje}`).join(' | ');
+
+const filaCsv = (valores: readonly unknown[]) => valores.map(escaparCsv).join(';');
+
+const crearFilasMapa = (prefijo: string, valores: Record<string, number>) =>
+  Object.entries(valores)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([clave, valor]) => [`${prefijo}.${clave}`, valor, 'EUR', '']);
+
+const generarCsvDossierFiscal = (resumen: FiscalResumenAnualVivienda) => {
+  const filasResumen = [
+    ['ejercicio', resumen.ejercicio, '', 'Ano natural exportado'],
+    ['generado_en', resumen.generado_en, '', 'Fecha ISO de generacion'],
+    ['solicitante', nombreCompleto(resumen.casero), '', `usuario_id=${resumen.casero.id}`],
+    ['vivienda', resumen.vivienda.alias_nombre, '', `vivienda_id=${resumen.vivienda.id}`],
+    ['direccion', resumen.vivienda.direccion, '', `${resumen.vivienda.codigo_postal} ${resumen.vivienda.ciudad}`],
+    ['ingresos.emitido', resumen.totales.ingresos.emitido, 'EUR', 'Total facturado a inquilinos'],
+    ['ingresos.cobrado', resumen.totales.ingresos.cobrado, 'EUR', 'Total marcado como pagado'],
+    ['ingresos.pendiente', resumen.totales.ingresos.pendiente, 'EUR', 'Total pendiente de cobro'],
+    ['ingresos.anulado', resumen.totales.ingresos.anulado, 'EUR', 'Total anulado'],
+    ...crearFilasMapa('ingresos.por_tipo', resumen.totales.ingresos.por_tipo),
+    [
+      'gastos.potencialmente_deducible',
+      resumen.totales.gastos.potencialmente_deducible,
+      'EUR',
+      'Gastos del flujo propietario',
+    ],
+    ['gastos.deducible_previsto', resumen.totales.gastos.deducible_previsto, 'EUR', 'Marcados como deducibles'],
+    ['gastos.no_deducible_previsto', resumen.totales.gastos.no_deducible_previsto, 'EUR', 'Marcados como no deducibles'],
+    [
+      'gastos.pendiente_clasificacion',
+      resumen.totales.gastos.pendiente_clasificacion,
+      'EUR',
+      'Sin categoria fiscal o deducibilidad clara',
+    ],
+    ['gastos.con_factura', resumen.totales.gastos.con_factura, 'EUR', 'Con factura_url'],
+    ['gastos.sin_factura', resumen.totales.gastos.sin_factura, 'EUR', 'Sin factura_url'],
+    ...crearFilasMapa('gastos.por_categoria', resumen.totales.gastos.por_categoria),
+    ['revision.lineas_problematicas', resumen.lineas.filter((linea) => linea.advertencias.length > 0).length, '', ''],
+    ['revision.advertencias', resumen.advertencias.length, '', serializarAdvertencias(resumen.advertencias)],
+  ];
+
+  const filasDetalle = resumen.lineas.map((linea) => [
+    linea.id,
+    linea.naturaleza,
+    linea.fuente.modelo,
+    linea.fuente.gasto_id,
+    linea.fuente.deuda_id ?? '',
+    linea.concepto,
+    linea.categoria,
+    linea.deducibilidad,
+    linea.importe,
+    linea.moneda,
+    linea.fecha,
+    linea.periodo_facturacion ?? '',
+    linea.estado_pago,
+    linea.factura_url ?? '',
+    linea.justificante_url ?? '',
+    linea.habitacion?.id ?? '',
+    linea.habitacion?.nombre ?? '',
+    linea.inquilino?.id ?? '',
+    nombreCompleto(linea.inquilino),
+    linea.inquilino?.documento_identidad ?? '',
+    serializarAdvertencias(linea.advertencias),
+  ]);
+
+  const lineas = [
+    '# RESUMEN',
+    filaCsv(COLUMNAS_DOSSIER_RESUMEN),
+    ...filasResumen.map(filaCsv),
+    '',
+    '# DETALLE',
+    filaCsv(COLUMNAS_DOSSIER_DETALLE),
+    ...filasDetalle.map(filaCsv),
+  ];
+
+  return `\uFEFF${lineas.join('\r\n')}`;
+};
+
+export const generarBufferCsvExcel = (csv: string) =>
+  Buffer.concat([
+    Buffer.from([0xff, 0xfe]),
+    Buffer.from(csv.replace(/^\uFEFF/, ''), 'utf16le'),
+  ]);
+
+export const construirDossierFiscal = (resumen: FiscalResumenAnualVivienda): FiscalDossierFiscal => {
+  const viviendaSlug = limpiarNombreArchivo(resumen.vivienda.alias_nombre || `vivienda-${resumen.vivienda.id}`);
+  const fechaGeneracion = isoFecha(new Date(resumen.generado_en));
+
+  return {
+    nombreArchivo: `dossier-fiscal-${viviendaSlug}-${resumen.ejercicio}-${fechaGeneracion}.csv`,
+    mimeType: MIME_CSV,
+    contenido: generarCsvDossierFiscal(resumen),
+    columnas: {
+      resumen: [...COLUMNAS_DOSSIER_RESUMEN],
+      detalle: [...COLUMNAS_DOSSIER_DETALLE],
+    },
+  };
 };
 
 const esPeriodoMensualDelEjercicio = (periodo: string | null, ejercicio: number) => {
@@ -839,4 +993,14 @@ export const obtenerResumenFiscalAnualVivienda = async (
     deudas,
     gastos,
   });
+};
+
+export const obtenerDossierFiscalVivienda = async (
+  viviendaId: number,
+  caseroId: number,
+  ejercicio: number,
+) => {
+  const resumen = await obtenerResumenFiscalAnualVivienda(viviendaId, caseroId, ejercicio);
+  if (!resumen) return null;
+  return construirDossierFiscal(resumen);
 };

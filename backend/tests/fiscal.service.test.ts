@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'vitest';
-import { construirFotoOcupacionFiscal, construirResumenFiscalAnual } from '../src/services/fiscal.service';
+import {
+  construirDossierFiscal,
+  construirFotoOcupacionFiscal,
+  construirResumenFiscalAnual,
+  generarBufferCsvExcel,
+} from '../src/services/fiscal.service';
 
 const viviendaBase = {
   id: 1,
@@ -278,5 +283,69 @@ describe('fiscal.service', () => {
     assert.ok(resumen.advertencias.some((advertencia) => advertencia.codigo === 'FALTA_CATEGORIA'));
     assert.ok(resumen.advertencias.some((advertencia) => advertencia.codigo === 'FALTA_FACTURA'));
     assert.ok(resumen.advertencias.some((advertencia) => advertencia.codigo === 'PRORRATEO_MANUAL'));
+  });
+
+  test('exporta dossier fiscal con secciones, columnas estables y lineas marcadas', () => {
+    const resumen = construirResumenFiscalAnual({
+      ejercicio: 2026,
+      generadoEn: new Date('2026-05-06T08:30:00.000Z'),
+      vivienda: {
+        ...viviendaBase,
+        casero: {
+          id: 99,
+          nombre: 'Clara',
+          apellidos: 'Propietaria',
+          documento_identidad: '99999999Z',
+        },
+      },
+      deudas: [
+        {
+          id: 7,
+          importe: 450,
+          estado: 'PENDIENTE',
+          justificante_url: null,
+          deudor: inquilinoAna,
+          gasto: {
+            ...alquiler({ id: 101, mes: '2026-01', habitacionId: 7, inquilino: inquilinoAna, importe: 450 }),
+            factura_url: 'https://cdn.test/alquiler.pdf',
+            categoria_fiscal: 'SIN_CLASIFICAR',
+            deducible_previsto: null,
+            notas_fiscales: null,
+          },
+        },
+      ],
+      gastos: [
+        {
+          id: 201,
+          concepto: '=Formula peligrosa',
+          importe: 80,
+          tipo: 'FACTURA_PUNTUAL',
+          factura_url: null,
+          categoria_fiscal: 'SIN_CLASIFICAR',
+          deducible_previsto: null,
+          notas_fiscales: null,
+          fecha_creacion: new Date('2026-03-10T00:00:00.000Z'),
+          periodo_facturacion: null,
+          habitacion_cargo_id: null,
+          inquilino_cargo_id: null,
+          prorrateo_fiscal: null,
+          inquilino_cargo: null,
+        },
+      ],
+    });
+
+    const dossier = construirDossierFiscal(resumen);
+
+    assert.equal(dossier.nombreArchivo, 'dossier-fiscal-piso-centro-2026-2026-05-06.csv');
+    assert.equal(dossier.mimeType, 'text/csv');
+    assert.deepEqual(dossier.columnas.resumen, ['Clave', 'Valor', 'Moneda', 'Notas']);
+    assert.ok(dossier.columnas.detalle.includes('Advertencias'));
+    assert.match(dossier.contenido, /# RESUMEN/);
+    assert.match(dossier.contenido, /# DETALLE/);
+    assert.match(dossier.contenido, /"revision\.lineas_problematicas";"2";"";""/);
+    assert.match(dossier.contenido, /"deuda-7";"INGRESO";"Deuda";"101";"7"/);
+    assert.match(dossier.contenido, /IMPORTE_PENDIENTE/);
+    assert.match(dossier.contenido, /"'=Formula peligrosa"/);
+    assert.equal(generarBufferCsvExcel(dossier.contenido).subarray(0, 2).toString('hex'), 'fffe');
   });
 });
