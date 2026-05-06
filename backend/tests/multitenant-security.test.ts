@@ -25,6 +25,12 @@ const prisma = vi.hoisted(() => ({
       throw new Error('Unexpected prisma call: habitacion.update');
     },
   },
+  periodoOcupacion: {
+    findFirst: async (_args: unknown): Promise<unknown> => null,
+    updateMany: async (_args: unknown): Promise<unknown> => ({ count: 0 }),
+    create: async (_args: unknown): Promise<unknown> => ({}),
+    update: async (_args: unknown): Promise<unknown> => ({}),
+  },
   incidencia: {
     findUnique: async (_args: unknown): Promise<unknown> => {
       throw new Error('Unexpected prisma call: incidencia.findUnique');
@@ -41,6 +47,7 @@ const prisma = vi.hoisted(() => ({
       throw new Error('Unexpected prisma call: anuncio.delete');
     },
   },
+  $transaction: async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma),
 }));
 
 function unexpectedPrismaCall(method: string): never {
@@ -64,6 +71,10 @@ function resetPrisma() {
   prisma.habitacion.findUnique = async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('habitacion.findUnique');
   prisma.habitacion.findFirst = async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('habitacion.findFirst');
   prisma.habitacion.update = async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('habitacion.update');
+  prisma.periodoOcupacion.findFirst = async () => null;
+  prisma.periodoOcupacion.updateMany = async () => ({ count: 0 });
+  prisma.periodoOcupacion.create = async () => ({});
+  prisma.periodoOcupacion.update = async () => ({});
   prisma.incidencia.findUnique = async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('incidencia.findUnique');
   prisma.incidencia.create = async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('incidencia.create');
   prisma.anuncio.findUnique = async (_args: unknown): Promise<unknown> => unexpectedPrismaCall('anuncio.findUnique');

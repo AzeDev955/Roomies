@@ -14,6 +14,7 @@ Este contrato define los datos internos que Roomies debe preparar para convertir
 | `Gasto` | Documento economico emitido o registrado. | `id`, `concepto`, `importe`, `tipo`, `factura_url`, `categoria_fiscal`, `deducible_previsto`, `notas_fiscales`, `prorrateo_fiscal`, `fecha_creacion`, `periodo_facturacion`, `habitacion_cargo_id`, `inquilino_cargo_id`, `vivienda_id`, `pagador_id` |
 | `GastoRecurrente` | Plantilla de cargos mensuales futuros. | `id`, `concepto`, `importe`, `tipo`, `dia_del_mes`, `vivienda_id`, `pagador_id`, `activo` |
 | `Deuda` | Linea exigible/cobrada asociada a un gasto. | `id`, `gasto_id`, `deudor_id`, `acreedor_id`, `importe`, `estado`, `justificante_url` |
+| `PeriodoOcupacion` | Historico explicito de alta, baja, contrato o inferencia por habitacion/inquilino. | `vivienda_id`, `habitacion_id`, `inquilino_id`, `contrato_id`, `fecha_inicio`, `fecha_fin`, `estado`, `origen`, `renta_mensual`, `requiere_revision` |
 | Facturas | Soporte documental del gasto o cargo emitido. | `Gasto.factura_url` |
 | Justificantes | Evidencia de pago aportada por el deudor. | `Deuda.justificante_url` |
 
@@ -164,6 +165,8 @@ type FiscalResumenPropietarioDTO = {
 - Para ingresos, la linea fiscal principal debe partir de `Deuda`, no solo de `Gasto`, porque el estado cobrado/pendiente vive en `Deuda.estado` y el importe puede estar repartido por inquilino.
 - `Gasto.importe` se usa como importe emitido agregado del documento; `Deuda.importe` se usa para imputacion por inquilino y estado de cobro.
 - `Habitacion` e `inquilino` son opcionales excepto en `ALQUILER_HABITACION`, donde deben recuperarse desde `habitacion_cargo_id` e `inquilino_cargo_id` si siguen disponibles.
+- Para ocupacion y prorrateo, `PeriodoOcupacion` es la fuente preferente. Los contratos firmados y cargos `ALQUILER_HABITACION` quedan como respaldo cuando una habitacion aun no tiene historico explicito.
+- Los periodos con origen `INFERIDO_CARGO_ALQUILER` o `MIGRADO` deben conservar `requiere_revision` hasta que el casero o un flujo contractual confirme las fechas reales.
 - `factura_url` documenta el soporte del cargo o gasto; `justificante_url` documenta el pago de una deuda concreta.
 - Los importes deben sumarse en centimos y exponerse normalizados a euros para evitar descuadres por `Float`.
 - Las lineas sin factura o sin categoria fiscal futura deben aparecer como pendientes de revision, no como deducibles confirmados.

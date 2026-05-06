@@ -54,10 +54,28 @@ type ContratoFiscal = {
   inquilino?: InquilinoFiscal | null;
 };
 
+type PeriodoOcupacionFiscal = {
+  id: number;
+  estado: string;
+  origen: string;
+  fecha_inicio: Date;
+  fecha_fin: Date | null;
+  habitacion_id: number | null;
+  inquilino_id: number;
+  contrato_id: number | null;
+  renta_mensual: number | null;
+  requiere_revision: boolean;
+  inquilino?: InquilinoFiscal | null;
+};
+
 export type FiscalEstadoOcupacion = 'SIN_ACTIVIDAD' | 'PARCIAL' | 'TODO_EL_ANO';
 
 export type FiscalRevision = {
-  codigo: 'SIN_PERIODO_FACTURACION' | 'OCUPACION_ACTUAL_SIN_CARGOS' | 'SIN_PRECIO_HABITACION';
+  codigo:
+    | 'SIN_PERIODO_FACTURACION'
+    | 'OCUPACION_ACTUAL_SIN_CARGOS'
+    | 'SIN_PRECIO_HABITACION'
+    | 'PERIODO_OCUPACION_REVISABLE';
   mensaje: string;
 };
 
@@ -68,9 +86,12 @@ export type FiscalPeriodoOcupacion = {
   periodo_facturacion: string;
   gasto_id?: number;
   contrato_id?: number;
-  fuente: 'CARGO_ALQUILER' | 'CONTRATO_FIRMADO';
+  fuente: 'CARGO_ALQUILER' | 'CONTRATO_FIRMADO' | 'PERIODO_OCUPACION';
   contrato_version?: number;
   documento_hash?: string;
+  periodo_ocupacion_id?: number;
+  origen_periodo?: string;
+  requiere_revision?: boolean;
   inquilino: InquilinoFiscal | null;
   importe: number;
 };
@@ -144,6 +165,7 @@ type ConstruirFotoInput = {
   };
   gastos: GastoFiscal[];
   contratos?: ContratoFiscal[];
+  periodosOcupacion?: PeriodoOcupacionFiscal[];
 };
 
 type CaseroFiscal = {
@@ -524,6 +546,7 @@ export const construirFotoOcupacionFiscal = ({
   vivienda,
   gastos,
   contratos = [],
+  periodosOcupacion = [],
 }: ConstruirFotoInput): FiscalFotoOcupacionVivienda => {
   const inicioEjercicio = new Date(Date.UTC(ejercicio, 0, 1));
   const finEjercicio = new Date(Date.UTC(ejercicio + 1, 0, 1));
@@ -537,10 +560,12 @@ export const construirFotoOcupacionFiscal = ({
     const contratosHabitacion = contratos.filter(
       (contrato) => contrato.estado === 'FIRMADO' && contrato.habitacion_id === habitacion.id,
     );
-    const usarContratosFirmados = contratosHabitacion.length > 0;
+    const periodosHabitacion = periodosOcupacion.filter((periodo) => periodo.habitacion_id === habitacion.id);
+    const usarPeriodosOcupacion = periodosHabitacion.length > 0;
+    const usarContratosFirmados = !usarPeriodosOcupacion && contratosHabitacion.length > 0;
     const periodos: FiscalPeriodoOcupacion[] = [];
 
-    for (const cargo of usarContratosFirmados ? [] : cargosHabitacion) {
+    for (const cargo of usarPeriodosOcupacion || usarContratosFirmados ? [] : cargosHabitacion) {
       if (!cargo.periodo_facturacion) {
         const revision = {
           codigo: 'SIN_PERIODO_FACTURACION' as const,
@@ -577,7 +602,36 @@ export const construirFotoOcupacionFiscal = ({
       });
     }
 
-    for (const contrato of contratosHabitacion) {
+    for (const periodo of periodosHabitacion) {
+      const finPeriodo = periodo.fecha_fin ?? finEjercicio;
+      const recortado = recortarPeriodo(periodo.fecha_inicio, finPeriodo, inicioEjercicio, finEjercicio);
+      if (!recortado) continue;
+
+      if (periodo.requiere_revision || periodo.estado === 'PENDIENTE_REVISION') {
+        const revision = {
+          codigo: 'PERIODO_OCUPACION_REVISABLE' as const,
+          mensaje: `El periodo de ocupacion ${periodo.id} procede de ${periodo.origen} y requiere revision.`,
+        };
+        revisiones.push(revision);
+        revisionesVivienda.push(revision);
+      }
+
+      periodos.push({
+        inicio: isoFecha(recortado.inicio),
+        fin: isoFecha(recortado.fin),
+        dias: diasEntre(recortado.inicio, recortado.fin),
+        periodo_facturacion: `${isoFecha(recortado.inicio)}..${isoFecha(recortado.fin)}`,
+        contrato_id: periodo.contrato_id ?? undefined,
+        periodo_ocupacion_id: periodo.id,
+        fuente: 'PERIODO_OCUPACION',
+        origen_periodo: periodo.origen,
+        requiere_revision: periodo.requiere_revision,
+        inquilino: periodo.inquilino ?? null,
+        importe: normalizarImporteMonetario(periodo.renta_mensual ?? habitacion.precio ?? 0),
+      });
+    }
+
+    for (const contrato of usarContratosFirmados ? contratosHabitacion : []) {
       const finContrato = contrato.fecha_fin ?? finEjercicio;
       const recortado = recortarPeriodo(contrato.fecha_inicio, finContrato, inicioEjercicio, finEjercicio);
       if (!recortado) continue;
@@ -870,7 +924,7 @@ export const obtenerFotoOcupacionFiscalVivienda = async (
 
   const inicioEjercicio = new Date(Date.UTC(ejercicio, 0, 1));
   const finEjercicio = new Date(Date.UTC(ejercicio + 1, 0, 1));
-  const [gastos, contratos] = await Promise.all([
+  const [gastos, periodosOcupacion, contratos] = await Promise.all([
     prisma.gasto.findMany({
       where: {
         vivienda_id: viviendaId,
@@ -911,6 +965,33 @@ export const obtenerFotoOcupacionFiscalVivienda = async (
         },
       },
     }),
+    (prisma as typeof prisma & { periodoOcupacion: any }).periodoOcupacion.findMany({
+      where: {
+        vivienda_id: viviendaId,
+        fecha_inicio: { lt: finEjercicio },
+        OR: [{ fecha_fin: null }, { fecha_fin: { gt: inicioEjercicio } }],
+      },
+      orderBy: [{ fecha_inicio: 'asc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        estado: true,
+        origen: true,
+        fecha_inicio: true,
+        fecha_fin: true,
+        habitacion_id: true,
+        inquilino_id: true,
+        contrato_id: true,
+        renta_mensual: true,
+        requiere_revision: true,
+        inquilino: {
+          select: {
+            id: true,
+            nombre: true,
+            apellidos: true,
+          },
+        },
+      },
+    }),
     (prisma as typeof prisma & { contratoAlquiler: any }).contratoAlquiler.findMany({
       where: {
         vivienda_id: viviendaId,
@@ -940,7 +1021,7 @@ export const obtenerFotoOcupacionFiscalVivienda = async (
     }),
   ]);
 
-  return construirFotoOcupacionFiscal({ ejercicio, vivienda, gastos, contratos });
+  return construirFotoOcupacionFiscal({ ejercicio, vivienda, gastos, contratos, periodosOcupacion });
 };
 
 export const obtenerResumenFiscalAnualVivienda = async (

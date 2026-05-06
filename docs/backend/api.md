@@ -1614,9 +1614,10 @@ Devuelve la foto anual de ocupacion fiscal de una vivienda, con detalle por habi
 - `ejercicio` es obligatorio y representa un ano natural.
 
 **Comportamiento:**
-- Usa cargos `ALQUILER_HABITACION` con `periodo_facturacion` mensual (`YYYY-MM`) para calcular dias alquilados, meses equivalentes y porcentaje de ocupacion.
+- Usa `PeriodoOcupacion` como fuente preferente para calcular dias alquilados, meses equivalentes y porcentaje de ocupacion.
+- Si una habitacion no tiene periodos explicitos, cae a contratos firmados y despues a cargos `ALQUILER_HABITACION` con `periodo_facturacion` mensual (`YYYY-MM`) como compatibilidad heredada.
 - Distingue viviendas y habitaciones `SIN_ACTIVIDAD`, `PARCIAL` y `TODO_EL_ANO`.
-- Marca `requiere_revision` cuando faltan periodos de facturacion, hay ocupacion actual sin cargos del ejercicio o una habitacion con actividad no conserva precio valido.
+- Marca `requiere_revision` cuando faltan periodos de facturacion, hay ocupacion actual sin periodos/cargos del ejercicio, una habitacion con actividad no conserva precio valido o el periodo explicito procede de una migracion/inferencia revisable.
 - Prorratea gastos del flujo del casero por porcentaje manual (`prorrateo_fiscal`) cuando existe; si no, usa el porcentaje anual de ocupacion de la vivienda.
 
 **Respuestas:**
