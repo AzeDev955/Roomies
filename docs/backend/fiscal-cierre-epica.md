@@ -148,7 +148,7 @@ Permisos y errores:
 
 - Confirmar con asesor fiscal el tratamiento de gastos deducibles, prorratas, criterio de caja/devengo, uso mixto de vivienda y documentacion exigible por normativa vigente.
 - Las categorias fiscales son ayuda operativa; no constituyen calificacion legal automatica.
-- Las URLs de Cloudinary se entregan solo por endpoints protegidos, pero si el recurso remoto es publico haran falta URLs firmadas o proxy privado para confidencialidad fuerte.
+- Las nuevas URLs privadas se resuelven mediante URLs firmadas desde Backblaze B2; queda pendiente endurecer TTLs y auditoria de acceso si se requiere confidencialidad avanzada.
 - La firma interna registra aceptacion, version, hash, usuario y origen tecnico, pero no equivale a firma electronica avanzada o cualificada. Para ese nivel hace falta proveedor especializado.
 - El CSV es un dossier de revision, no un modelo tributario oficial.
 - Los periodos migrados o inferidos conservan `requiere_revision`; deben confirmarse manualmente antes de cerrar un ejercicio real.

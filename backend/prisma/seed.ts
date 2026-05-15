@@ -356,7 +356,7 @@ async function main() {
         importe: 30,
         estado: EstadoDeuda.PAGADA,
         justificanteUrl:
-          "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+          "https://cdn.roomies.test/demo/sample.jpg",
       },
     ],
   });
@@ -388,7 +388,7 @@ async function main() {
         importe: 12,
         estado: EstadoDeuda.PAGADA,
         justificanteUrl:
-          "https://res.cloudinary.com/demo/image/upload/sample.jpg",
+          "https://cdn.roomies.test/demo/sample.jpg",
       },
       { deudorId: bruno.id, importe: 12, estado: EstadoDeuda.PAGADA },
       { deudorId: carmen.id, importe: 12 },

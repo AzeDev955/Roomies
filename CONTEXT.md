@@ -25,7 +25,7 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 | HTTP client     | Axios con interceptor Bearer token                                   |
 | Token storage   | `expo-secure-store`                                                  |
 | Geocoding       | Mapbox Geocoding API                                                 |
-| Media uploads   | Cloudinary + `multer` + `multer-storage-cloudinary`                  |
+| Media uploads   | Backblaze B2 + `multer` en memoria + AWS SDK S3-compatible           |
 | Auth social     | `expo-auth-session/providers/google` + `expo-web-browser`            |
 | Push            | `expo-notifications` + `expo-server-sdk`                             |
 | Infraestructura | Docker Compose + Railway (backend desplegado con `backend/Dockerfile`) |
@@ -64,7 +64,7 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 - El backend usa `protegerModuloVivienda()` para devolver `403` si limpieza, gastos/cobros/mensualidades/deudas o inventario estan desactivados para una vivienda.
 - La navegacion del casero y del inquilino oculta tabs de `Limpieza`, `Gastos`, `Cobros` e `Inventario` segun los flags activos.
 - `Habitacion.precio` guarda el precio mensual privado de dormitorios habitables. El casero lo ve siempre; el inquilino solo ve el precio de su propia habitacion y el backend devuelve `precio: null` para dormitorios ajenos.
-- `Gasto.factura_url` guarda la factura original en Cloudinary. Los gastos pueden crearse con adjunto, fecha y `repartoManual`; el reparto manual acepta cuotas `0`, y si se omite se reparte automaticamente cuadrando centimos.
+- `Gasto.factura_url` mantiene compatibilidad de lectura, pero las nuevas facturas se suben a Backblaze B2 con referencia portable `factura_provider` + `factura_key`. Los gastos pueden crearse con adjunto, fecha y `repartoManual`; el reparto manual acepta cuotas `0`, y si se omite se reparte automaticamente cuadrando centimos.
 - El casero puede editar concepto, fecha e importe de facturas emitidas; el importe queda bloqueado si alguna deuda hija esta `PAGADA`.
 
 ### Cobros, mensualidades y push (Epica 12)
@@ -92,9 +92,9 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 
 - El backend desplegado en Railway se construye con `backend/Dockerfile`.
 - Se añadió infraestructura de inventario con `ItemInventario` y `FotoAsset` en Prisma.
-- La subida de fotos del inventario usa Cloudinary con `multer` + `multer-storage-cloudinary`.
+- La subida de fotos del inventario usa el uploader interno con `multer` en memoria, procesado WebP y Backblaze B2.
 - El endpoint disponible es `POST /api/inventario/:itemId/fotos` y espera `multipart/form-data` con el archivo en el campo `foto`.
-- Para backend local y Railway ahora son obligatorias las variables `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET`.
+- Para backend local y Railway son obligatorias las variables Backblaze B2 cuando `MEDIA_PROVIDER=backblaze`.
 
 ---
 
@@ -304,7 +304,7 @@ Roomies/
 | `pagador_id`     | FK -> Usuario  | usuario que adelanta el pago |
 | `concepto`       | String        | descripcion corta del gasto |
 | `importe`        | Float         | importe total |
-| `factura_url`    | String?       | URL Cloudinary de la factura original |
+| `factura_url`    | String?       | URL persistida de compatibilidad; las nuevas facturas privadas se sirven mediante URL firmada |
 | `fecha_creacion` | DateTime      | `@default(now())` |
 
 ### `GastoRecurrente`
@@ -329,7 +329,7 @@ Roomies/
 | `acreedor_id`      | FK -> Usuario           | usuario que debe cobrar |
 | `importe`          | Float                   | importe individual |
 | `estado`           | `PENDIENTE` \| `PAGADA` | estado actual |
-| `justificante_url` | String?                 | URL Cloudinary del comprobante si el deudor lo sube |
+| `justificante_url` | String?                 | URL persistida de compatibilidad; los nuevos comprobantes se sirven mediante URL firmada |
 
 ---
 
@@ -406,7 +406,7 @@ Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e in
 
 | Metodo | Ruta | Auth | Descripcion |
 | ------ | ---- | ---- | ----------- |
-| POST   | `/deudas/:deudaId/justificante` | Si | Sube un justificante de pago a Cloudinary; campo multipart `justificante` |
+| POST   | `/deudas/:deudaId/justificante` | Si | Sube un justificante de pago a Backblaze B2; campo multipart `justificante` |
 
 ### Usuarios - `/usuarios`
 
@@ -437,9 +437,12 @@ GOOGLE_CLIENT_ID=<Web Client ID de Google Cloud Console>
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/roomies
 JWT_SECRET=roomies_dev_secret_local
 GOOGLE_CLIENT_ID=<mismo que arriba>
-CLOUDINARY_CLOUD_NAME=<cloud_name de Cloudinary>
-CLOUDINARY_API_KEY=<api_key de Cloudinary>
-CLOUDINARY_API_SECRET=<api_secret de Cloudinary>
+MEDIA_PROVIDER=backblaze
+B2_ENDPOINT=https://s3.<region>.backblazeb2.com
+B2_REGION=<region>
+B2_BUCKET_NAME=roomies-media
+B2_APPLICATION_KEY_ID=<key_id>
+B2_APPLICATION_KEY=<application_key>
 ```
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)
@@ -679,7 +682,7 @@ El seed demo crea gastos puntuales, deudas del casero, deudas entre inquilinos y
   - `Vivienda` tiene flags `mod_limpieza`, `mod_gastos` y `mod_inventario`; `PATCH /api/viviendas/:id` permite al casero propietario activarlos o desactivarlos.
   - `protegerModuloVivienda()` protege limpieza, gastos, deudas, cobros, mensualidades recurrentes e inventario con 403 si el modulo esta desactivado.
   - `Habitacion.precio` se persiste solo en habitaciones habitables; al convertir una habitacion en no habitable se limpia a `null`.
-  - `Gasto.factura_url` permite conservar facturas originales en Cloudinary.
+  - `Gasto.factura_url` conserva compatibilidad de lectura; las nuevas facturas usan Backblaze B2 y referencias portables.
   - `POST /api/viviendas/:viviendaId/gastos` acepta `multipart/form-data`, `factura`, `fecha` y `repartoManual`.
   - `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` edita concepto, fecha e importe; el importe no se puede cambiar si alguna deuda hija esta `PAGADA`.
 - Frontend:

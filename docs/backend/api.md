@@ -1116,7 +1116,7 @@ Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generad
 **Campos relevantes por gasto:**
 - `pagador { id, nombre, apellidos }`
 - `tipo`: `ENTRE_COMPANEROS`, `FACTURA_PUNTUAL`, `FACTURA_MENSUAL` o `CARGO_RECURRENTE`
-- `factura_url` cuando existe factura original subida a Cloudinary
+- `factura_url` cuando existe factura original subida mediante Backblaze B2
 - `deudas[]` con `id`, `deudor_id`, `acreedor_id`, `importe`, `estado` y `justificante_url`
 
 ---
@@ -1220,7 +1220,7 @@ Sube o reemplaza la imagen de factura adjunta a una factura o cargo del casero. 
 
 **Reglas de acceso:**
 - Solo el `CASERO` propietario de la vivienda puede subir la foto de la factura.
-- Requiere Cloudinary configurado en el servidor.
+- Requiere Backblaze B2 configurado en el servidor.
 - El archivo debe ser una imagen (`jpg`, `jpeg`, `png` o `webp`) en el campo `factura`.
 
 **Body multipart:**
@@ -1237,7 +1237,7 @@ Sube o reemplaza la imagen de factura adjunta a una factura o cargo del casero. 
 | `400` | IDs invalidos o falta el archivo `factura`. |
 | `403` | No eres el casero propietario de la vivienda. |
 | `404` | Gasto no encontrado en esa vivienda. |
-| `500` | Cloudinary no esta configurado o no devuelve URL de subida. |
+| `500` | Backblaze B2 no esta configurado o no devuelve referencia de subida. |
 
 ---
 
@@ -1424,12 +1424,12 @@ Devuelve el dashboard financiero mensual del casero para una vivienda.
       "id": 14,
       "importe": 310,
       "estado": "PAGADA",
-      "justificante_url": "https://res.cloudinary.com/.../roomies-justificantes/deuda-14.jpg",
+      "justificante_url": "https://s3.<region>.backblazeb2.com/.../payment-proof/deuda-14.webp",
       "gasto": {
         "id": 8,
         "concepto": "Alquiler abril",
         "importe": 930,
-        "factura_url": "https://res.cloudinary.com/.../roomies-facturas/factura-8.jpg",
+        "factura_url": "https://s3.<region>.backblazeb2.com/.../expense-invoice/factura-8.webp",
         "fecha_creacion": "2026-04-01T00:00:00.000Z"
       },
       "deudor": {
@@ -1702,7 +1702,7 @@ Devuelve la foto anual de ocupacion fiscal de una vivienda, con detalle por habi
 
 ### POST `/deudas/:deudaId/justificante`
 
-Sube un justificante de pago a Cloudinary y guarda la `secure_url` en la deuda.
+Sube un justificante de pago a Backblaze B2 y guarda la referencia portable en la deuda.
 
 **Auth requerida:** Si - `Authorization: Bearer <token>`
 
@@ -1732,7 +1732,7 @@ Sube un justificante de pago a Cloudinary y guarda la `secure_url` en la deuda.
 | `400` | `deudaId` invalido o falta la imagen. |
 | `403` | No perteneces a la vivienda o no eres el deudor. |
 | `404` | Deuda no encontrada. |
-| `500` | Cloudinary no esta configurado o no se pudo obtener la URL subida. |
+| `500` | Backblaze B2 no esta configurado o no se pudo obtener la referencia subida. |
 
 ---
 
@@ -1861,7 +1861,7 @@ Lista todos los items de inventario de una vivienda, incluyendo habitación asoc
     "fotos": [
       {
         "id": 11,
-        "url": "https://res.cloudinary.com/.../roomies-inventario/sofa.jpg",
+        "url": "https://s3.<region>.backblazeb2.com/.../inventory-photo/sofa.webp",
         "item_id": 5,
         "fecha_subida": "2026-04-09T22:31:00.000Z"
       }
@@ -1903,7 +1903,7 @@ Marca un `ItemInventario` como revisado por el inquilino autenticado.
 
 ### POST `/inventario/:itemId/fotos`
 
-Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item.
+Sube una foto de inventario a Backblaze B2 y crea un `FotoAsset` vinculado al item.
 
 **Auth requerida:** Sí — `Authorization: Bearer <token>`
 
@@ -1934,13 +1934,13 @@ Sube una foto de inventario a Cloudinary y crea un `FotoAsset` vinculado al item
 | `400` | `itemId` inválido, falta imagen o el item no tiene vivienda resoluble. |
 | `403` | El usuario no tiene permiso sobre el item. |
 | `404` | Item de inventario no encontrado. |
-| `500` | Cloudinary no está configurado en el servidor o no se obtiene la URL subida. |
+| `500` | Backblaze B2 no esta configurado en el servidor o no se obtiene la referencia subida. |
 
 **Ejemplo respuesta 201:**
 ```json
 {
   "id": 14,
-  "url": "https://res.cloudinary.com/.../roomies-inventario/item.jpg",
+  "url": "https://s3.<region>.backblazeb2.com/.../inventory-photo/item.webp",
   "item_id": 3,
   "fecha_subida": "2026-04-09T21:15:00.000Z"
 }

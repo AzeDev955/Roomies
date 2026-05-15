@@ -140,9 +140,13 @@ Railway queda reservado para produccion y debe desplegar desde `main`. El backen
 - `BACKEND_URL`
 - `EMAIL_USER`
 - `EMAIL_PASS`
-- `CLOUDINARY_CLOUD_NAME`
-- `CLOUDINARY_API_KEY`
-- `CLOUDINARY_API_SECRET`
+- `MEDIA_PROVIDER=backblaze`
+- `B2_ENDPOINT`
+- `B2_REGION`
+- `B2_BUCKET_NAME`
+- `B2_APPLICATION_KEY_ID`
+- `B2_APPLICATION_KEY`
+- `B2_PUBLIC_BASE_URL` si se sirven objetos publicos o CDN
 
 El Dockerfile ejecuta `npm run build`. Al arrancar, `npm start` aplica `npx prisma db push --accept-data-loss` y levanta `node dist/index.js`.
 

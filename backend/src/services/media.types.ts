@@ -1,4 +1,4 @@
-export type MediaProvider = 'cloudinary' | 'backblaze' | 'external';
+export type MediaProvider = 'backblaze' | 'external';
 
 export type MediaVisibility = 'public' | 'private';
 

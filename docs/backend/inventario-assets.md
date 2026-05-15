@@ -2,16 +2,19 @@
 
 ## Resumen
 
-El módulo de inventario permite crear `ItemInventario` por vivienda o por habitación y subir después sus fotos a Cloudinary como `FotoAsset`.
+El módulo de inventario permite crear `ItemInventario` por vivienda o por habitación y subir después sus fotos a Backblaze B2 como `FotoAsset`.
 
 ## Variables necesarias
 
 Configurar en `backend/.env` o en Railway:
 
 ```env
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=tu_api_key
-CLOUDINARY_API_SECRET=tu_api_secret
+MEDIA_PROVIDER=backblaze
+B2_ENDPOINT=https://s3.<region>.backblazeb2.com
+B2_REGION=<region>
+B2_BUCKET_NAME=roomies-media
+B2_APPLICATION_KEY_ID=tu_key_id
+B2_APPLICATION_KEY=tu_application_key
 ```
 
 ## Endpoints
@@ -49,15 +52,15 @@ Reglas:
 1. El backend valida que el `itemId` exista.
 2. Resuelve la vivienda del item a partir de `vivienda_id` o de la vivienda de su habitación.
 3. Comprueba que el usuario autenticado tenga acceso a esa vivienda.
-4. Sube la imagen a Cloudinary en la carpeta `roomies-inventario`.
-5. Crea un `FotoAsset` con la `secure_url` resultante.
+4. Procesa la imagen a WebP y sube las variantes a Backblaze B2.
+5. Crea un `FotoAsset` con `provider`, `key`, metadatos tecnicos y URL firmada de respuesta.
 
 ## Respuesta esperada al subir foto
 
 ```json
 {
   "id": 14,
-  "url": "https://res.cloudinary.com/.../roomies-inventario/item.jpg",
+  "url": "https://s3.<region>.backblazeb2.com/...",
   "item_id": 3,
   "fecha_subida": "2026-04-09T21:15:00.000Z"
 }

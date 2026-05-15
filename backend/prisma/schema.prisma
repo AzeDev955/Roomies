@@ -301,7 +301,7 @@ model ItemInventario {
 
 model FotoAsset {
   id           Int            @id @default(autoincrement())
-  provider     String         @default("cloudinary")
+  provider     String         @default("backblaze")
   key          String
   url          String?
   variant      String         @default("original")

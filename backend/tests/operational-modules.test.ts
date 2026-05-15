@@ -223,18 +223,26 @@ describe('inventario', () => {
     assert.equal(updateCalled, false);
   });
 
-  test('subida de foto falla de forma explicita si Cloudinary no esta configurado', async () => {
+  test('subida de foto falla de forma explicita si falta configurar Backblaze', async () => {
+    prisma.itemInventario.findUnique = async () => ({ vivienda_id: 10, habitacion: null });
+    prisma.vivienda.findFirst = async () => ({ id: 10 });
+
     const response = await invoke(
       subirFotoInventario,
       req({
-        usuario: { id: 20, rol: 'INQUILINO' },
+        usuario: { id: 99, rol: 'CASERO' },
         params: { itemId: '1' },
-        file: { path: 'https://example.com/foto.jpg' },
+        file: {
+          buffer: Buffer.from('fake-image'),
+          originalname: 'foto.png',
+          mimetype: 'image/png',
+          size: 10,
+        },
       }),
     );
 
     assert.equal(response.statusCode, 500);
-    assert.match((response.body as { error: string }).error, /cloudinary/i);
+    assert.match((response.body as { error: string }).error, /procesar|Backblaze|media/i);
   });
 });
 
@@ -400,7 +408,7 @@ describe('uploads', () => {
     const response = await request(app)
       .post('/api/inventario/1/fotos')
       .set('Authorization', `Bearer ${token({ id: 99, rol: 'CASERO' })}`)
-      .attach('foto', Buffer.alloc(8 * 1024 * 1024 + 1), {
+      .attach('foto', Buffer.alloc(10 * 1024 * 1024 + 1), {
         filename: 'foto.png',
         contentType: 'image/png',
       });

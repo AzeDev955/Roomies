@@ -1,29 +1,33 @@
 # Media storage interno
 
-Issue #347 de la epica #346. Este documento audita el acoplamiento actual con Cloudinary y fija el contrato interno que deberia usar Roomies antes de introducir Backblaze u otro proveedor.
+Documento de la epica #346. La migracion a Backblaze B2 queda cerrada con un contrato interno de media y sin dependencias activas de proveedores anteriores.
 
 ## Estado actual
 
-Roomies usa Cloudinary directamente desde `backend/src/config/cloudinary.config.ts` mediante `multer-storage-cloudinary`. Los controladores reciben `req.file.path` o `req.file.secure_url` y guardan una URL remota en Prisma. No se guarda `public_id`, key portable, provider, tamano, dimensiones ni visibilidad. Tampoco hay borrado remoto cuando se elimina o reemplaza un fichero.
+Roomies usa Backblaze B2 mediante API S3-compatible desde `backend/src/services/backblaze-b2-media.provider.ts`. Las rutas reciben archivos con `multer` en memoria, los servicios de media procesan imagenes cuando aplica y los controladores guardan referencias portables (`provider`, `key`, `variant`, MIME, tamano y dimensiones). Las columnas `*_url` se conservan solo como compatibilidad de lectura o para URLs publicas no sensibles.
 
-Las variables actuales son:
+Las variables actuales de media son:
 
 | Variable | Uso actual |
 | --- | --- |
-| `CLOUDINARY_CLOUD_NAME` | Configura el cloud name de Cloudinary. |
-| `CLOUDINARY_API_KEY` | Configura la API key de Cloudinary. |
-| `CLOUDINARY_API_SECRET` | Configura el API secret de Cloudinary. |
+| `MEDIA_PROVIDER` | Debe ser `backblaze`. |
+| `B2_ENDPOINT` | Endpoint S3-compatible de Backblaze. |
+| `B2_REGION` | Region S3-compatible. |
+| `B2_BUCKET_NAME` | Bucket de media. |
+| `B2_APPLICATION_KEY_ID` | Key id de Backblaze. |
+| `B2_APPLICATION_KEY` | Application key de Backblaze. |
+| `B2_PUBLIC_BASE_URL` | Base publica o CDN opcional para objetos publicos. |
 
-## Matriz de uso Cloudinary
+## Matriz de uso Backblaze B2
 
-| Flujo | Archivo backend | Archivo frontend | Campo o modelo | Carpeta Cloudinary | Tipo | Privacidad recomendada | Estado de acoplamiento |
+| Flujo | Archivo backend | Archivo frontend | Campo o modelo | Purpose/prefijo | Tipo | Privacidad | Estado |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Fotos de inventario | `backend/src/routes/inventario.routes.ts`, `backend/src/controllers/inventario.controller.ts` | `frontend/app/casero/(tabs)/inventario.tsx`, `frontend/app/inquilino/(tabs)/inventario.tsx` | `FotoAsset.url` | `roomies-inventario` | Imagen | Privada por vivienda, aunque actualmente se trata como URL directa. | Guarda solo URL; se lista a casero e inquilino autorizado. |
-| Facturas de gastos | `backend/src/routes/gasto.routes.ts`, `backend/src/controllers/gasto.controller.ts`, `backend/src/services/gasto.service.ts` | `frontend/app/casero/(tabs)/cobros.tsx`, `frontend/app/inquilino/(tabs)/gastos.tsx`, `frontend/app/casero/(tabs)/fiscal.tsx` | `Gasto.factura_url` | `roomies-facturas` | Imagen o PDF al crear; imagen al reemplazar | Privada fiscal/financiera. | Guarda URL directa; se exporta tambien en dossier fiscal. |
-| Justificantes de pago | `backend/src/routes/deuda.routes.ts`, `backend/src/controllers/deuda.controller.ts` | `frontend/app/inquilino/(tabs)/gastos.tsx`, `frontend/app/casero/(tabs)/cobros.tsx`, `frontend/app/casero/(tabs)/fiscal.tsx` | `Deuda.justificante_url` | `roomies-justificantes` | Imagen | Privada financiera entre deudor, acreedor/casero y vivienda. | Guarda URL directa; bloquea borrado de factura si existe actividad de pago. |
-| Contratos de alquiler | `backend/src/routes/contrato.routes.ts`, `backend/src/controllers/contrato.controller.ts` | `frontend/components/contratos/ContratosAlquilerScreen.tsx` | `ContratoAlquiler.documento_url`, `documento_nombre`, `documento_mime`, `documento_hash` | `roomies-contratos` | Imagen o PDF | Privada contractual y personal. | Guarda URL directa y hash funcional; no guarda provider/key. |
-| Seeds y datos demo | `backend/prisma/seed.ts` | No aplica | `factura_url`, `justificante_url` de prueba | `demo` | Imagen | Demo, no productiva. | Usa URLs publicas de ejemplo. |
-| Fiscal y exportaciones | `backend/src/services/fiscal.service.ts` | `frontend/app/casero/(tabs)/fiscal.tsx` | Lee `factura_url` y `justificante_url` | No sube | URL existente | Privada fiscal. | Propaga URLs directas a CSV/dossier. |
+| Fotos de inventario | `backend/src/routes/inventario.routes.ts`, `backend/src/controllers/inventario.controller.ts` | `frontend/app/casero/(tabs)/inventario.tsx`, `frontend/app/inquilino/(tabs)/inventario.tsx` | `FotoAsset` | `inventory-photo/` | Imagen WebP | Privada compartida por vivienda | Migrado; devuelve URL firmada. |
+| Facturas de gastos | `backend/src/routes/gasto.routes.ts`, `backend/src/controllers/gasto.controller.ts`, `backend/src/services/gasto.service.ts` | `frontend/app/casero/(tabs)/cobros.tsx`, `frontend/app/inquilino/(tabs)/gastos.tsx`, `frontend/app/casero/(tabs)/fiscal.tsx` | `Gasto.factura_*` | `expense-invoice/` | Imagen o PDF | Privada fiscal/financiera | Migrado; mantiene `factura_url` solo si es persistible. |
+| Justificantes de pago | `backend/src/routes/deuda.routes.ts`, `backend/src/controllers/deuda.controller.ts` | `frontend/app/inquilino/(tabs)/gastos.tsx`, `frontend/app/casero/(tabs)/cobros.tsx`, `frontend/app/casero/(tabs)/fiscal.tsx` | `Deuda.justificante_*` | `payment-proof/` | Imagen WebP | Privada financiera | Migrado; devuelve URL firmada. |
+| Contratos de alquiler | `backend/src/routes/contrato.routes.ts`, `backend/src/controllers/contrato.controller.ts` | `frontend/components/contratos/ContratosAlquilerScreen.tsx` | `ContratoAlquiler.documento_*` | `rental-contract/` | Imagen o PDF | Privada contractual | Migrado; conserva hash funcional. |
+| Seeds y datos demo | `backend/prisma/seed.ts` | No aplica | `factura_url`, `justificante_url` de prueba | `external` | Imagen | Demo, no productiva. | Usa URLs externas de ejemplo sin proveedor activo. |
+| Fiscal y exportaciones | `backend/src/services/fiscal.service.ts` | `frontend/app/casero/(tabs)/fiscal.tsx` | Lee `factura_*` y `justificante_*` | No sube | URL firmada | Privada fiscal | Resuelve URLs firmadas antes de exportar. |
 
 Referencias documentales actuales: `CONTEXT.md`, `README.md`, `docs/backend/setup.md`, `docs/backend/api.md`, `docs/backend/inventario-assets.md`, `docs/backend/fiscal-cierre-epica.md`, `docs/infra/setup-despliegue.md` y changelogs de Epicas 11, 12, 14, 16 y Fiscal.
 
@@ -40,16 +44,16 @@ Referencias documentales actuales: `CONTEXT.md`, `README.md`, `docs/backend/setu
 
 ## Contrato interno
 
-El contrato base queda definido en codigo en `backend/src/services/media.types.ts`. La implementacion futura debe inyectar un `MediaStorageProvider` y evitar que rutas y controladores dependan de Cloudinary, Backblaze o `multer-storage-cloudinary`.
+El contrato base queda definido en codigo en `backend/src/services/media.types.ts`. Las rutas y controladores dependen del contrato interno, no de detalles S3 o del proveedor.
 
 La representacion portable de un fichero debe ser:
 
 ```ts
 type MediaObject = {
-  provider: 'cloudinary' | 'backblaze' | 'external';
+  provider: 'backblaze' | 'external';
   key: string;
   url?: string | null;
-  variant: 'original' | 'thumbnail' | 'preview' | 'download';
+  variant: 'original' | 'thumbnail' | 'preview' | 'download' | 'thumb' | 'medium' | 'large';
   mimeType: string;
   size: number;
   width?: number | null;
@@ -74,7 +78,7 @@ Errores normalizados:
 
 | Codigo | Uso |
 | --- | --- |
-| `MEDIA_PROVIDER_NOT_CONFIGURED` | Faltan credenciales o bucket. Sustituye mensajes acoplados a Cloudinary. |
+| `MEDIA_PROVIDER_NOT_CONFIGURED` | Faltan credenciales o bucket. |
 | `MEDIA_UPLOAD_FAILED` | El proveedor no confirma la subida. |
 | `MEDIA_DELETE_FAILED` | El proveedor rechaza el borrado. |
 | `MEDIA_NOT_FOUND` | El objeto no existe al leer metadata o generar URL. |
@@ -149,10 +153,6 @@ Issue #349 introduce `backend/src/services/media-image.processor.ts` como paso p
 
 Las variantes usan `withoutEnlargement`, por lo que una imagen pequena mantiene sus dimensiones originales y no se escala artificialmente. Cada resultado incluye `buffer`, `suggestedKey`, `width`, `height`, `size`, `mimeType: image/webp`, `variant` y metadata tecnica con nombre, MIME y tamano originales. La variante `original` solo aparece si el flujo llama al servicio con `keepOriginal: true` o se activa `MEDIA_IMAGE_KEEP_ORIGINAL=true`.
 
-## Plan de migracion recomendado
+## Estado de cierre
 
-1. Introducir servicio `media.service` que implemente `MediaStorageProvider` para Cloudinary usando el contrato ya definido.
-2. Cambiar controladores para recibir `MediaObject` y guardar `provider` + `key`, conservando las columnas `*_url` como compatibilidad.
-3. Crear migracion de datos que derive `key` desde URLs actuales cuando sea posible; si no, marcar provider `external`.
-4. Sustituir lecturas de URLs directas por `getSignedUrl` en facturas, justificantes, contratos e inventario privado.
-5. Anadir proveedor Backblaze detras de `MEDIA_PROVIDER` y migrar flujo por flujo.
+La epica deja completados el proveedor Backblaze, el procesado de imagenes, las referencias portables, el serving publico/privado y la limpieza best-effort. Los pendientes reales quedan fuera del cierre: CDN definitivo para objetos publicos, URLs firmadas avanzadas por auditoria, limpieza programada de objetos huerfanos y una migracion legacy si aparecieran datos reales previos.

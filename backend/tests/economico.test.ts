@@ -297,8 +297,8 @@ describe('modulo economico', () => {
     );
 
     assert.equal(res.statusCode, 201);
-    assert.equal(ultimoGastoCreate?.data.factura_url, 'https://cdn.roomies.test/facturas/seguro.pdf');
-    assert.equal(ultimoGastoCreate?.data.factura_provider, 'cloudinary');
+    assert.equal(ultimoGastoCreate?.data.factura_url, null);
+    assert.equal(ultimoGastoCreate?.data.factura_provider, 'backblaze');
     assert.equal(ultimoGastoCreate?.data.factura_key, 'roomies-facturas/seguro');
     assert.equal(ultimoGastoCreate?.data.factura_variant, 'original');
     assert.equal(ultimoGastoCreate?.data.factura_mime_type, 'application/pdf');
