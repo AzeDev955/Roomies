@@ -1,4 +1,5 @@
 import path from 'node:path';
+import crypto from 'node:crypto';
 import sharp from 'sharp';
 import { MediaProviderError, type MediaPurpose, type MediaVariant } from './media.types';
 
@@ -110,7 +111,7 @@ function buildSuggestedKey(input: ProcessImageInput, variant: MediaImageVariant)
   const baseName = sanitizeKeySegment(path.basename(input.fileName, path.extname(input.fileName))) || 'imagen';
   const originalExtension = sanitizeKeySegment(path.extname(input.fileName).replace('.', '')) || 'imagen';
   const extension = variant === 'original' ? originalExtension : 'webp';
-  return [input.purpose, vivienda, `owner-${input.ownerId}`, today, `${baseName}-${variant}.${extension}`].join('/');
+  return [input.purpose, vivienda, `owner-${input.ownerId}`, today, `${baseName}-${crypto.randomUUID()}-${variant}.${extension}`].join('/');
 }
 
 function buildMetadata(

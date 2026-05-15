@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadContratoAlquiler } from '../config/cloudinary.config';
+import { uploadContratoAlquiler } from '../config/media-upload.config';
 import {
   anularContratoAlquiler,
   crearContratoAlquiler,

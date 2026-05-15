@@ -1,11 +1,10 @@
 import express from 'express';
-import { cloudinaryEstaConfigurado } from '../config/cloudinary.config';
 import { prisma } from '../lib/prisma';
 import { usuarioPerteneceAVivienda } from '../services/gasto.service';
 import {
   construirCamposMediaDocumento,
-  construirReferenciaMediaDesdeArchivo,
 } from '../services/media-reference.service';
+import { mediaProviderErrorToHttp, uploadImageMedia } from '../services/media-upload.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -20,11 +19,6 @@ const obtenerParamNumerico = (valor: string | string[] | undefined) => {
 export const subirJustificanteDeuda: express.RequestHandler = async (req, res) => {
   const deudaId = obtenerParamNumerico(req.params.deudaId);
   const usuarioId = req.usuario!.id;
-
-  if (!cloudinaryEstaConfigurado) {
-    res.status(500).json({ error: 'Cloudinary no está configurado en el servidor.' });
-    return;
-  }
 
   if (!Number.isInteger(deudaId) || deudaId <= 0) {
     res.status(400).json({ error: 'deudaId inválido.' });
@@ -64,13 +58,23 @@ export const subirJustificanteDeuda: express.RequestHandler = async (req, res) =
     return;
   }
 
-  const justificanteMedia = construirReferenciaMediaDesdeArchivo({
-    file: req.file,
-    purpose: 'payment-proof',
-    visibility: 'public',
-  });
+  let justificanteMedia;
+  try {
+    justificanteMedia = await uploadImageMedia({
+      file: req.file,
+      purpose: 'payment-proof',
+      visibility: 'private',
+      ownerId: usuarioId,
+      viviendaId: deuda.gasto.vivienda_id,
+      preferredVariant: 'medium',
+    });
+  } catch (error) {
+    const mapped = mediaProviderErrorToHttp(error);
+    res.status(mapped.status).json({ error: mapped.message });
+    return;
+  }
 
-  if (!justificanteMedia?.url) {
+  if (!justificanteMedia?.key) {
     res.status(500).json({ error: 'No se pudo obtener la referencia del justificante subido.' });
     return;
   }

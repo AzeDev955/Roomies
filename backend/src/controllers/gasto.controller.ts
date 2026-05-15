@@ -1,5 +1,4 @@
 import express from 'express';
-import { cloudinaryEstaConfigurado } from '../config/cloudinary.config';
 import { prisma } from '../lib/prisma';
 import {
   CategoriaFiscalGastoRoomies,
@@ -14,8 +13,9 @@ import {
 } from '../services/gasto.service';
 import {
   construirCamposMediaDocumento,
-  construirReferenciaMediaDesdeArchivo,
 } from '../services/media-reference.service';
+import { mediaProviderErrorToHttp, uploadDocumentMedia, uploadImageMedia } from '../services/media-upload.service';
+import { resolveOptionalMediaUrl } from '../services/media-url.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -185,6 +185,48 @@ const usuarioPuedeAccederAVivienda = async (viviendaId: number, usuarioId: numbe
   return Boolean(habitacion || vivienda);
 };
 
+async function resolverFacturaGasto<T extends {
+  factura_url?: string | null;
+  factura_provider?: string | null;
+  factura_key?: string | null;
+}>(gasto: T): Promise<T> {
+  if (!gasto.factura_url && !gasto.factura_provider && !gasto.factura_key) {
+    return gasto;
+  }
+
+  return {
+    ...gasto,
+    factura_url: await resolveOptionalMediaUrl({
+      url: gasto.factura_url,
+      provider: gasto.factura_provider,
+      key: gasto.factura_key,
+      visibility: 'private',
+    }),
+  };
+}
+
+async function resolverFacturaDeuda<T extends {
+  justificante_url?: string | null;
+  justificante_provider?: string | null;
+  justificante_key?: string | null;
+  gasto: {
+    factura_url?: string | null;
+    factura_provider?: string | null;
+    factura_key?: string | null;
+  };
+}>(deuda: T): Promise<T> {
+  return {
+    ...deuda,
+    justificante_url: await resolveOptionalMediaUrl({
+      url: deuda.justificante_url,
+      provider: deuda.justificante_provider,
+      key: deuda.justificante_key,
+      visibility: 'private',
+    }),
+    gasto: await resolverFacturaGasto(deuda.gasto),
+  };
+}
+
 export const listarGastos: express.RequestHandler = async (req, res) => {
   const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const usuarioId = req.usuario!.id;
@@ -230,7 +272,9 @@ export const listarGastos: express.RequestHandler = async (req, res) => {
     },
   });
 
-  res.status(200).json(viviendaCasero ? gastos : gastos.map((gasto) => ocultarMetadataFiscal(gasto)));
+  const gastosConUrls = await Promise.all(gastos.map((gasto) => resolverFacturaGasto(gasto)));
+
+  res.status(200).json(viviendaCasero ? gastosConUrls : gastosConUrls.map((gasto) => ocultarMetadataFiscal(gasto)));
 };
 
 export const listarDeudas: express.RequestHandler = async (req, res) => {
@@ -273,8 +317,10 @@ export const listarDeudas: express.RequestHandler = async (req, res) => {
     orderBy: { id: 'desc' },
   });
 
+  const deudasConUrls = await Promise.all(deudas.map((deuda) => resolverFacturaDeuda(deuda)));
+
   res.status(200).json(
-    deudas.map((deuda) => ({
+    deudasConUrls.map((deuda) => ({
       ...deuda,
       categoria: TIPOS_GASTO_CASERO.includes(deuda.gasto.tipo as (typeof TIPOS_GASTO_CASERO)[number])
         ? 'CASERO'
@@ -417,14 +463,16 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
   }
 
   try {
-    const facturaMedia = construirReferenciaMediaDesdeArchivo({
+    const facturaMedia = await uploadDocumentMedia({
       file: req.file,
       purpose: 'expense-invoice',
-      visibility: 'public',
+      visibility: 'private',
+      ownerId: req.usuario!.id,
+      viviendaId,
     });
     const tipoGasto = req.usuario!.rol === 'CASERO' ? 'FACTURA_PUNTUAL' : 'ENTRE_COMPANEROS';
 
-    if (req.file && !facturaMedia?.url) {
+    if (req.file && !facturaMedia?.key) {
       res.status(500).json({ error: 'No se pudo obtener la referencia de la factura subida.' });
       return;
     }
@@ -444,6 +492,12 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
 
     res.status(201).json(gasto);
   } catch (error) {
+    const mapped = mediaProviderErrorToHttp(error);
+    if (mapped.status !== 500) {
+      res.status(mapped.status).json({ error: mapped.message });
+      return;
+    }
+
     const mensaje = error instanceof Error ? error.message : 'No se pudo registrar el gasto.';
     res.status(400).json({ error: mensaje });
   }
@@ -643,7 +697,7 @@ export const eliminarGasto: express.RequestHandler = async (req, res) => {
   }
 
   const tieneActividadDePago = gasto.deudas.some(
-    (deuda) => deuda.estado === 'PAGADA' || Boolean(deuda.justificante_url),
+    (deuda) => deuda.estado === 'PAGADA' || Boolean(deuda.justificante_url) || Boolean(deuda.justificante_key),
   );
 
   if (tieneActividadDePago) {
@@ -667,11 +721,6 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
   const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const gastoId = obtenerParamNumerico(req.params.gastoId);
   const usuarioId = req.usuario!.id;
-
-  if (!cloudinaryEstaConfigurado) {
-    res.status(500).json({ error: 'Cloudinary no está configurado en el servidor.' });
-    return;
-  }
 
   if (!Number.isInteger(viviendaId) || viviendaId <= 0) {
     res.status(400).json({ error: 'viviendaId inválido.' });
@@ -712,13 +761,23 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const facturaMedia = construirReferenciaMediaDesdeArchivo({
-    file: req.file,
-    purpose: 'expense-invoice',
-    visibility: 'public',
-  });
+  let facturaMedia;
+  try {
+    facturaMedia = await uploadImageMedia({
+      file: req.file,
+      purpose: 'expense-invoice',
+      visibility: 'private',
+      ownerId: usuarioId,
+      viviendaId,
+      preferredVariant: 'medium',
+    });
+  } catch (error) {
+    const mapped = mediaProviderErrorToHttp(error);
+    res.status(mapped.status).json({ error: mapped.message });
+    return;
+  }
 
-  if (!facturaMedia?.url) {
+  if (!facturaMedia?.key) {
     res.status(500).json({ error: 'No se pudo obtener la referencia de la factura subida.' });
     return;
   }
