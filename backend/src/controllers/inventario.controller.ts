@@ -1,11 +1,10 @@
 import express from 'express';
-import { cloudinaryEstaConfigurado } from '../config/cloudinary.config';
 import { EstadoItem, RolUsuario } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 import {
   construirCamposFotoAsset,
-  construirReferenciaMediaDesdeArchivo,
 } from '../services/media-reference.service';
+import { mediaProviderErrorToHttp, uploadImageMedia } from '../services/media-upload.service';
 
 const ESTADOS_ITEM_VALIDOS = new Set<EstadoItem>([
   EstadoItem.NUEVO,
@@ -421,11 +420,6 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
   const usuarioId = req.usuario!.id;
   const rol = req.usuario!.rol;
 
-  if (!cloudinaryEstaConfigurado) {
-    res.status(500).json({ error: 'Cloudinary no estÃ¡ configurado en el servidor.' });
-    return;
-  }
-
   if (!Number.isInteger(itemId) || itemId <= 0) {
     res.status(400).json({ error: 'itemId invÃ¡lido.' });
     return;
@@ -470,12 +464,23 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const fotoMedia = construirReferenciaMediaDesdeArchivo({
-    file: req.file,
-    purpose: 'inventory-photo',
-    visibility: 'public',
-  });
-  if (!fotoMedia?.url) {
+  let fotoMedia;
+  try {
+    fotoMedia = await uploadImageMedia({
+      file: req.file,
+      purpose: 'inventory-photo',
+      visibility: 'public',
+      ownerId: usuarioId,
+      viviendaId,
+      preferredVariant: 'medium',
+    });
+  } catch (error) {
+    const mapped = mediaProviderErrorToHttp(error);
+    res.status(mapped.status).json({ error: mapped.message });
+    return;
+  }
+
+  if (!fotoMedia?.key) {
     res.status(500).json({ error: 'No se pudo obtener la referencia de la imagen subida.' });
     return;
   }

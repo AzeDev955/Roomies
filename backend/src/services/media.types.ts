@@ -33,6 +33,10 @@ export type MediaUploadInput = {
   visibility: MediaVisibility;
   ownerId: number;
   viviendaId?: number;
+  key?: string;
+  variant?: MediaVariant;
+  width?: number | null;
+  height?: number | null;
   metadata?: Record<string, string | number | boolean | null>;
 };
 

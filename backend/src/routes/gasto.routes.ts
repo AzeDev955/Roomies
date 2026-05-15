@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadFacturaFoto, uploadFacturaGasto } from '../config/cloudinary.config';
+import { uploadFacturaFoto, uploadFacturaGasto } from '../config/media-upload.config';
 import { listarCobrosVivienda } from '../controllers/cobros.controller';
 import { verificarToken } from '../middlewares/auth.middleware';
 import { protegerModuloVivienda } from '../middlewares/module.guard';

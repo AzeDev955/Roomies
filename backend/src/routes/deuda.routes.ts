@@ -1,5 +1,5 @@
 import express from 'express';
-import { uploadJustificanteFoto } from '../config/cloudinary.config';
+import { uploadJustificanteFoto } from '../config/media-upload.config';
 import { subirJustificanteDeuda } from '../controllers/deuda.controller';
 import { verificarToken } from '../middlewares/auth.middleware';
 import { protegerModuloVivienda, resolverViviendaIdDesdeDeuda } from '../middlewares/module.guard';

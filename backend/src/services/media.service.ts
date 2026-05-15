@@ -2,7 +2,7 @@ import { createBackblazeB2MediaStorageProvider } from './backblaze-b2-media.prov
 import { MediaProviderError, type MediaStorageProvider } from './media.types';
 
 export function createMediaStorageProvider(): MediaStorageProvider {
-  const provider = process.env.MEDIA_PROVIDER?.trim().toLowerCase() ?? 'cloudinary';
+  const provider = process.env.MEDIA_PROVIDER?.trim().toLowerCase() ?? 'backblaze';
 
   if (provider === 'backblaze') {
     return createBackblazeB2MediaStorageProvider();

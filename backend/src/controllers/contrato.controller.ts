@@ -4,8 +4,9 @@ import { RolUsuario } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 import {
   construirCamposMediaDocumento,
-  construirReferenciaMediaDesdeArchivo,
 } from '../services/media-reference.service';
+import { mediaProviderErrorToHttp, uploadDocumentMedia } from '../services/media-upload.service';
+import { resolveOptionalMediaUrl } from '../services/media-url.service';
 import { registrarPeriodoContratoFirmado } from '../services/ocupacion.service';
 
 const ESTADOS_CONTRATO = {
@@ -158,6 +159,26 @@ const validarViviendaCasero = async (viviendaId: number, caseroId: number) =>
     },
   });
 
+async function resolverDocumentoContrato<T extends {
+  documento_url?: string | null;
+  documento_provider?: string | null;
+  documento_key?: string | null;
+}>(contrato: T | null): Promise<T | null> {
+  if (!contrato) {
+    return contrato;
+  }
+
+  return {
+    ...contrato,
+    documento_url: await resolveOptionalMediaUrl({
+      url: contrato.documento_url,
+      provider: contrato.documento_provider,
+      key: contrato.documento_key,
+      visibility: 'private',
+    }),
+  };
+}
+
 export const listarContratosVivienda: express.RequestHandler = async (req, res) => {
   const viviendaId = obtenerParamNumerico(req.params.viviendaId);
   const usuario = req.usuario!;
@@ -189,7 +210,7 @@ export const listarContratosVivienda: express.RequestHandler = async (req, res) 
     include: includeContrato,
   });
 
-  res.status(200).json(contratos);
+  res.status(200).json(await Promise.all(contratos.map((contrato: any) => resolverDocumentoContrato(contrato))));
 };
 
 export const crearContratoAlquiler: express.RequestHandler = async (req, res) => {
@@ -262,12 +283,22 @@ export const crearContratoAlquiler: express.RequestHandler = async (req, res) =>
     return;
   }
 
-  const documentoMedia = construirReferenciaMediaDesdeArchivo({
-    file: req.file,
-    purpose: 'rental-contract',
-    visibility: 'public',
-  });
-  if (!documentoMedia?.url) {
+  let documentoMedia;
+  try {
+    documentoMedia = await uploadDocumentMedia({
+      file: req.file,
+      purpose: 'rental-contract',
+      visibility: 'private',
+      ownerId: usuario.id,
+      viviendaId,
+    });
+  } catch (error) {
+    const mapped = mediaProviderErrorToHttp(error);
+    res.status(mapped.status).json({ error: mapped.message });
+    return;
+  }
+
+  if (!documentoMedia?.key) {
     res.status(500).json({ error: 'No se pudo obtener la referencia del contrato subido.' });
     return;
   }
@@ -326,7 +357,7 @@ export const crearContratoAlquiler: express.RequestHandler = async (req, res) =>
     });
   });
 
-  res.status(201).json(contrato);
+  res.status(201).json(await resolverDocumentoContrato(contrato));
 };
 
 export const firmarContratoAlquiler: express.RequestHandler = async (req, res) => {

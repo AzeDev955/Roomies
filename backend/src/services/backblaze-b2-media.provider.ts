@@ -50,6 +50,13 @@ function sanitizeKeySegment(value: string): string {
 }
 
 function buildObjectKey(input: MediaUploadInput): string {
+  if (input.key) {
+    return input.key
+      .split('/')
+      .map((segment) => sanitizeKeySegment(segment) || 'archivo')
+      .join('/');
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const vivienda = input.viviendaId ? `vivienda-${input.viviendaId}` : 'vivienda-global';
   const extension = sanitizeKeySegment(path.extname(input.fileName).replace('.', ''));
@@ -150,11 +157,11 @@ export class BackblazeB2MediaStorageProvider implements MediaStorageProvider {
       provider: 'backblaze',
       key,
       url: input.visibility === 'public' ? this.buildPublicUrl(key) : null,
-      variant: 'original',
+      variant: input.variant ?? 'original',
       mimeType: input.mimeType,
       size: input.size,
-      width: null,
-      height: null,
+      width: input.width ?? null,
+      height: input.height ?? null,
       visibility: input.visibility,
       purpose: input.purpose,
       metadata: input.metadata,

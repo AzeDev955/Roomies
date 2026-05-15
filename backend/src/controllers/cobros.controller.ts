@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 import { TIPOS_GASTO_CASERO } from '../services/gasto.service';
+import { resolveOptionalMediaUrl } from '../services/media-url.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -111,6 +112,26 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
   const totalPendiente = sumarImportes(
     deudas.filter((deuda) => deuda.estado === 'PENDIENTE').map((deuda) => deuda.importe),
   );
+  const deudasConUrls = await Promise.all(
+    deudas.map(async (deuda) => ({
+      ...deuda,
+      justificante_url: await resolveOptionalMediaUrl({
+        url: deuda.justificante_url,
+        provider: deuda.justificante_provider,
+        key: deuda.justificante_key,
+        visibility: 'private',
+      }),
+      gasto: {
+        ...deuda.gasto,
+        factura_url: await resolveOptionalMediaUrl({
+          url: deuda.gasto.factura_url,
+          provider: deuda.gasto.factura_provider,
+          key: deuda.gasto.factura_key,
+          visibility: 'private',
+        }),
+      },
+    })),
+  );
 
   res.status(200).json({
     vivienda: {
@@ -127,7 +148,7 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
       total_pendiente: totalPendiente,
       total_deudas: deudas.length,
     },
-    deudas: deudas.map((deuda) => ({
+    deudas: deudasConUrls.map((deuda) => ({
       id: deuda.id,
       importe: deuda.importe,
       estado: deuda.estado,
