@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, TextInputProps, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Theme } from '@/constants/theme';
-import { styles } from './CustomInput.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from './CustomInput.styles';
 
 interface CustomInputProps extends TextInputProps {
   label: string;
@@ -10,7 +10,9 @@ interface CustomInputProps extends TextInputProps {
   secureToggle?: boolean;
 }
 
-export function CustomInput({ label, error, secureToggle = false, ...rest }: CustomInputProps) {
+export function CustomInput({ label, error, secureToggle = false, accessibilityLabel, ...rest }: CustomInputProps) {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [focused, setFocused] = useState(false);
   const [hidden, setHidden] = useState(secureToggle);
 
@@ -29,7 +31,8 @@ export function CustomInput({ label, error, secureToggle = false, ...rest }: Cus
           secureTextEntry={hidden}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholderTextColor={Theme.colors.textMuted}
+          accessibilityLabel={accessibilityLabel ?? label}
+          placeholderTextColor={theme.colors.textMuted}
           {...rest}
         />
         {secureToggle && (
@@ -42,7 +45,7 @@ export function CustomInput({ label, error, secureToggle = false, ...rest }: Cus
             <Ionicons
               name={hidden ? 'eye-outline' : 'eye-off-outline'}
               size={20}
-              color={Theme.colors.textTertiary}
+              color={theme.colors.textTertiary}
             />
           </Pressable>
         )}

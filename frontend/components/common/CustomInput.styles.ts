@@ -1,53 +1,55 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   wrapper: {
-    marginBottom: Theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
   },
   label: {
-    fontSize: Theme.typography.label,
+    fontSize: theme.typography.label,
     fontWeight: '600',
-    color: Theme.colors.textMedium,
-    marginBottom: Theme.spacing.sm,
+    color: theme.colors.textMedium,
+    marginBottom: theme.spacing.sm,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.md,
     borderWidth: 2,
-    borderColor: Theme.colors.border,
-    shadowColor: Theme.colors.shadow,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: theme.isDark ? 0.18 : 0.05,
     shadowRadius: 6,
     elevation: 1,
     minHeight: 52,
   },
   inputWrapperFocused: {
-    borderColor: Theme.colors.primary,
-    backgroundColor: Theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
   },
-  inputWrapperError: { borderColor: Theme.colors.danger },
+  inputWrapperError: { borderColor: theme.colors.danger },
   input: {
     flex: 1,
-    paddingHorizontal: Theme.spacing.base,
-    paddingVertical: Theme.spacing.base,
-    fontSize: Theme.typography.input,
-    color: Theme.colors.text,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.base,
+    fontSize: theme.typography.input,
+    color: theme.colors.text,
   },
   toggleBtn: {
-    paddingHorizontal: Theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
     minWidth: 44,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   error: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.danger,
-    marginTop: Theme.spacing.xs,
+    fontSize: theme.typography.caption,
+    color: theme.colors.danger,
+    marginTop: theme.spacing.xs,
     fontWeight: '500',
   },
 });
+
+export const styles = createStyles();

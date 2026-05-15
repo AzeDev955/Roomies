@@ -1,17 +1,20 @@
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { styles } from '@/styles/registro.styles';
+import { createStyles } from '@/styles/registro.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { LegalNotice } from '@/components/common/LegalNotice';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import { dniNieSchema, pasaporteSchema, passwordSchema } from '@/utils/schemas';
 import { syncPushToken } from '@/utils/notifications';
+import { getDashboardRoute } from '@/utils/authRoutes';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -20,6 +23,8 @@ type TipoDocumento = 'DNI/NIE' | 'PASAPORTE';
 
 export default function RegistroScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [documento_identidad, setDocumentoIdentidad] = useState('');
@@ -31,6 +36,7 @@ export default function RegistroScreen() {
   const [loading, setLoading] = useState(false);
   const [errorDoc, setErrorDoc] = useState('');
   const [errorPassword, setErrorPassword] = useState('');
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
@@ -38,16 +44,7 @@ export default function RegistroScreen() {
     scopes: ['openid', 'email', 'profile'],
   });
 
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const idToken =
-        googleResponse.authentication?.idToken ??
-        (googleResponse.params as Record<string, string>)?.['id_token'];
-      if (idToken) handleGoogleLogin(idToken);
-    }
-  }, [googleResponse]);
-
-  const handleGoogleLogin = async (idToken: string) => {
+  const handleGoogleLogin = useCallback(async (idToken: string) => {
     setLoading(true);
     try {
       const { data } = await api.post<{ token: string; usuario: { rol: string }; esNuevo: boolean }>(
@@ -55,18 +52,27 @@ export default function RegistroScreen() {
         { idToken }
       );
       await guardarToken(data.token);
+      void syncPushToken();
       if (data.esNuevo) {
         router.replace('/rol');
       } else {
-        const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-        router.replace(destino);
+        router.replace(getDashboardRoute(data.usuario.rol));
       }
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudo completar el registro con Google.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const idToken =
+        googleResponse.authentication?.idToken ??
+        (googleResponse.params as Record<string, string>)?.['id_token'];
+      if (idToken) void handleGoogleLogin(idToken);
+    }
+  }, [googleResponse, handleGoogleLogin]);
 
   const handleRegistrar = async () => {
     if (
@@ -82,6 +88,14 @@ export default function RegistroScreen() {
     }
     if (!rol) {
       Toast.show({ type: 'error', text1: 'Selecciona un rol', text2: 'Elige si eres Casero o Inquilino.' });
+      return;
+    }
+    if (!acceptedLegal) {
+      Toast.show({
+        type: 'error',
+        text1: 'Acepta las condiciones legales',
+        text2: 'Necesitas aceptar los terminos y la politica de privacidad para crear la cuenta.',
+      });
       return;
     }
 
@@ -109,9 +123,8 @@ export default function RegistroScreen() {
         { nombre, apellidos, documento_identidad, email, telefono, password, rol }
       );
       await guardarToken(data.token);
-      syncPushToken();
-      const destino = data.usuario.rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-      router.replace(destino);
+      void syncPushToken();
+      router.replace(getDashboardRoute(data.usuario.rol));
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'No se pudo crear la cuenta. Inténtalo de nuevo.';
       Toast.show({ type: 'error', text1: mensaje });
@@ -146,6 +159,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.docChip, tipoDocumento === 'DNI/NIE' && styles.docChipActivo, pressed && styles.pressed]}
           onPress={() => { setTipoDocumento('DNI/NIE'); setDocumentoIdentidad(''); setErrorDoc(''); }}
+          accessibilityRole="button"
+          accessibilityLabel="Usar DNI o NIE"
+          accessibilityState={{ selected: tipoDocumento === 'DNI/NIE' }}
         >
           <Text style={[styles.docChipTexto, tipoDocumento === 'DNI/NIE' && styles.docChipTextoActivo]}>
             DNI / NIE
@@ -154,6 +170,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.docChip, tipoDocumento === 'PASAPORTE' && styles.docChipActivo, pressed && styles.pressed]}
           onPress={() => { setTipoDocumento('PASAPORTE'); setDocumentoIdentidad(''); setErrorDoc(''); }}
+          accessibilityRole="button"
+          accessibilityLabel="Usar pasaporte"
+          accessibilityState={{ selected: tipoDocumento === 'PASAPORTE' }}
         >
           <Text style={[styles.docChipTexto, tipoDocumento === 'PASAPORTE' && styles.docChipTextoActivo]}>
             Pasaporte
@@ -205,6 +224,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.rolPill, rol === 'CASERO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('CASERO')}
+          accessibilityRole="button"
+          accessibilityLabel="Seleccionar rol casero"
+          accessibilityState={{ selected: rol === 'CASERO' }}
         >
           <Text style={[styles.rolPillTexto, rol === 'CASERO' && styles.rolPillTextoActivo]}>
             Casero
@@ -213,6 +235,9 @@ export default function RegistroScreen() {
         <Pressable
           style={({ pressed }) => [styles.rolPill, rol === 'INQUILINO' && styles.rolPillActivo, pressed && styles.pressed]}
           onPress={() => setRol('INQUILINO')}
+          accessibilityRole="button"
+          accessibilityLabel="Seleccionar rol inquilino"
+          accessibilityState={{ selected: rol === 'INQUILINO' }}
         >
           <Text style={[styles.rolPillTexto, rol === 'INQUILINO' && styles.rolPillTextoActivo]}>
             Inquilino
@@ -227,6 +252,14 @@ export default function RegistroScreen() {
         style={{ marginTop: 8 }}
       />
 
+      <LegalNotice
+        title="Condiciones legales"
+        body="Para completar el alta debes revisar la documentacion legal basica de Roomies."
+        accepted={acceptedLegal}
+        onToggleAccepted={() => setAcceptedLegal((current) => !current)}
+        acceptanceLabel="He leido y acepto los Terminos de uso y la Politica de privacidad vigentes."
+      />
+
       <View style={styles.separador}>
         <View style={styles.separadorLinea} />
         <Text style={styles.separadorTexto}>o</Text>
@@ -237,14 +270,19 @@ export default function RegistroScreen() {
         style={({ pressed }) => [styles.botonGoogle, pressed && styles.pressed]}
         onPress={() => googlePromptAsync()}
         disabled={loading}
+        accessibilityRole="button"
+        accessibilityLabel="Continuar con Google"
+        accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <AntDesign name="google" size={20} color="#DB4437" />
+        <AntDesign name="google" size={20} color={theme.colors.google} />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
 
       <Pressable
         style={({ pressed }) => [styles.enlaceLogin, pressed && styles.pressed]}
         onPress={() => router.back()}
+        accessibilityRole="link"
+        accessibilityLabel="Volver al inicio de sesión"
       >
         <Text style={styles.enlaceLoginTexto}>¿Ya tienes cuenta? Inicia sesión</Text>
       </Pressable>

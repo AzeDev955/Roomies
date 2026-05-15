@@ -1,14 +1,15 @@
 import { View, Text, Linking, ScrollView } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 import { Card } from '@/components/common/Card';
 import { CustomButton } from '@/components/common/CustomButton';
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useMemo, useState, useCallback } from 'react';
 import api from '@/services/api';
-import { styles } from '@/styles/casero/inquilino/perfil.styles';
-import { Theme } from '@/constants/theme';
+import { createStyles } from '@/styles/casero/inquilino/perfil.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { parsePositiveIntParam } from '@/utils/routeParams';
 
 type PerfilInquilino = {
   id: number;
@@ -21,23 +22,39 @@ type PerfilInquilino = {
 };
 
 export default function PerfilInquilinoScreen() {
+  const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { id } = useLocalSearchParams<{ id: string }>();
+  const inquilinoId = parsePositiveIntParam(id);
   const [perfil, setPerfil] = useState<PerfilInquilino | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
+    if (!inquilinoId) {
+      setPerfil(null);
+      setError('El enlace del inquilino no es valido.');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const { data } = await api.get<PerfilInquilino>(`/inquilino/${id}/perfil`);
+      const { data } = await api.get<PerfilInquilino>(`/inquilino/${inquilinoId}/perfil`);
       setPerfil(data);
-    } catch {
+      setError(null);
+    } catch (err: any) {
+      const mensaje = err.response?.data?.error ?? 'No se pudo cargar el perfil.';
+      setPerfil(null);
+      setError(mensaje);
       Toast.show({ type: 'error', text1: 'No se pudo cargar el perfil.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [inquilinoId]);
 
-  useFocusEffect(useCallback(() => { cargar(); }, [id]));
+  useFocusEffect(useCallback(() => { cargar(); }, [cargar]));
 
   const iniciales = perfil
     ? `${perfil.nombre[0]}${perfil.apellidos?.[0] ?? ''}`.toUpperCase()
@@ -52,8 +69,33 @@ export default function PerfilInquilinoScreen() {
   if (!perfil) {
     return (
       <>
-        <Stack.Screen options={{ headerShown: true, title: 'Perfil de inquilino', headerTintColor: Theme.colors.primary }} />
-        <View style={styles.container} />
+        <Stack.Screen
+          options={{
+            headerShown: true,
+            title: 'Perfil de inquilino',
+            headerStyle: { backgroundColor: theme.colors.surface },
+            headerTitleStyle: { color: theme.colors.text, fontWeight: '600' },
+            headerTintColor: theme.colors.primary,
+            headerShadowVisible: false,
+          }}
+        />
+        <View style={styles.container}>
+          <View style={styles.errorState}>
+            <View style={styles.errorIconBox}>
+              <Ionicons name="person-circle-outline" size={44} color={theme.colors.primary} />
+            </View>
+            <Text style={styles.errorTitle}>Perfil no disponible</Text>
+            <Text style={styles.errorText}>
+              {error ?? 'No hemos encontrado datos para este inquilino.'}
+            </Text>
+            <CustomButton
+              label="Volver a viviendas"
+              variant="outline"
+              onPress={() => router.replace('/casero/viviendas')}
+              style={styles.errorAction}
+            />
+          </View>
+        </View>
       </>
     );
   }
@@ -64,9 +106,9 @@ export default function PerfilInquilinoScreen() {
         options={{
           headerShown: true,
           title: 'Perfil de inquilino',
-          headerStyle: { backgroundColor: Theme.colors.surface },
-          headerTitleStyle: { color: Theme.colors.text, fontWeight: '600' },
-          headerTintColor: Theme.colors.primary,
+          headerStyle: { backgroundColor: theme.colors.surface },
+          headerTitleStyle: { color: theme.colors.text, fontWeight: '600' },
+          headerTintColor: theme.colors.primary,
           headerShadowVisible: false,
         }}
       />
@@ -84,7 +126,7 @@ export default function PerfilInquilinoScreen() {
           <Text style={styles.cardTitulo}>Datos de contacto</Text>
 
           <View style={styles.fila}>
-            <Text style={{ fontSize: 18 }}>✉️</Text>
+            <Ionicons name="mail-outline" size={20} color={theme.colors.primary} />
             <Text style={styles.filaTexto}>{perfil.email}</Text>
           </View>
 
@@ -92,7 +134,7 @@ export default function PerfilInquilinoScreen() {
             <>
               <View style={styles.separador} />
               <View style={styles.fila}>
-                <Text style={{ fontSize: 18 }}>📞</Text>
+                <Ionicons name="call-outline" size={20} color={theme.colors.primary} />
                 <Text style={styles.filaTexto}>{perfil.telefono}</Text>
               </View>
             </>
@@ -100,7 +142,7 @@ export default function PerfilInquilinoScreen() {
         </Card>
 
         <CustomButton
-          label="Enviar Email"
+          label="Enviar email"
           variant="outline"
           onPress={() => Linking.openURL(`mailto:${perfil.email}`)}
           style={styles.botonEmail}

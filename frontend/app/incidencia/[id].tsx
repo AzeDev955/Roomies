@@ -1,18 +1,19 @@
 import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import {
-  styles,
-  COLORES_PRIORIDAD,
-  PRIORIDAD_BG,
-  PRIORIDAD_TEXT,
+  createStyles,
   ETIQUETAS_ESTADO,
   ETIQUETAS_PRIORIDAD,
-  ESTADO_PILL_BG,
-  ESTADO_PILL_TEXT,
+  getColorPrioridad,
+  getEstadoPillBg,
+  getEstadoPillText,
+  getPrioridadBg,
+  getPrioridadText,
 } from '@/styles/incidencia/detalle.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -27,6 +28,11 @@ type IncidenciaDetalle = {
   fecha_creacion: string;
   creador: { id: number; nombre: string; apellidos: string | null };
   habitacion: { id: number; nombre: string } | null;
+  permisos?: {
+    puedeEditar: boolean;
+    puedeEliminar: boolean;
+    puedeCambiarEstado: boolean;
+  };
 };
 
 const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
@@ -34,7 +40,9 @@ const ESTADOS: Estado[] = ['PENDIENTE', 'EN_PROCESO', 'RESUELTA'];
 export default function DetalleIncidenciaScreen() {
   const { id, puedeGestionar } = useLocalSearchParams<{ id: string; puedeGestionar: string }>();
   const router = useRouter();
-  const puedeEditar = puedeGestionar === 'true';
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const keyboardAppearance = theme.isDark ? 'dark' : 'light';
 
   const [incidencia, setIncidencia] = useState<IncidenciaDetalle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +51,7 @@ export default function DetalleIncidenciaScreen() {
   const [descripcion, setDescripcion] = useState('');
   const [guardando, setGuardando] = useState(false);
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await api.get<IncidenciaDetalle>(`/incidencias/${id}`);
@@ -55,18 +63,31 @@ export default function DetalleIncidenciaScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  useFocusEffect(useCallback(() => { cargar(); }, [id]));
+  useFocusEffect(useCallback(() => { cargar(); }, [cargar]));
 
   const formatearFecha = (iso: string) =>
     new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 
   const handleGuardar = async () => {
+    const tituloLimpio = titulo.trim();
+    const descripcionLimpia = descripcion.trim();
+
+    if (!tituloLimpio || !descripcionLimpia) {
+      Toast.show({
+        type: 'error',
+        text1: 'Completa titulo y descripcion antes de guardar.',
+      });
+      return;
+    }
+
     setGuardando(true);
     try {
-      await api.put(`/incidencias/${id}`, { titulo, descripcion });
-      setIncidencia((prev) => prev ? { ...prev, titulo, descripcion } : prev);
+      await api.put(`/incidencias/${id}`, { titulo: tituloLimpio, descripcion: descripcionLimpia });
+      setIncidencia((prev) => prev ? { ...prev, titulo: tituloLimpio, descripcion: descripcionLimpia } : prev);
+      setTitulo(tituloLimpio);
+      setDescripcion(descripcionLimpia);
       setEditando(false);
     } catch (err: any) {
       Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo guardar.' });
@@ -76,6 +97,8 @@ export default function DetalleIncidenciaScreen() {
   };
 
   const actualizarEstado = async (nuevoEstado: Estado) => {
+    if (!incidencia?.permisos?.puedeCambiarEstado) return;
+
     try {
       await api.patch(`/incidencias/${id}/estado`, { estado: nuevoEstado });
       setIncidencia((prev) => prev ? { ...prev, estado: nuevoEstado } : prev);
@@ -116,6 +139,13 @@ export default function DetalleIncidenciaScreen() {
     );
   }
 
+  const permisos = incidencia.permisos ?? {
+    puedeEditar: puedeGestionar === 'true',
+    puedeEliminar: puedeGestionar === 'true',
+    puedeCambiarEstado: false,
+  };
+  const puedeGuardar = titulo.trim().length > 0 && descripcion.trim().length > 0;
+
   return (
     <ScrollView
       style={styles.container}
@@ -124,10 +154,10 @@ export default function DetalleIncidenciaScreen() {
     >
       {/* ── Cabecera (hero card del ticket) ── */}
       <View style={styles.cabeceraCard}>
-        <View style={[styles.cabeceraStripe, { backgroundColor: COLORES_PRIORIDAD[incidencia.prioridad] }]} />
+        <View style={[styles.cabeceraStripe, { backgroundColor: getColorPrioridad(theme, incidencia.prioridad) }]} />
         <View style={styles.cabeceraBadgeRow}>
-          <View style={[styles.prioridadBadge, { backgroundColor: PRIORIDAD_BG[incidencia.prioridad] }]}>
-            <Text style={[styles.prioridadBadgeTexto, { color: PRIORIDAD_TEXT[incidencia.prioridad] }]}>
+          <View style={[styles.prioridadBadge, { backgroundColor: getPrioridadBg(theme, incidencia.prioridad) }]}>
+            <Text style={[styles.prioridadBadgeTexto, { color: getPrioridadText(theme, incidencia.prioridad) }]}>
               Prioridad {ETIQUETAS_PRIORIDAD[incidencia.prioridad]}
             </Text>
           </View>
@@ -138,6 +168,8 @@ export default function DetalleIncidenciaScreen() {
             value={titulo}
             onChangeText={setTitulo}
             placeholder="Título"
+            placeholderTextColor={theme.colors.textMuted}
+            keyboardAppearance={keyboardAppearance}
           />
         ) : (
           <Text style={styles.titulo}>{incidencia.titulo}</Text>
@@ -148,33 +180,41 @@ export default function DetalleIncidenciaScreen() {
       {/* ── Estado ── */}
       <View style={styles.seccion}>
         <Text style={styles.etiqueta}>Estado</Text>
-        <View style={styles.estadoSelector}>
-          {ESTADOS.map((e) => {
-            const activo = incidencia.estado === e;
-            return (
-              <Pressable
-                key={e}
-                style={[
-                  styles.estadoPill,
-                  activo && {
-                    backgroundColor: ESTADO_PILL_BG[e],
-                    borderColor: ESTADO_PILL_TEXT[e] + '40',
-                  },
-                ]}
-                onPress={() => actualizarEstado(e)}
-              >
-                <Text
+        {permisos.puedeCambiarEstado ? (
+          <View style={styles.estadoSelector}>
+            {ESTADOS.map((e) => {
+              const activo = incidencia.estado === e;
+              return (
+                <Pressable
+                  key={e}
                   style={[
-                    styles.estadoPillTexto,
-                    activo && { color: ESTADO_PILL_TEXT[e] },
+                    styles.estadoPill,
+                    activo && {
+                      backgroundColor: getEstadoPillBg(theme, e),
+                      borderColor: getEstadoPillText(theme, e) + '40',
+                    },
                   ]}
+                  onPress={() => actualizarEstado(e)}
                 >
-                  {ETIQUETAS_ESTADO[e]}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <Text
+                    style={[
+                      styles.estadoPillTexto,
+                      activo && { color: getEstadoPillText(theme, e) },
+                    ]}
+                  >
+                    {ETIQUETAS_ESTADO[e]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={[styles.estadoSoloLectura, { backgroundColor: getEstadoPillBg(theme, incidencia.estado) }]}>
+            <Text style={[styles.estadoSoloLecturaTexto, { color: getEstadoPillText(theme, incidencia.estado) }]}>
+              {ETIQUETAS_ESTADO[incidencia.estado]}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* ── Descripción ── */}
@@ -186,6 +226,8 @@ export default function DetalleIncidenciaScreen() {
             value={descripcion}
             onChangeText={setDescripcion}
             placeholder="Descripción"
+            placeholderTextColor={theme.colors.textMuted}
+            keyboardAppearance={keyboardAppearance}
             multiline
           />
         ) : (
@@ -212,20 +254,24 @@ export default function DetalleIncidenciaScreen() {
       )}
 
       {/* ── Acciones ── */}
-      {puedeEditar && !editando && (
+      {(permisos.puedeEditar || permisos.puedeEliminar) && !editando && (
         <View style={styles.accionFila}>
-          <Pressable
-            style={({ pressed }) => [styles.botonEditar, pressed && { opacity: 0.82 }]}
-            onPress={() => setEditando(true)}
-          >
-            <Text style={styles.botonTextoClaro}>Editar</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.botonEliminar, pressed && { opacity: 0.82 }]}
-            onPress={handleEliminar}
-          >
-            <Text style={styles.botonTextoEliminar}>Eliminar</Text>
-          </Pressable>
+          {permisos.puedeEditar && (
+            <Pressable
+              style={({ pressed }) => [styles.botonEditar, pressed && { opacity: 0.82 }]}
+              onPress={() => setEditando(true)}
+            >
+              <Text style={styles.botonTextoClaro}>Editar</Text>
+            </Pressable>
+          )}
+          {permisos.puedeEliminar && (
+            <Pressable
+              style={({ pressed }) => [styles.botonEliminar, pressed && { opacity: 0.82 }]}
+              onPress={handleEliminar}
+            >
+              <Text style={styles.botonTextoEliminar}>Eliminar</Text>
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -242,12 +288,16 @@ export default function DetalleIncidenciaScreen() {
             <Text style={styles.botonTextoOscuro}>Cancelar</Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [styles.botonGuardar, pressed && { opacity: 0.82 }]}
+            style={({ pressed }) => [
+              styles.botonGuardar,
+              (!puedeGuardar || guardando) && styles.botonDisabled,
+              pressed && !guardando && puedeGuardar && { opacity: 0.82 },
+            ]}
             onPress={handleGuardar}
-            disabled={guardando}
+            disabled={guardando || !puedeGuardar}
           >
             {guardando ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.surface} />
             ) : (
               <Text style={styles.botonTextoClaro}>Guardar</Text>
             )}

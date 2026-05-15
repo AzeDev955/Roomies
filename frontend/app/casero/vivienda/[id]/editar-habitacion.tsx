@@ -1,11 +1,12 @@
-import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, Switch, ActivityIndicator, Alert, LayoutAnimation } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
-import { CustomButton } from '@/components/common/CustomButton';
-import { styles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles } from '@/styles/casero/vivienda/nueva-habitacion.styles';
+import { parsePositiveIntParam } from '@/utils/routeParams';
 
 const TIPOS = ['DORMITORIO', 'BANO', 'COCINA', 'SALON', 'OTRO'] as const;
 type TipoHabitacion = typeof TIPOS[number];
@@ -20,7 +21,10 @@ const ETIQUETAS_TIPO: Record<TipoHabitacion, string> = {
 
 export default function EditarHabitacionScreen() {
   const router = useRouter();
-  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam, inquilinoId } =
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const keyboardAppearance = theme.isDark ? 'dark' : 'light';
+  const { id, habId, nombre: nombreParam, tipo: tipoParam, esHabitable: esHabitableParam, metrosCuadrados: metrosParam, precio: precioParam, inquilinoId } =
     useLocalSearchParams<{
       id: string;
       habId: string;
@@ -28,8 +32,11 @@ export default function EditarHabitacionScreen() {
       tipo: string;
       esHabitable: string;
       metrosCuadrados: string;
+      precio: string;
       inquilinoId: string;
     }>();
+  const viviendaId = parsePositiveIntParam(id);
+  const habitacionId = parsePositiveIntParam(habId);
 
   const tipoInicial = (TIPOS.includes(tipoParam as TipoHabitacion) ? tipoParam : 'DORMITORIO') as TipoHabitacion;
 
@@ -37,11 +44,20 @@ export default function EditarHabitacionScreen() {
   const [tipo, setTipo] = useState<TipoHabitacion>(tipoInicial);
   const [esHabitable, setEsHabitable] = useState(esHabitableParam === 'true');
   const [metrosCuadrados, setMetrosCuadrados] = useState(metrosParam ?? '');
+  const [precio, setPrecio] = useState(precioParam ?? '');
   const [loading, setLoading] = useState(false);
   const [expulsando, setExpulsando] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [mostrarPeligro, setMostrarPeligro] = useState(false);
+
+  const togglePeligro = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setMostrarPeligro(!mostrarPeligro);
+  };
 
   const expulsarInquilino = () => {
+    if (!viviendaId || !habitacionId) return;
+
     Alert.alert(
       '¿Expulsar inquilino?',
       'Esta acción desvinculará al usuario de la habitación.',
@@ -53,7 +69,7 @@ export default function EditarHabitacionScreen() {
           onPress: async () => {
             setExpulsando(true);
             try {
-              await api.delete(`/viviendas/${id}/habitaciones/${habId}/inquilino`);
+              await api.delete(`/viviendas/${viviendaId}/habitaciones/${habitacionId}/inquilino`);
               router.back();
             } catch (err: any) {
               Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo expulsar al inquilino.' });
@@ -67,6 +83,8 @@ export default function EditarHabitacionScreen() {
   };
 
   const eliminarHabitacion = () => {
+    if (!viviendaId || !habitacionId) return;
+
     Alert.alert(
       'Eliminar habitación',
       `¿Eliminar "${nombre.trim()}"? Esta acción no se puede deshacer.`,
@@ -77,7 +95,7 @@ export default function EditarHabitacionScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.delete(`/viviendas/${id}/habitaciones/${habId}`);
+              await api.delete(`/viviendas/${viviendaId}/habitaciones/${habitacionId}`);
               router.back();
             } catch (err: any) {
               Toast.show({ type: 'error', text1: err.response?.data?.error ?? 'No se pudo eliminar la habitación.' });
@@ -95,14 +113,20 @@ export default function EditarHabitacionScreen() {
   };
 
   const guardar = async () => {
+    if (!viviendaId || !habitacionId) {
+      Toast.show({ type: 'error', text1: 'La ruta de la habitacion no es valida.' });
+      return;
+    }
+
     if (!nombre.trim()) return;
     setLoading(true);
     try {
-      await api.put(`/viviendas/${id}/habitaciones/${habId}`, {
+      await api.put(`/viviendas/${viviendaId}/habitaciones/${habitacionId}`, {
         nombre: nombre.trim(),
         tipo,
         es_habitable: tipo === 'DORMITORIO' ? esHabitable : false,
         metros_cuadrados: metrosCuadrados ? parseFloat(metrosCuadrados) : null,
+        precio: tipo === 'DORMITORIO' && esHabitable && precio ? parseFloat(precio.replace(',', '.')) : null,
       });
       router.back();
     } catch (err: any) {
@@ -113,6 +137,22 @@ export default function EditarHabitacionScreen() {
     }
   };
 
+  if (!viviendaId || !habitacionId) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorState}>
+          <Text style={styles.errorTitle}>Habitacion no encontrada</Text>
+          <Text style={styles.errorText}>
+            No podemos editar esta habitacion porque el enlace no tiene parametros validos.
+          </Text>
+          <Pressable style={styles.secondaryButton} onPress={() => router.replace('/casero/viviendas')}>
+            <Text style={styles.secondaryButtonText}>Volver a viviendas</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -120,7 +160,8 @@ export default function EditarHabitacionScreen() {
         <TextInput
           style={[styles.input, focusedInput === 'nombre' && styles.inputFocused]}
           placeholder="Ej: Habitación 1"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           value={nombre}
           onChangeText={setNombre}
           autoCapitalize="words"
@@ -153,10 +194,28 @@ export default function EditarHabitacionScreen() {
               <Switch
                 value={esHabitable}
                 onValueChange={setEsHabitable}
-                trackColor={{ false: Theme.colors.border, true: Theme.colors.success }}
-                thumbColor={Theme.colors.surface}
+                trackColor={{ false: theme.colors.surface2, true: theme.colors.success }}
+                thumbColor={theme.colors.surface}
+                ios_backgroundColor={theme.colors.surface2}
               />
             </View>
+          </>
+        )}
+
+        {tipo === 'DORMITORIO' && esHabitable && (
+          <>
+            <Text style={styles.label}>Precio mensual (€)</Text>
+            <TextInput
+              style={[styles.input, focusedInput === 'precio' && styles.inputFocused]}
+              placeholder="Ej: 450"
+              placeholderTextColor={theme.colors.textMuted}
+              keyboardAppearance={keyboardAppearance}
+              value={precio}
+              onChangeText={setPrecio}
+              keyboardType="decimal-pad"
+              onFocus={() => setFocusedInput('precio')}
+              onBlur={() => setFocusedInput(null)}
+            />
           </>
         )}
 
@@ -164,7 +223,8 @@ export default function EditarHabitacionScreen() {
         <TextInput
           style={[styles.input, focusedInput === 'metros' && styles.inputFocused]}
           placeholder="Ej: 12.5"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           value={metrosCuadrados}
           onChangeText={setMetrosCuadrados}
           keyboardType="decimal-pad"
@@ -178,28 +238,45 @@ export default function EditarHabitacionScreen() {
           disabled={!nombre.trim() || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.colors.surface} />
           ) : (
             <Text style={styles.botonTexto}>Guardar cambios</Text>
           )}
         </Pressable>
 
-        {!!inquilinoId && (
-          <CustomButton
-            label={expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
-            variant="danger"
-            onPress={expulsarInquilino}
-            disabled={expulsando}
-            style={{ marginTop: 12 }}
+        {/* Zona de peligro — acordeón */}
+        <View style={styles.zonaPeligroSeparador} />
+        <Pressable style={styles.acordeonCabecera} onPress={togglePeligro}>
+          <Text style={styles.zonaPeligroTitulo}>Zona de peligro</Text>
+          <Ionicons
+            name={mostrarPeligro ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={theme.colors.danger}
           />
-        )}
+        </Pressable>
 
-        <CustomButton
-          label="Eliminar habitación"
-          variant="danger"
-          onPress={eliminarHabitacion}
-          style={{ marginTop: 8 }}
-        />
+        {mostrarPeligro && (
+          <View>
+            {!!inquilinoId && (
+              <Pressable
+                style={[styles.botonDestructivoSoft, expulsando && styles.botonDestructivoSoftDisabled]}
+                onPress={expulsarInquilino}
+                disabled={expulsando}
+              >
+                <Text style={styles.botonDestructivoSoftTexto}>
+                  {expulsando ? 'Expulsando…' : 'Expulsar al inquilino'}
+                </Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              style={styles.botonDestructivoSoft}
+              onPress={eliminarHabitacion}
+            >
+              <Text style={styles.botonDestructivoSoftTexto}>Eliminar habitación</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </View>
   );

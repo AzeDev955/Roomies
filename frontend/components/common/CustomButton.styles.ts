@@ -1,11 +1,11 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   base: {
-    borderRadius: Theme.radius.lg,
+    borderRadius: theme.radius.lg,
     paddingVertical: 16,
-    paddingHorizontal: Theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
     minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
@@ -16,28 +16,28 @@ export const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.45 },
 
-  // — Variantes de fondo —
-  primary:   { backgroundColor: Theme.colors.primary },
-  secondary: { backgroundColor: Theme.colors.surface2 },
-  outline:   {
+  primary: { backgroundColor: theme.colors.primary },
+  secondary: { backgroundColor: theme.colors.surface2 },
+  outline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: Theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
-  danger:    { backgroundColor: Theme.colors.danger },
-  success:   { backgroundColor: Theme.colors.success },
+  danger: { backgroundColor: theme.colors.danger },
+  success: { backgroundColor: theme.colors.success },
 
-  // — Texto —
   textLight: {
-    color: Theme.colors.surface,
-    fontSize: Theme.typography.body,
+    color: theme.colors.background,
+    fontSize: theme.typography.body,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
   textDark: {
-    color: Theme.colors.textMedium,
-    fontSize: Theme.typography.body,
+    color: theme.colors.textMedium,
+    fontSize: theme.typography.body,
     fontWeight: '700',
     letterSpacing: 0.2,
   },
 });
+
+export const styles = createStyles();

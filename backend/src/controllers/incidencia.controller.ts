@@ -181,7 +181,7 @@ export const obtenerIncidencia: express.RequestHandler = async (req, res) => {
     include: {
       vivienda: true,
       creador: { select: { id: true, nombre: true, apellidos: true } },
-      habitacion: { select: { id: true, nombre: true } },
+      habitacion: { select: { id: true, nombre: true, tipo: true } },
     },
   });
 
@@ -190,11 +190,19 @@ export const obtenerIncidencia: express.RequestHandler = async (req, res) => {
     return;
   }
 
+  let puedeEditar = false;
+  let puedeEliminar = false;
+  let puedeCambiarEstado = false;
+
   if (rol === RolUsuario.CASERO) {
     if (incidencia.vivienda.casero_id !== usuarioId) {
       res.status(403).json({ error: 'No tienes permiso para ver esta incidencia.' });
       return;
     }
+
+    puedeEditar = true;
+    puedeEliminar = true;
+    puedeCambiarEstado = true;
   } else {
     const miHabitacion = await prisma.habitacion.findFirst({
       where: { vivienda_id: incidencia.vivienda_id, inquilino_id: usuarioId },
@@ -203,9 +211,26 @@ export const obtenerIncidencia: express.RequestHandler = async (req, res) => {
       res.status(403).json({ error: 'No tienes acceso a esta incidencia.' });
       return;
     }
+
+    const esCreador = incidencia.creador_id === usuarioId;
+    const esSuDormitorio =
+      incidencia.habitacion_id !== null && incidencia.habitacion_id === miHabitacion.id;
+    const esZonaComun =
+      incidencia.habitacion !== null && incidencia.habitacion.tipo !== 'DORMITORIO';
+
+    puedeEditar = esCreador;
+    puedeEliminar = esCreador;
+    puedeCambiarEstado = esCreador || esSuDormitorio || esZonaComun;
   }
 
-  res.status(200).json(incidencia);
+  res.status(200).json({
+    ...incidencia,
+    permisos: {
+      puedeEditar,
+      puedeEliminar,
+      puedeCambiarEstado,
+    },
+  });
 };
 
 export const editarIncidencia: express.RequestHandler = async (req, res) => {

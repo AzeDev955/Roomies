@@ -1,15 +1,15 @@
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '@/services/api';
-import { Theme } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import {
-  styles,
+  createStyles,
   ETIQUETAS_PRIORIDAD,
-  PRIORIDAD_BG,
-  PRIORIDAD_TEXT,
-  PRIORIDAD_BORDER,
+  getPrioridadBg,
+  getPrioridadText,
+  getPrioridadBorder,
 } from '@/styles/inquilino/nueva-incidencia.styles';
 
 type Prioridad = 'VERDE' | 'AMARILLO' | 'ROJO';
@@ -22,15 +22,31 @@ type HabitacionResumen = {
 
 const PRIORIDADES: Prioridad[] = ['VERDE', 'AMARILLO', 'ROJO'];
 
+const parseHabitaciones = (habitacionesJson?: string): HabitacionResumen[] => {
+  if (!habitacionesJson) return [];
+
+  try {
+    const parsed = JSON.parse(habitacionesJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 export default function NuevaIncidenciaScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const keyboardAppearance = theme.isDark ? 'dark' : 'light';
   const { viviendaId, habitacionesJson, miHabitacionId } = useLocalSearchParams<{
     viviendaId: string;
     habitacionesJson: string;
     miHabitacionId: string;
   }>();
 
-  const habitaciones: HabitacionResumen[] = JSON.parse(habitacionesJson ?? '[]');
+  const habitaciones = parseHabitaciones(habitacionesJson);
+  const viviendaIdNumero = Number(viviendaId);
+  const viviendaIdValido = Number.isInteger(viviendaIdNumero) && viviendaIdNumero > 0;
   const opcionesHabitacion = habitaciones.filter(
     (h) => h.tipo !== 'DORMITORIO' || h.id === Number(miHabitacionId)
   );
@@ -43,13 +59,26 @@ export default function NuevaIncidenciaScreen() {
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   const handleEnviar = async () => {
+    const tituloLimpio = titulo.trim();
+    const descripcionLimpia = descripcion.trim();
+
+    if (!tituloLimpio || !descripcionLimpia) {
+      Toast.show({ type: 'error', text1: 'Completa titulo y descripcion antes de enviar.' });
+      return;
+    }
+
+    if (!viviendaIdValido) {
+      Toast.show({ type: 'error', text1: 'No pudimos identificar tu vivienda.' });
+      return;
+    }
+
     setLoading(true);
     try {
       await api.post('/incidencias', {
-        titulo,
-        descripcion,
+        titulo: tituloLimpio,
+        descripcion: descripcionLimpia,
         prioridad,
-        vivienda_id: Number(viviendaId),
+        vivienda_id: viviendaIdNumero,
         ...(habitacionId ? { habitacion_id: habitacionId } : {}),
       });
       router.back();
@@ -61,12 +90,21 @@ export default function NuevaIncidenciaScreen() {
     }
   };
 
-  const puedeEnviar = titulo.trim().length > 0 && descripcion.trim().length > 0;
+  const puedeEnviar = titulo.trim().length > 0 && descripcion.trim().length > 0 && viviendaIdValido;
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.titulo}>Nueva incidencia</Text>
+
+        {!viviendaIdValido && (
+          <View style={styles.contextoAviso}>
+            <Text style={styles.contextoAvisoTitulo}>Vivienda no disponible</Text>
+            <Text style={styles.contextoAvisoTexto}>
+              Vuelve a tu panel y abre el formulario desde Reportar problema.
+            </Text>
+          </View>
+        )}
 
         <Text style={styles.label}>Título</Text>
         <TextInput
@@ -74,7 +112,8 @@ export default function NuevaIncidenciaScreen() {
           value={titulo}
           onChangeText={setTitulo}
           placeholder="¿Qué ha ocurrido?"
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           onFocus={() => setFocusedInput('titulo')}
           onBlur={() => setFocusedInput(null)}
         />
@@ -85,7 +124,8 @@ export default function NuevaIncidenciaScreen() {
           value={descripcion}
           onChangeText={setDescripcion}
           placeholder="Describe el problema con detalle..."
-          placeholderTextColor={Theme.colors.textMuted}
+          placeholderTextColor={theme.colors.textMuted}
+          keyboardAppearance={keyboardAppearance}
           multiline
           onFocus={() => setFocusedInput('descripcion')}
           onBlur={() => setFocusedInput(null)}
@@ -120,14 +160,14 @@ export default function NuevaIncidenciaScreen() {
               style={[
                 styles.selectorBtn,
                 {
-                  backgroundColor: PRIORIDAD_BG[p],
-                  borderColor: prioridad === p ? PRIORIDAD_BORDER[p] : 'transparent',
+                  backgroundColor: getPrioridadBg(theme, p),
+                  borderColor: prioridad === p ? getPrioridadBorder(theme, p) : theme.colors.background,
                   opacity: prioridad === p ? 1 : 0.55,
                 },
               ]}
               onPress={() => setPrioridad(p)}
             >
-              <Text style={[styles.selectorBtnTexto, { color: PRIORIDAD_TEXT[p] }]}>
+              <Text style={[styles.selectorBtnTexto, { color: getPrioridadText(theme, p) }]}>
                 {ETIQUETAS_PRIORIDAD[p]}
               </Text>
             </Pressable>
@@ -140,7 +180,7 @@ export default function NuevaIncidenciaScreen() {
           disabled={!puedeEnviar || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.colors.surface} />
           ) : (
             <Text style={styles.botonEnviarTexto}>Enviar Incidencia</Text>
           )}

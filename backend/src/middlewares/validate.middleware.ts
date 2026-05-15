@@ -1,7 +1,7 @@
 import { RequestHandler } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodSchema } from 'zod';
 
-export function validate(schema: ZodSchema): RequestHandler {
+export function validate(schema: ZodSchema, mensaje = 'Datos invalidos.'): RequestHandler {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
 
@@ -10,7 +10,7 @@ export function validate(schema: ZodSchema): RequestHandler {
         campo: issue.path.join('.'),
         mensaje: issue.message,
       }));
-      res.status(400).json({ error: 'Datos de registro inválidos.', errores });
+      res.status(400).json({ error: mensaje, errores });
       return;
     }
 

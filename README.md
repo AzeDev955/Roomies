@@ -1,110 +1,148 @@
 # Roomies
 
-Aplicación móvil integral para la gestión de alquiler de habitaciones y co-living. Conecta a caseros e inquilinos para facilitar la convivencia, centralizar el reporte de incidencias y automatizar la gestión del día a día.
+Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilinos para centralizar viviendas, incidencias, tablones, limpieza, inventario, contratos, cobros recurrentes y preparacion fiscal del propietario.
 
-## Características (MVP)
+## Que incluye hoy
 
-La aplicación cuenta con dos perfiles de usuario bien diferenciados:
+### Casero
 
-### 👑 Para el Casero / Gestor
+- Gestion multipropiedad con alta de viviendas y habitaciones.
+- Centro de mando por vivienda con resumen, incidencias, tablon y limpieza.
+- Limpieza por habitaciones responsables, asignaciones fijas y exportacion CSV compatible con Excel.
+- Pestanas globales de `Mis viviendas`, `Cobros`, `Fiscal`, `Contratos`, `Inventario`, `Tablon` y `Perfil`.
+- Dashboard de cobros mensuales con detalle de deudas pagadas, pendientes y justificantes.
+- Inventario por vivienda con subida de imagenes mediante Backblaze B2 y estado de validacion del inquilino.
+- Modo fiscal con resumen anual, ocupacion, revision de metadatos, contratos/historico como soporte y exportacion CSV para gestoria.
 
-* **Gestión multipropiedad:** Creación y administración de viviendas y habitaciones, con autocompletado de dirección vía Mapbox.
-* **Centro de mandos por vivienda:** Menú inferior propio con cuatro pestañas — Resumen, Incidencias, Tablón y Limpieza — sin perder la navegación principal.
-* **Códigos de invitación:** Generación de códigos únicos protegidos con autenticación biométrica (huella / PIN).
-* **Gestión de inquilinos:** Expulsión de inquilinos por habitación y acceso al perfil de contacto completo (nombre, email, teléfono).
-* **Centro de incidencias:** Panel para recibir, gestionar y cambiar el estado (Pendiente → En Proceso → Resuelto) de los problemas reportados.
-* **Tablón de anuncios:** Publicación y moderación de anuncios en cada vivienda.
-* **Módulo de limpieza:** Gestión de zonas, turnos rotativos semanales y seguimiento de tareas por inquilino.
+### Inquilino
 
-### 🛋️ Para el Inquilino
+- Onboarding por codigo de invitacion y dashboard de vivienda.
+- Tablon, limpieza, gastos, inventario, contratos y perfil en navegacion principal.
+- Gestion de gastos puntuales y mensualidades.
+- Subida de justificantes de pago y saldado de deudas desde la app.
+- Check-in visual del inventario con conformidad por item visible: vivienda, zonas comunes y habitacion propia.
+- Consulta de terminos de uso y politica de privacidad desde la app.
 
-* **Mi vivienda:** Vista de habitación propia, compañeros de piso, zonas comunes e incidencias.
-* **Reporte rápido:** Formulario con selector de habitación y prioridad (Sugerencia / Aviso / Urgente).
-* **Seguimiento con permisos:** Selector de estado en incidencias propias, del dormitorio o de zonas comunes. Solo lectura en las ajenas.
-* **Módulo de limpieza:** Vista del turno asignado con acción de marcar como completado.
-* **Ciclo de vida:** Posibilidad de abandonar la vivienda en cualquier momento desde el dashboard.
+### Automatizaciones
 
-### 🔐 Autenticación
+- Cron diario de mensualidades para convertir `GastoRecurrente` en gastos normales.
+- Cron mensual de recordatorios push para deudas pendientes con `expo_push_token` registrado.
 
-* Registro e inicio de sesión con **email y contraseña** (con verificación de correo por magic link).
-* Inicio de sesión con **Google OAuth** (`expo-auth-session` + `google-auth-library`).
-* Selector de rol (Casero / Inquilino) para nuevos usuarios de Google, con re-emisión de JWT.
+### Autenticacion
 
-## 🛠️ Stack Tecnológico
+- Email y contrasena con sesion inmediata tras registro; la verificacion por correo queda como flujo historico/compatible y no bloquea login.
+- Google OAuth.
+- Selector de rol para altas nuevas desde Google.
+- Aceptacion explicita de terminos y privacidad en registro manual y altas nuevas desde Google.
 
-| Capa | Tecnología |
+## Stack tecnologico
+
+| Capa | Tecnologia |
 |---|---|
-| Frontend | React Native + Expo SDK 54 + expo-router ~6.0.23 |
+| Frontend | React Native + Expo SDK 54 + `expo-router` |
 | Backend | Node.js + Express 5 + TypeScript |
 | ORM | Prisma 7 (PostgreSQL) |
-| Auth | JWT + bcrypt + Google OAuth (`google-auth-library`) |
-| Token storage | `expo-secure-store` |
-| HTTP client | Axios con interceptor Bearer token |
-| Geocoding | Mapbox Geocoding API |
-| Infraestructura | Docker Compose / Railway |
+| Auth | JWT + bcrypt + Google OAuth |
+| Media | Backblaze B2 + AWS SDK S3-compatible + multer |
+| Push | `expo-notifications` + `expo-server-sdk` |
+| Infraestructura | Docker Compose + Railway |
 
-## 🗺️ Roadmap
+## Roadmap
 
-- [ ] Chat integrado Inquilino ↔ Casero.
-- [ ] Recordatorios de pago automáticos.
-- [ ] Notificaciones push avanzadas (nuevas incidencias, cambios de estado).
+- [x] Modulo de limpieza
+- [x] Exportacion de limpiezas
+- [x] Terminos de uso y politica de privacidad
+- [x] Cobros mensuales del casero
+- [x] Mensualidades recurrentes
+- [x] Recordatorios de pago por push
+- [x] Modo fiscal para casero y dossier CSV revisable
+- [x] Contratos de alquiler con firma interna e historico de ocupacion
+- [ ] Chat integrado Inquilino <-> Casero
+- [ ] Notificaciones push avanzadas para incidencias y cambios de estado
 
-## ☁️ Despliegue en Railway
-
-El proyecto tiene dos entornos desplegados en Railway:
+## Entornos
 
 | Entorno | URL de API |
 |---|---|
-| Desarrollo | `https://roomies-dev.up.railway.app/api` |
-| Producción | `https://roomies-production-c884.up.railway.app/api` |
+| Desarrollo local Docker | `http://localhost:3001/api` |
+| Produccion Railway | `https://roomies-production-c884.up.railway.app/api` |
 
-Cambia el valor en `frontend/.env` y reinicia Metro con `--clear` para hornear la nueva URL en el bundle. Ver pasos completos en [`docs/backend/setup.md`](docs/backend/setup.md).
-
----
-
-## ⚙️ Levantar el entorno con Docker (recomendado)
+## Testeo habitual con Docker y Expo Go
 
 ### Prerrequisitos
 
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Node.js 20+
+- Docker Desktop
+- Expo Go instalado en el movil
 
 ### Pasos
 
-1. Copia `.env.example` a `.env` y rellena `HOST_IP` con la IP de tu máquina en la red local:
-   * Windows: `ipconfig` → IPv4 del adaptador Wi-Fi
-   * Mac/Linux: `ifconfig` o `ip addr`
-
-2. Levanta todos los servicios:
+1. Copia `.env.example` a `.env` y ajusta `HOST_IP` si vas a probar en movil fisico.
+2. Levanta PostgreSQL, backend y Metro con Docker Compose:
 
 ```bash
-docker-compose up --build
+.\dev.bat
 ```
 
-| Servicio | Puerto | Descripción |
-|---|---|---|
-| `db` | 5433 | PostgreSQL 15 con volumen persistente |
-| `backend` | 3001 | API Express — aplica schema + seed al arrancar |
-| `frontend` | 8080 | Metro bundler de Expo — escanea el QR con Expo Go |
+El script ejecuta `docker compose up --build -d --force-recreate db backend` desde la raiz. El backend reinicia la BD con `prisma db push --force-reset`, ejecuta `npx prisma db seed`, espera a que responda y despues lanza `npx expo start --lan --port 8081 --clear` en `frontend`.
 
-> El puerto 8080 se usa en lugar de 8081 para evitar conflictos con reglas de firewall en Windows.
+3. Usa Docker local como API en `frontend/.env` si arrancas Expo fuera de Compose:
 
-### Usuarios de prueba (seed)
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3001/api
+```
 
-| Rol | Email | Contraseña |
+Para Expo Go en movil fisico, usa la IP LAN:
+
+```env
+EXPO_PUBLIC_API_URL=http://192.168.1.X:3001/api
+```
+
+4. Si prefieres Metro fuera del contenedor:
+
+```bash
+cd frontend
+npm install
+npx expo start --clear
+```
+
+5. Abre el QR con Expo Go.
+
+> Railway queda reservado para produccion desde `main`; no debe usarse como backend de desarrollo diario.
+
+## Docker y Railway
+
+El desarrollo diario usa `docker-compose.yml` para PostgreSQL y backend en `http://localhost:3001`. El `.bat` deja Docker en segundo plano, para cualquier Metro viejo del contenedor `frontend` y abre Expo local para que tengas un unico QR y los logs a mano.
+
+En Windows, `dev.bat` levanta los contenedores y Expo con un solo comando.
+
+Credenciales locales tras el seed:
+
+| Rol | Email | Password |
 |---|---|---|
 | CASERO | `casero@test.com` | `casero123` |
 | INQUILINO | `inquilino@test.com` | `inquilino123` |
 
----
+El `backend/Dockerfile` se usa para que Railway construya la imagen del backend de produccion desde `main`. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, aplica `prisma db push --accept-data-loss` y levanta `dist/index.js`.
 
-## ⚙️ Instalación manual (sin Docker)
+Consulta `docs/infra/setup-despliegue.md` para el detalle completo de variables, URLs por entorno y despliegue.
+
+### Usuarios de prueba
+
+| Rol | Email | Contrasena |
+|---|---|---|
+| CASERO | `casero@test.com` | `casero123` |
+| INQUILINO | `inquilino@test.com` | `inquilino123` |
+
+## Instalacion manual
 
 ### Backend
 
 ```bash
 cd backend
 npm install
-cp .env.example .env   # configurar DATABASE_URL y JWT_SECRET
+cp .env.example .env
+npx prisma generate
 npx prisma db push
 npx prisma db seed
 npm run dev
@@ -115,24 +153,42 @@ npm run dev
 ```bash
 cd frontend
 npm install
-cp .env.example .env   # elegir entorno de API
+cp .env.example .env
 npx expo start
 ```
 
-Escanea el QR con **Expo Go** o pulsa `a` / `i` para abrir el emulador.
+> Para probar push real necesitas una build nativa o development build. Expo Go no registra push tokens nativos.
 
----
+## Tests y calidad
 
-## 📋 Documentación
+Backend usa Vitest + Supertest. Frontend usa Jest Expo 54 + React Native Testing Library.
+
+```bash
+cd backend
+npm test
+npm run test:watch
+npm run test:coverage
+```
+
+```bash
+cd frontend
+npm test
+npm run test:watch
+npm run test:coverage
+npm run lint
+```
+
+Los tests cargan valores de entorno de prueba y no necesitan `.env` privados. El backend expone `src/app.ts` para importar Express sin arrancar un puerto real ni programar cron jobs.
+
+## Documentacion
 
 | Recurso | Ruta |
 |---|---|
-| Arquitectura y convenciones | [`context.md`](context.md) |
-| Setup frontend | [`docs/frontend/setup.md`](docs/frontend/setup.md) |
-| API REST (referencia) | [`docs/backend/api.md`](docs/backend/api.md) |
-| Setup backend / Railway | [`docs/backend/setup.md`](docs/backend/setup.md) |
-| Historial de cambios | [`docs/changelog/`](docs/changelog/) |
-
----
-
-*Desarrollado con café y código.*
+| Contexto de proyecto | `CONTEXT.md` |
+| Setup backend | `docs/backend/setup.md` |
+| API REST | `docs/backend/api.md` |
+| Contrato fiscal propietario | `docs/backend/contrato-fiscal-propietario.md` |
+| Cierre epica fiscal | `docs/backend/fiscal-cierre-epica.md` |
+| Setup frontend | `docs/frontend/setup.md` |
+| Infraestructura y despliegue | `docs/infra/setup-despliegue.md` |
+| Changelog tecnico | `docs/changelog/` |

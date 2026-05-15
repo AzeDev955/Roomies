@@ -1,42 +1,146 @@
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { Theme } from "@/constants/theme";
+import { useCallback, useEffect, useState } from 'react';
+import { Tabs, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import api from '@/services/api';
+import { onModulosViviendaActualizados } from '@/utils/viviendaModules';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorial } from '@/contexts/TutorialContext';
+import { buildCaseroTutorialSteps } from '@/tutorial/definitions';
+
+type ViviendaModulos = {
+  mod_gastos: boolean;
+  mod_inventario: boolean;
+};
 
 export default function CaseroTabsLayout() {
+  const { theme } = useAppTheme();
+  const { setRoleTutorialSteps } = useTutorial();
+  const [modulos, setModulos] = useState({
+    gastos: true,
+    inventario: true,
+  });
+
+  const cargarModulos = useCallback(async () => {
+    try {
+      const { data } = await api.get<ViviendaModulos[]>('/viviendas');
+
+      setModulos({
+        gastos: data.some((vivienda) => vivienda.mod_gastos),
+        inventario: data.some((vivienda) => vivienda.mod_inventario),
+      });
+    } catch {
+      setModulos({ gastos: true, inventario: true });
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
+
+      const cargarModulosSeguro = async () => {
+        try {
+          const { data } = await api.get<ViviendaModulos[]>('/viviendas');
+          if (!activo || data.length === 0) return;
+
+          setModulos({
+            gastos: data.some((vivienda) => vivienda.mod_gastos),
+            inventario: data.some((vivienda) => vivienda.mod_inventario),
+          });
+        } catch {
+          if (activo) {
+            setModulos({ gastos: true, inventario: true });
+          }
+        }
+      };
+
+      cargarModulosSeguro();
+      return () => {
+        activo = false;
+      };
+    }, []),
+  );
+
+  useEffect(() => onModulosViviendaActualizados(() => cargarModulos()), [cargarModulos]);
+
+  useEffect(() => {
+    setRoleTutorialSteps('CASERO', buildCaseroTutorialSteps({ hasGastos: modulos.gastos }));
+  }, [modulos.gastos, setRoleTutorialSteps]);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Theme.colors.primary,
-        tabBarInactiveTintColor: Theme.colors.textTertiary,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Theme.colors.surface,
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 0,
           elevation: 12,
-          shadowColor: Theme.colors.shadow,
+          shadowColor: theme.colors.shadow,
           shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.07,
+          shadowOpacity: theme.isDark ? 0.2 : 0.07,
           shadowRadius: 12,
         },
         tabBarLabelStyle: {
-          fontSize: Theme.typography.caption,
-          fontWeight: "600",
+          fontSize: theme.typography.caption,
+          fontWeight: '600',
         },
       }}
     >
       <Tabs.Screen
         name="viviendas"
         options={{
-          title: "Mis viviendas",
+          title: 'Viviendas',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
+        name="cobros"
+        options={{
+          title: 'Cobros',
+          href: modulos.gastos ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="fiscal"
+        options={{
+          title: 'Fiscal',
+          href: modulos.gastos ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="briefcase-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="contratos"
+        options={{
+          title: 'Contratos',
+          href: modulos.gastos ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="inventario"
+        options={{
+          title: 'Invent.',
+          href: modulos.inventario ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="albums-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="tablon"
         options={{
-          title: "Tablón",
+          title: 'Tablón',
+          href: null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="newspaper-outline" size={size} color={color} />
           ),
@@ -45,7 +149,7 @@ export default function CaseroTabsLayout() {
       <Tabs.Screen
         name="perfil"
         options={{
-          title: "Perfil",
+          title: 'Perfil',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),

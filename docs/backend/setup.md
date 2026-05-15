@@ -1,11 +1,11 @@
-# Setup — Backend Roomies
+# Setup - Backend Roomies
 
 ## Requisitos
 
 - Node.js 20+
-- Una instancia de Prisma Postgres en local (`npx prisma dev`)
+- PostgreSQL local, PostgreSQL de Docker Compose o Prisma Postgres (`npx prisma dev`)
 
-## Instalación
+## Instalacion
 
 ```bash
 cd backend
@@ -19,20 +19,34 @@ Crea `backend/.env` con:
 ```env
 DATABASE_URL="prisma+postgres://localhost:<PUERTO>/?api_key=<TU_API_KEY>"
 JWT_SECRET=<cadena_aleatoria_larga>
+GOOGLE_CLIENT_ID=<web_client_id_de_google>
+MEDIA_PROVIDER=backblaze
+B2_ENDPOINT=https://s3.<region>.backblazeb2.com
+B2_REGION=<region>
+B2_BUCKET_NAME=roomies-media
+B2_APPLICATION_KEY_ID=<tu_key_id>
+B2_APPLICATION_KEY=<tu_application_key>
 ```
 
 > `DATABASE_URL` la proporciona el proceso `npx prisma dev` al arrancar.
 
-## Primer uso (base de datos vacía)
+## Primer uso (base de datos vacia)
 
-Con `npx prisma dev` corriendo en otra terminal:
+Con `DATABASE_URL` apuntando a una base disponible:
 
 ```bash
 cd backend
-npx prisma migrate dev --name init
+npx prisma generate
+npx prisma db push
 ```
 
-Esto crea todas las tablas en la base de datos.
+Esto genera el cliente en `src/generated/prisma` y crea o actualiza las tablas segun `prisma/schema.prisma`. El repo no versiona migraciones SQL; para desarrollo y despliegue se usa `prisma db push`.
+
+Seed opcional para datos de demo:
+
+```bash
+npx prisma db seed
+```
 
 ## Arrancar en desarrollo
 
@@ -43,67 +57,116 @@ npm run dev
 
 El servidor queda disponible en `http://localhost:3000`.
 
-Verificación rápida:
+Verificacion rapida:
 
-```
-GET http://localhost:3000/ping  →  pong
+```text
+GET http://localhost:3000/ping  ->  pong
 ```
 
 ## Scripts disponibles
 
-| Script | Descripción |
+| Script | Descripcion |
 |---|---|
-| `npm run dev` | Servidor con hot-reload (nodemon + ts-node) |
-| `npm run build` | Compila TypeScript a `dist/` |
-| `npm start` | Arranca el servidor compilado (`dist/index.js`) |
+| `npm run dev` | Servidor con hot-reload (`nodemon --exec ts-node src/index.ts`) |
+| `npm run build` | Compila TypeScript a `dist/` (`npx prisma generate && tsc`) |
+| `npm start` | Arranca el servidor compilado (`node scripts/start.js`) |
+| `npm test` | Ejecuta la suite de Vitest una vez |
+| `npm run test:watch` | Ejecuta Vitest en modo watch |
+| `npm run test:coverage` | Ejecuta Vitest y genera cobertura en `coverage/` |
+
+## Variables obligatorias y opcionales
+
+| Variable | Obligatoria | Descripcion |
+|---|---|---|
+| `DATABASE_URL` | Si | Conexion PostgreSQL usada por Prisma. |
+| `JWT_SECRET` | Si | Firma de JWT. Usa una cadena larga y aleatoria. |
+| `GOOGLE_CLIENT_ID` | Si | Web Client ID validado por `google-auth-library`. |
+| `BACKEND_URL` | Si para correos reales | Base publica usada en enlaces de verificacion. Tiene fallback local. |
+| `EMAIL_USER` / `EMAIL_PASS` | Opcional local | SMTP para enviar magic links de verificacion. |
+| `MEDIA_PROVIDER` / `B2_*` | Si para subidas reales | Backblaze B2 S3-compatible usado por inventario, justificantes, facturas y contratos. |
+
+## Tests
+
+El backend usa Vitest + Supertest. La app Express vive en `src/app.ts` y se importa desde los tests sin llamar a `app.listen()` ni arrancar cron jobs reales.
+
+Los tests cargan valores seguros en `tests/setup.ts`:
+
+- `NODE_ENV=test`
+- `DATABASE_URL=postgresql://roomies_test:roomies_test@localhost:5432/roomies_test`
+- `JWT_SECRET=test-secret-not-for-production`
+- `GOOGLE_CLIENT_ID=test-google-client-id`
+
+Estos valores permiten importar controladores, rutas y Prisma sin depender de `.env` privados. Los tests que necesiten base de datos real deberan preparar una base aislada de test o mockear Prisma de forma explicita.
 
 ## Despliegue en Railway
 
-Railway gestiona el build y el arranque automáticamente usando los scripts de `package.json`. No se necesita `Dockerfile` ni configuración adicional.
+El backend se desarrolla y prueba contra Docker local. Railway queda reservado para produccion desde `main`. En este proyecto Railway usa `backend/Dockerfile` para construir la imagen; el Dockerfile compila con `npm run build` y el contenedor arranca con `npm start`.
 
 ### 1. Base de datos
 
-1. En el panel de Railway → **New Project → Database → PostgreSQL**
-2. Una vez creado el servicio, ve a su pestaña **Variables** y copia el valor de `DATABASE_URL` (URL de conexión interna)
+1. En Railway: **New Project -> Database -> PostgreSQL**.
+2. Copia el valor de `DATABASE_URL` desde la pestana **Variables**.
 
 ### 2. Backend
 
-1. **New Service → GitHub Repo** → selecciona el repositorio
-2. Ve a **Settings → Source → Root Directory** y escribe `/backend`
-   > Esto le indica a Railway que ignore el resto del monorepo y trate `/backend` como la raíz del proyecto Node.js
+1. Crea un servicio desde el repositorio GitHub.
+2. En **Settings -> Source -> Root Directory** indica `/backend`.
 
 ### 3. Variables de entorno
 
-En el servicio del backend → pestaña **Variables**, añade:
+En el servicio del backend anade:
 
 | Variable | Valor |
 |---|---|
 | `DATABASE_URL` | URL interna del servicio PostgreSQL de Railway |
-| `JWT_SECRET` | Cadena aleatoria larga (mín. 32 caracteres) |
+| `JWT_SECRET` | Cadena aleatoria larga (min. 32 caracteres) |
 | `GOOGLE_CLIENT_ID` | Web Client ID de Google Cloud Console |
+| `MEDIA_PROVIDER` | `backblaze` |
+| `B2_ENDPOINT` | Endpoint S3-compatible de Backblaze |
+| `B2_REGION` | Region S3-compatible |
+| `B2_BUCKET_NAME` | Bucket de media |
+| `B2_APPLICATION_KEY_ID` | Key id de Backblaze |
+| `B2_APPLICATION_KEY` | Application key de Backblaze |
+| `B2_PUBLIC_BASE_URL` | Base publica/CDN opcional para objetos publicos |
 
-### 4. Build y arranque automático
+### 4. Build y arranque automatico
 
-Railway detecta `package.json` y ejecuta en orden:
+Railway ejecuta con el Dockerfile del backend:
 
+```text
+RUN npm run build
+npm start
 ```
-npm run build   →  prisma generate + tsc
-npm start       →  prisma db push + node dist/index.js
+
+El script `npm start` ejecuta:
+
+```text
+npx prisma db push --accept-data-loss
+node dist/index.js
 ```
 
-Las migraciones del schema y el arranque del servidor son completamente automáticos en cada despliegue.
+Solo ejecuta `npx prisma db seed` al arrancar si `ROOMIES_SEED_ON_START=true`; no se debe activar en Railway produccion salvo una carga controlada.
 
-### 5. Dominio público
+### 5. Cron jobs incluidos en el arranque
 
-En el servicio del backend → **Networking → Generate Domain**. Railway genera una URL con el formato:
+Al levantar `src/index.ts`, el backend inicia dos tareas programadas:
 
-```
+- `0 2 * * *`: procesa `GastoRecurrente` activos cuyo `dia_del_mes` coincide con la fecha actual y genera gastos normales.
+- `0 12 5 * *`: envia recordatorios push de deudas `PENDIENTE` a usuarios con `expo_push_token` registrado.
+
+No hace falta una variable de entorno extra para Expo Push en backend: el envio usa `expo-server-sdk`, y los tokens llegan desde el cliente mediante `PATCH /api/usuarios/me/push-token`.
+
+### 6. Dominio publico
+
+En el servicio del backend, usa **Networking -> Generate Domain**. Railway genera una URL del tipo:
+
+```text
 https://<nombre-proyecto>.up.railway.app
 ```
 
-### 6. Conectar el frontend
+### 7. Conectar el frontend
 
-Actualiza `frontend/.env` con la URL generada:
+Actualiza `frontend/.env` con la URL generada solo para builds o validaciones de produccion:
 
 ```env
 EXPO_PUBLIC_API_URL=https://<nombre-proyecto>.up.railway.app/api
@@ -116,17 +179,83 @@ cd frontend
 npx expo start --clear
 ```
 
-> Las variables `EXPO_PUBLIC_*` se resuelven en tiempo de compilación del bundle — cualquier cambio requiere reiniciar Metro con `--clear`.
+> Las variables `EXPO_PUBLIC_*` se resuelven en tiempo de compilacion del bundle.
 
 ---
 
 ## Decisiones de arquitectura
 
-| Decisión | Motivo |
+| Decision | Motivo |
 |---|---|
-| Express 5 | Manejo nativo de errores en handlers async (sin wrapper catch) |
-| Prisma 7 | Cliente generado en `src/generated/prisma/`, configuración en `prisma.config.ts` en vez de en el schema |
+| Express 5 | Manejo nativo de errores en handlers async |
+| Prisma 7 | Cliente generado en `src/generated/prisma/`, con `prisma.config.ts` |
 | `accelerateUrl` en PrismaClient | Requerido por Prisma 7 cuando la URL es `prisma+postgres://` |
-| bcrypt 10 rondas | Balance coste/seguridad estándar para producción |
-| JWT 7 días | Simplicidad MVP: sin refresh tokens por ahora |
-| `req.usuario` en Express.Request | Extensión de tipos en `src/types/express/index.d.ts` para que TypeScript acepte la inyección del payload JWT |
+| bcrypt 10 rondas | Balance coste/seguridad estandar para produccion |
+| JWT 7 dias | Simplicidad MVP, sin refresh tokens por ahora |
+| `req.usuario` en Express.Request | Extension de tipos en `src/types/express/index.d.ts` |
+
+## Decisiones de consistencia de datos
+
+| Decision | Motivo |
+|---|---|
+| `Habitacion.inquilino_id` es unico cuando tiene valor | Un inquilino solo puede ocupar una habitacion activa. PostgreSQL permite multiples `NULL`, asi que las habitaciones vacias y zonas comunes no quedan bloqueadas. |
+| `Deuda` es unica por `gasto_id` y `deudor_id` | Evita que un mismo gasto genere dos deudas para el mismo deudor. |
+| `Deuda`, `FotoAsset`, `AsignacionLimpiezaFija` y `TurnoLimpieza` usan cascada desde su padre directo | Son registros dependientes sin sentido fuera del gasto, item o zona que los contiene. |
+| `Incidencia.habitacion` y `Habitacion.inquilino` usan `SetNull` al borrar la entidad relacionada | Conserva el historial operativo aunque se elimine una habitacion o un usuario deje de existir. |
+| `TurnoLimpieza.habitacion_id` identifica la habitacion responsable | El reparto de limpieza se mantiene estable aunque cambie el ocupante; `usuario_id` queda como snapshot opcional del usuario al generar. |
+| `ItemInventario.revisado_por_inquilino_id` y `revisado_por_inquilino_en` auditan la conformidad | El casero puede saber quien valido un item y cuando; los inquilinos no pueden validar dormitorios ajenos. |
+| Importes monetarios siguen como `Float` por compatibilidad MVP | La logica de reparto convierte a centimos antes de comparar o dividir. Migrar a `Decimal` o centimos enteros queda pendiente de migracion coordinada con frontend, API y datos existentes. |
+
+El seed de demo esta pensado para desarrollo local: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
+
+## Update 2026-04-09 - Backend real
+
+- El backend actual usa `backend/Dockerfile` en Railway.
+- Inventario, facturas, justificantes y contratos con adjunto requieren:
+  - `MEDIA_PROVIDER=backblaze`
+  - `B2_ENDPOINT`
+  - `B2_REGION`
+  - `B2_BUCKET_NAME`
+  - `B2_APPLICATION_KEY_ID`
+  - `B2_APPLICATION_KEY`
+- Scripts actuales:
+  - `npm run dev` -> `nodemon --exec ts-node src/index.ts`
+  - `npm run build` -> `npx prisma generate && tsc`
+  - `npm start` -> `npx prisma db push --accept-data-loss && node dist/index.js`
+- En entornos con red restringida, Prisma puede fallar al descargar binarios aunque el codigo este correcto.
+
+## Update 2026-04-10 - Epica 12 (cobros y push)
+
+- `GastoRecurrente` forma parte del schema y su cron diario se inicia automaticamente al arrancar el backend.
+- Las mensualidades recurrentes son gestionadas por el casero propietario de la vivienda con `GET/POST/PATCH/DELETE /api/viviendas/:viviendaId/gastos-recurrentes`; al generarse, el casero queda como acreedor y se reparte entre inquilinos activos.
+- `POST /api/deudas/:deudaId/justificante` usa el contrato interno de media para guardar comprobantes en Backblaze B2.
+- `PATCH /api/usuarios/me/push-token` permite registrar o limpiar el `expo_push_token` del usuario autenticado.
+- El cron mensual del dia 5 a las 12:00 envia recordatorios push de pago pendiente usando `expo-server-sdk`.
+
+## Update 2026-04-11 - Epicas 13, 14 y 15
+
+- `Vivienda` incorpora `mod_limpieza`, `mod_gastos` y `mod_inventario`; `PATCH /api/viviendas/:id` permite al casero propietario activar o desactivar modulos.
+- `protegerModuloVivienda()` protege limpieza, gastos, deudas, cobros, mensualidades recurrentes e inventario con `403` cuando el modulo correspondiente esta desactivado.
+- `Habitacion.precio` guarda el precio mensual privado solo en habitaciones habitables; el backend oculta precios de dormitorios ajenos en `/api/inquilino/vivienda`.
+- `Gasto.factura_url` queda como compatibilidad de lectura; las nuevas facturas se guardan con Backblaze B2 y referencia portable. Los gastos aceptan `factura`, `fecha`, `implicadosIds` y `repartoManual`; los repartos automaticos se cuadran por centimos y el reparto manual acepta cuotas `0`.
+- `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` permite al casero editar concepto, fecha e importe, bloqueando el importe si alguna deuda hija esta `PAGADA`.
+- `POST /api/viviendas/:viviendaId/gastos/:gastoId/factura` sube o reemplaza la factura original del gasto.
+- La epica 15 no introduce cambios de backend; documenta un pulido frontend sobre tabs anidados de vivienda, perfil de propietario y jerarquia visual de gastos comunes.
+
+## Update 2026-04-11 - Epica 16 issue 246
+
+- Se separa `src/app.ts` de `src/index.ts` para que Express pueda probarse sin abrir puerto ni arrancar cron jobs.
+- Se anade Vitest + Supertest con scripts `test`, `test:watch` y `test:coverage`.
+- La suite inicial valida `GET /ping` como smoke test de la app Express.
+
+## Update 2026-04-12 - Epica 16 issue 247
+
+- `POST /auth/register` crea usuarios manuales con `correo_verificado: true` y devuelve `{ token, usuario }` para iniciar sesion inmediata.
+- El guard de `correo_verificado` en login queda deshabilitado temporalmente; la decision esta documentada en el changelog de Epica 16 issue 247.
+- `GET /auth/verificar/:token` se mantiene como endpoint historico/compatible, pero el alta manual actual no depende de magic links.
+
+## Update 2026-04-22 - Epica 17
+
+- Limpieza reparte por habitaciones responsables: `ZonaLimpieza.habitacion_id`, `AsignacionLimpiezaFija.habitacion_id` y `TurnoLimpieza.habitacion_id` son parte del contrato operativo.
+- `GET /api/viviendas/:id/limpieza/turnos/export` exporta CSV y soporta `formato=base64` para escritura movil compatible con Excel.
+- Inventario registra auditoria de conformidad con `revisado_por_inquilino_id` y `revisado_por_inquilino_en`; el listado de inquilino queda limitado a vivienda, zonas comunes y habitacion propia.

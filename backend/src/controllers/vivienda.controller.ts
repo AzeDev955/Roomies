@@ -2,6 +2,24 @@ import express from 'express';
 import { prisma } from '../lib/prisma';
 import { RolUsuario, TipoHabitacion, EstadoIncidencia } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
+import { registrarBajaOcupacion } from '../services/ocupacion.service';
+
+const parsePrecioHabitacion = (precio: unknown): number | null => {
+  if (precio === undefined || precio === null || precio === '') return null;
+  const precioNum = typeof precio === 'number' ? precio : Number(String(precio).replace(',', '.'));
+  return Number.isFinite(precioNum) && precioNum >= 0 ? precioNum : null;
+};
+
+const precioPrivadoHabitacion = <T extends { precio: number | null; inquilino_id?: number | null }>(
+  habitacion: T,
+  usuario: { id: number; rol: RolUsuario },
+): T => {
+  if (usuario.rol === RolUsuario.CASERO || habitacion.inquilino_id === usuario.id) {
+    return habitacion;
+  }
+
+  return { ...habitacion, precio: null };
+};
 
 export const listarViviendas: express.RequestHandler = async (req, res) => {
   const viviendas = await prisma.vivienda.findMany({
@@ -36,6 +54,7 @@ export const crearVivienda: express.RequestHandler = async (req, res) => {
       tipo?: TipoHabitacion;
       es_habitable?: boolean;
       metros_cuadrados?: number;
+      precio?: number | string | null;
     }[];
   };
 
@@ -52,6 +71,7 @@ export const crearVivienda: express.RequestHandler = async (req, res) => {
         tipo: h.tipo ?? TipoHabitacion.DORMITORIO,
         es_habitable: habitable,
         metros_cuadrados: h.metros_cuadrados ?? null,
+        precio: habitable ? parsePrecioHabitacion(h.precio) : null,
         codigo_invitacion: habitable ? await generarCodigoInvitacion() : null,
       };
     })
@@ -98,14 +118,95 @@ export const obtenerVivienda: express.RequestHandler = async (req, res) => {
   res.status(200).json(vivienda);
 };
 
+export const actualizarVivienda: express.RequestHandler = async (req, res) => {
+  const id = parseInt(req.params['id'] as string, 10);
+  const { mod_limpieza, mod_gastos, mod_inventario } = req.body as {
+    mod_limpieza?: unknown;
+    mod_gastos?: unknown;
+    mod_inventario?: unknown;
+  };
+
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ error: 'ID de vivienda inválido.' });
+    return;
+  }
+
+  if (req.usuario!.rol !== RolUsuario.CASERO) {
+    res.status(403).json({ error: 'Solo el casero puede configurar los módulos de una vivienda.' });
+    return;
+  }
+
+  const vivienda = await prisma.vivienda.findUnique({ where: { id } });
+  if (!vivienda || vivienda.casero_id !== req.usuario!.id) {
+    res.status(404).json({ error: 'Vivienda no encontrada.' });
+    return;
+  }
+
+  const data: {
+    mod_limpieza?: boolean;
+    mod_gastos?: boolean;
+    mod_inventario?: boolean;
+  } = {};
+
+  if (mod_limpieza !== undefined) {
+    if (typeof mod_limpieza !== 'boolean') {
+      res.status(400).json({ error: 'mod_limpieza debe ser booleano.' });
+      return;
+    }
+    data.mod_limpieza = mod_limpieza;
+  }
+
+  if (mod_gastos !== undefined) {
+    if (typeof mod_gastos !== 'boolean') {
+      res.status(400).json({ error: 'mod_gastos debe ser booleano.' });
+      return;
+    }
+    data.mod_gastos = mod_gastos;
+  }
+
+  if (mod_inventario !== undefined) {
+    if (typeof mod_inventario !== 'boolean') {
+      res.status(400).json({ error: 'mod_inventario debe ser booleano.' });
+      return;
+    }
+    data.mod_inventario = mod_inventario;
+  }
+
+  if (Object.keys(data).length === 0) {
+    res.status(400).json({ error: 'No hay módulos para actualizar.' });
+    return;
+  }
+
+  const viviendaActualizada = await prisma.vivienda.update({
+    where: { id },
+    data,
+    include: {
+      habitaciones: {
+        include: {
+          inquilino: {
+            select: { id: true, nombre: true, apellidos: true, email: true },
+          },
+          incidencias: {
+            where: { estado: { in: [EstadoIncidencia.PENDIENTE, EstadoIncidencia.EN_PROCESO] } },
+            select: { id: true, titulo: true, prioridad: true, estado: true },
+          },
+        },
+      },
+    },
+  });
+
+  res.status(200).json(viviendaActualizada);
+};
+
 export const crearHabitacion: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params['id'] as string, 10);
 
-  const { nombre, tipo, es_habitable, metros_cuadrados } = req.body as {
+  const { nombre, tipo, es_habitable, metros_cuadrados, precio } = req.body as {
     nombre: string;
     tipo?: TipoHabitacion;
     es_habitable?: boolean;
     metros_cuadrados?: number;
+    precio?: number | string | null;
   };
 
   if (!nombre) {
@@ -129,22 +230,24 @@ export const crearHabitacion: express.RequestHandler = async (req, res) => {
       tipo: tipo ?? TipoHabitacion.DORMITORIO,
       es_habitable: habitable,
       metros_cuadrados: metros_cuadrados ?? null,
+      precio: habitable ? parsePrecioHabitacion(precio) : null,
       codigo_invitacion,
     },
   });
 
-  res.status(201).json(habitacion);
+  res.status(201).json(precioPrivadoHabitacion(habitacion, req.usuario!));
 };
 
 export const editarHabitacion: express.RequestHandler = async (req, res) => {
   const viviendaId = parseInt(req.params['id'] as string, 10);
   const habId = parseInt(req.params['habId'] as string, 10);
 
-  const { nombre, tipo, es_habitable, metros_cuadrados } = req.body as {
+  const { nombre, tipo, es_habitable, metros_cuadrados, precio } = req.body as {
     nombre?: string;
     tipo?: TipoHabitacion;
     es_habitable?: boolean;
     metros_cuadrados?: number | null;
+    precio?: number | string | null;
   };
 
   const vivienda = await prisma.vivienda.findUnique({ where: { id: viviendaId } });
@@ -170,18 +273,25 @@ export const editarHabitacion: express.RequestHandler = async (req, res) => {
     }
   }
 
+  const habitableFinal = es_habitable ?? habitacionActual.es_habitable;
+
   const habitacion = await prisma.habitacion.update({
     where: { id: habId },
     data: {
       nombre: nombre ?? habitacionActual.nombre,
       tipo: tipo ?? habitacionActual.tipo,
-      es_habitable: es_habitable ?? habitacionActual.es_habitable,
+      es_habitable: habitableFinal,
       metros_cuadrados: metros_cuadrados !== undefined ? metros_cuadrados : habitacionActual.metros_cuadrados,
+      precio: habitableFinal
+        ? precio !== undefined
+          ? parsePrecioHabitacion(precio)
+          : habitacionActual.precio
+        : null,
       codigo_invitacion,
     },
   });
 
-  res.status(200).json(habitacion);
+  res.status(200).json(precioPrivadoHabitacion(habitacion, req.usuario!));
 };
 
 export const expulsarInquilino: express.RequestHandler = async (req, res) => {
@@ -206,9 +316,18 @@ export const expulsarInquilino: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  await prisma.habitacion.update({
-    where: { id: habId },
-    data: { inquilino_id: null },
+  await prisma.$transaction(async (tx) => {
+    await registrarBajaOcupacion(tx as any, {
+      viviendaId,
+      habitacionId: habId,
+      inquilinoId: habitacion.inquilino_id!,
+      notas: 'Baja registrada al expulsar al inquilino.',
+    });
+
+    await tx.habitacion.update({
+      where: { id: habId },
+      data: { inquilino_id: null },
+    });
   });
 
   res.status(200).json({ mensaje: 'Inquilino desvinculado correctamente.' });

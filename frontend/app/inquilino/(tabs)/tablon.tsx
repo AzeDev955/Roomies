@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useState, useCallback, useMemo } from 'react';
+import { Redirect, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
-import { styles } from '@/styles/tablon/tablon.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles, getPrimaryActionContentColor } from '@/styles/tablon/tablon.styles';
 
 type Anuncio = {
   id: number;
@@ -33,6 +33,9 @@ type ContextoInquilino = {
 } | null;
 
 export default function InquilinoTablonScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const primaryActionContentColor = getPrimaryActionContentColor(theme);
   const [contexto, setContexto] = useState<ContextoInquilino>(null);
   const [loadingCtx, setLoadingCtx] = useState(true);
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
@@ -72,15 +75,27 @@ export default function InquilinoTablonScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { cargarContexto(); }, []));
-  useFocusEffect(useCallback(() => { if (contexto) cargarAnuncios(contexto.viviendaId); }, [contexto]));
+  useFocusEffect(useCallback(() => { if (contexto) cargarAnuncios(contexto.viviendaId); }, [cargarAnuncios, contexto]));
 
   const handlePublicar = async () => {
-    if (!titulo.trim() || !contenido.trim() || !contexto) return;
+    const tituloLimpio = titulo.trim();
+    const contenidoLimpio = contenido.trim();
+
+    if (!tituloLimpio || !contenidoLimpio) {
+      Toast.show({ type: 'error', text1: 'Completa titulo y contenido antes de publicar.' });
+      return;
+    }
+
+    if (!contexto) {
+      Toast.show({ type: 'error', text1: 'No pudimos identificar tu vivienda.' });
+      return;
+    }
+
     setPublicando(true);
     try {
       const { data } = await api.post<Anuncio>('/anuncios', {
-        titulo: titulo.trim(),
-        contenido: contenido.trim(),
+        titulo: tituloLimpio,
+        contenido: contenidoLimpio,
         vivienda_id: contexto.viviendaId,
       });
       setAnuncios((prev) => [data, ...prev]);
@@ -120,23 +135,11 @@ export default function InquilinoTablonScreen() {
   const puedePublicar = titulo.trim().length > 0 && contenido.trim().length > 0;
 
   if (loadingCtx) {
-    return <View style={styles.container}><ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} /></View>;
+    return <View style={styles.container}><ActivityIndicator style={styles.loader} size="large" color={theme.colors.primary} /></View>;
   }
 
   if (!contexto) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconBox}>
-            <Ionicons name="key-outline" size={44} color={Theme.colors.primary} />
-          </View>
-          <Text style={styles.emptyTitulo}>Únete a una vivienda</Text>
-          <Text style={styles.emptySubtitulo}>
-            El tablón de anuncios aparecerá aquí en cuanto te unas a tu vivienda con el código de invitación.
-          </Text>
-        </View>
-      </View>
-    );
+    return <Redirect href="/inquilino/inicio" />;
   }
 
   const puedeEliminar = (anuncio: Anuncio) => anuncio.autor_id === contexto.usuarioId;
@@ -153,7 +156,7 @@ export default function InquilinoTablonScreen() {
             accessibilityLabel="Eliminar anuncio"
             accessibilityRole="button"
           >
-            <Text style={styles.eliminarBtnTexto}>✕</Text>
+            <Ionicons name="close" size={16} color={theme.colors.dangerText} />
           </Pressable>
         )}
       </View>
@@ -171,7 +174,7 @@ export default function InquilinoTablonScreen() {
   return (
     <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} />
+        <ActivityIndicator style={styles.loader} size="large" color={theme.colors.primary} />
       ) : (
         <FlatList
           contentContainerStyle={styles.content}
@@ -182,7 +185,7 @@ export default function InquilinoTablonScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name="megaphone-outline" size={44} color={Theme.colors.primary} />
+                <Ionicons name="megaphone-outline" size={44} color={theme.colors.primary} />
               </View>
               <Text style={styles.emptyTitulo}>¡Rompe el hielo!</Text>
               <Text style={styles.emptySubtitulo}>
@@ -199,19 +202,22 @@ export default function InquilinoTablonScreen() {
         accessibilityLabel="Nuevo anuncio"
         accessibilityRole="button"
       >
-        <Ionicons name="add" size={28} color={Theme.colors.surface} />
+        <Ionicons name="add" size={28} color={primaryActionContentColor} />
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={cerrarModal}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <Pressable style={{ flex: 1 }} onPress={cerrarModal} />
+          <Pressable style={styles.modalBackdrop} onPress={cerrarModal} />
           <View style={styles.modalContainer}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitulo}>Nuevo anuncio</Text>
             <TextInput
-              style={[styles.inputTitulo, tituloFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight }]}
+              style={[styles.inputTitulo, tituloFocused && styles.inputFocused]}
               placeholder="Título"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={titulo}
               onChangeText={setTitulo}
               onFocus={() => setTituloFocused(true)}
@@ -219,9 +225,12 @@ export default function InquilinoTablonScreen() {
               maxLength={100}
             />
             <TextInput
-              style={[styles.inputContenido, contenidoFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight }]}
+              style={[styles.inputContenido, contenidoFocused && styles.inputFocused]}
               placeholder="¿Qué quieres comunicar?"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={contenido}
               onChangeText={setContenido}
               onFocus={() => setContenidoFocused(true)}
@@ -239,7 +248,7 @@ export default function InquilinoTablonScreen() {
                 onPress={handlePublicar}
                 disabled={!puedePublicar || publicando}
               >
-                {publicando ? <ActivityIndicator color={Theme.colors.surface} /> : <Text style={styles.botonPublicarTexto}>Publicar</Text>}
+                {publicando ? <ActivityIndicator color={primaryActionContentColor} /> : <Text style={styles.botonPublicarTexto}>Publicar</Text>}
               </Pressable>
             </View>
           </View>

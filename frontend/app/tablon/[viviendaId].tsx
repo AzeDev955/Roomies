@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { Theme } from '@/constants/theme';
-import { useState, useCallback } from 'react';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useState, useCallback, useMemo } from 'react';
+import { Redirect, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import api from '@/services/api';
-import { styles } from '@/styles/tablon/tablon.styles';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { createStyles, getPrimaryActionContentColor } from '@/styles/tablon/tablon.styles';
 
 type Anuncio = {
   id: number;
@@ -28,11 +28,16 @@ type Anuncio = {
 };
 
 export default function TablonScreen() {
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const primaryActionContentColor = getPrimaryActionContentColor(theme);
   const { viviendaId, esCasero, miUsuarioId } = useLocalSearchParams<{
     viviendaId: string;
     esCasero?: string;
     miUsuarioId?: string;
   }>();
+  const viviendaIdNumero = Number(viviendaId);
+  const viviendaIdValido = !!viviendaId && !Number.isNaN(viviendaIdNumero);
 
   const [anuncios, setAnuncios] = useState<Anuncio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,32 +48,46 @@ export default function TablonScreen() {
   const [tituloFocused, setTituloFocused] = useState(false);
   const [contenidoFocused, setContenidoFocused] = useState(false);
 
-  const cargarAnuncios = async () => {
+  const cargarAnuncios = useCallback(async () => {
+    if (!viviendaIdValido) return;
+
     setLoading(true);
     try {
-      const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${viviendaId}`);
+      const { data } = await api.get<Anuncio[]>(`/anuncios?viviendaId=${viviendaIdNumero}`);
       setAnuncios(data);
     } catch {
       Toast.show({ type: 'error', text1: 'No se pudieron cargar los anuncios.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [viviendaIdNumero, viviendaIdValido]);
 
   useFocusEffect(
     useCallback(() => {
       cargarAnuncios();
-    }, [viviendaId])
+    }, [cargarAnuncios])
   );
 
   const handlePublicar = async () => {
-    if (!titulo.trim() || !contenido.trim()) return;
+    const tituloLimpio = titulo.trim();
+    const contenidoLimpio = contenido.trim();
+
+    if (!viviendaIdValido) {
+      Toast.show({ type: 'error', text1: 'No pudimos identificar la vivienda.' });
+      return;
+    }
+
+    if (!tituloLimpio || !contenidoLimpio) {
+      Toast.show({ type: 'error', text1: 'Completa titulo y contenido antes de publicar.' });
+      return;
+    }
+
     setPublicando(true);
     try {
       const { data } = await api.post<Anuncio>('/anuncios', {
-        titulo: titulo.trim(),
-        contenido: contenido.trim(),
-        vivienda_id: Number(viviendaId),
+        titulo: tituloLimpio,
+        contenido: contenidoLimpio,
+        vivienda_id: viviendaIdNumero,
       });
       setAnuncios((prev) => [data, ...prev]);
       setTitulo('');
@@ -133,7 +152,7 @@ export default function TablonScreen() {
             accessibilityLabel="Eliminar anuncio"
             accessibilityRole="button"
           >
-            <Text style={styles.eliminarBtnTexto}>✕</Text>
+            <Ionicons name="close" size={16} color={theme.colors.dangerText} />
           </Pressable>
         )}
       </View>
@@ -150,10 +169,14 @@ export default function TablonScreen() {
 
   const puedePublicar = titulo.trim().length > 0 && contenido.trim().length > 0;
 
+  if (!viviendaIdValido) {
+    return <Redirect href="/" />;
+  }
+
   return (
     <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator style={styles.loader} size="large" color={Theme.colors.primary} />
+        <ActivityIndicator style={styles.loader} size="large" color={theme.colors.primary} />
       ) : (
         <FlatList
           contentContainerStyle={styles.content}
@@ -164,7 +187,7 @@ export default function TablonScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconBox}>
-                <Ionicons name="megaphone-outline" size={44} color={Theme.colors.primary} />
+                <Ionicons name="megaphone-outline" size={44} color={theme.colors.primary} />
               </View>
               <Text style={styles.emptyTitulo}>¡Rompe el hielo!</Text>
               <Text style={styles.emptySubtitulo}>
@@ -181,7 +204,7 @@ export default function TablonScreen() {
         accessibilityLabel="Nuevo anuncio"
         accessibilityRole="button"
       >
-        <Ionicons name="add" size={28} color={Theme.colors.surface} />
+        <Ionicons name="add" size={28} color={primaryActionContentColor} />
       </Pressable>
 
       <Modal
@@ -194,7 +217,7 @@ export default function TablonScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <Pressable style={{ flex: 1 }} onPress={cerrarModal} />
+          <Pressable style={styles.modalBackdrop} onPress={cerrarModal} />
           <View style={styles.modalContainer}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitulo}>Nuevo anuncio</Text>
@@ -202,10 +225,13 @@ export default function TablonScreen() {
             <TextInput
               style={[
                 styles.inputTitulo,
-                tituloFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                tituloFocused && styles.inputFocused,
               ]}
               placeholder="Título"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={titulo}
               onChangeText={setTitulo}
               onFocus={() => setTituloFocused(true)}
@@ -215,10 +241,13 @@ export default function TablonScreen() {
             <TextInput
               style={[
                 styles.inputContenido,
-                contenidoFocused && { borderColor: Theme.colors.primary, backgroundColor: Theme.colors.primaryLight },
+                contenidoFocused && styles.inputFocused,
               ]}
               placeholder="¿Qué quieres comunicar?"
-              placeholderTextColor={Theme.colors.textMuted}
+              placeholderTextColor={theme.colors.textMuted}
+              cursorColor={theme.colors.primary}
+              selectionColor={theme.colors.primaryLight}
+              keyboardAppearance={theme.isDark ? 'dark' : 'light'}
               value={contenido}
               onChangeText={setContenido}
               onFocus={() => setContenidoFocused(true)}
@@ -245,7 +274,7 @@ export default function TablonScreen() {
                 disabled={!puedePublicar || publicando}
               >
                 {publicando ? (
-                  <ActivityIndicator color={Theme.colors.surface} />
+                  <ActivityIndicator color={primaryActionContentColor} />
                 ) : (
                   <Text style={styles.botonPublicarTexto}>Publicar</Text>
                 )}

@@ -118,7 +118,8 @@ export const eliminarAnuncio: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const esAutor = anuncio.autor_id === usuarioId;
+  const tieneAcceso = await verificarAccesoVivienda(usuarioId, req.usuario!.rol, anuncio.vivienda_id);
+  const esAutor = anuncio.autor_id === usuarioId && tieneAcceso;
   const esCasero = anuncio.vivienda.casero_id === usuarioId;
 
   if (!esAutor && !esCasero) {

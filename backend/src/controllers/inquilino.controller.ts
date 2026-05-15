@@ -3,6 +3,18 @@ import { prisma } from '../lib/prisma';
 import { RolUsuario } from '../generated/prisma/client';
 import { generarCodigoInvitacion } from '../utils/generarCodigo';
 import { enviarNotificacionPush } from '../services/notification.service';
+import { registrarAltaOcupacion, registrarBajaOcupacion } from '../services/ocupacion.service';
+
+const serializarHabitacionParaInquilino = <
+  T extends { precio: number | null; codigo_invitacion: string | null; inquilino_id?: number | null },
+>(
+  habitacion: T,
+  usuarioId: number,
+): Omit<T, 'precio' | 'codigo_invitacion'> & { precio: number | null; codigo_invitacion: null } => ({
+  ...habitacion,
+  precio: habitacion.inquilino_id === usuarioId ? habitacion.precio : null,
+  codigo_invitacion: null,
+});
 
 export const obtenerPerfilInquilino: express.RequestHandler = async (req, res) => {
   const id = Number(req.params['id']);
@@ -102,21 +114,32 @@ export const unirseHabitacion: express.RequestHandler = async (req, res) => {
 
   const nuevoCodigo = await generarCodigoInvitacion();
 
-  const habitacionActualizada = await prisma.habitacion.update({
-    where: { codigo_invitacion },
-    data: {
-      inquilino_id: req.usuario!.id,
-      codigo_invitacion: nuevoCodigo, // burn after reading: el código antiguo queda invalidado al instante
-    },
-    include: {
-      vivienda: true,
-      inquilino: { select: { nombre: true, apellidos: true } },
-    },
+  const habitacionActualizada = await prisma.$transaction(async (tx) => {
+    const actualizada = await tx.habitacion.update({
+      where: { codigo_invitacion },
+      data: {
+        inquilino_id: req.usuario!.id,
+        codigo_invitacion: nuevoCodigo, // burn after reading: el código antiguo queda invalidado al instante
+      },
+      include: {
+        vivienda: true,
+        inquilino: { select: { nombre: true, apellidos: true } },
+      },
+    });
+
+    await registrarAltaOcupacion(tx as any, {
+      viviendaId: actualizada.vivienda_id,
+      habitacionId: actualizada.id,
+      inquilinoId: req.usuario!.id,
+      rentaMensual: actualizada.precio,
+    });
+
+    return actualizada;
   });
 
   res.status(200).json({
     mensaje: 'Te has unido a la habitación correctamente.',
-    habitacion: habitacionActualizada,
+    habitacion: serializarHabitacionParaInquilino(habitacionActualizada, req.usuario!.id),
   });
 
   // Notify casero async (fire-and-forget)
@@ -146,9 +169,18 @@ export const abandonarHabitacion: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  await prisma.habitacion.update({
-    where: { id: habitacion.id },
-    data: { inquilino_id: null },
+  await prisma.$transaction(async (tx) => {
+    await registrarBajaOcupacion(tx as any, {
+      viviendaId: habitacion.vivienda_id,
+      habitacionId: habitacion.id,
+      inquilinoId: req.usuario!.id,
+      notas: 'Baja registrada al abandonar la habitacion.',
+    });
+
+    await tx.habitacion.update({
+      where: { id: habitacion.id },
+      data: { inquilino_id: null },
+    });
   });
 
   res.status(200).json({ mensaje: 'Has abandonado la habitación correctamente.' });
@@ -182,6 +214,11 @@ export const obtenerMiVivienda: express.RequestHandler = async (req, res) => {
 
   res.status(200).json({
     miHabitacionId: habitacion.id,
-    vivienda: habitacion.vivienda,
+    vivienda: {
+      ...habitacion.vivienda,
+      habitaciones: habitacion.vivienda.habitaciones.map((h) =>
+        serializarHabitacionParaInquilino(h, req.usuario!.id)
+      ),
+    },
   });
 };

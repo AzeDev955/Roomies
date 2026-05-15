@@ -25,8 +25,76 @@ Aplicación móvil de gestión de pisos compartidos. Hay dos roles:
 | HTTP client     | Axios con interceptor Bearer token                                   |
 | Token storage   | `expo-secure-store`                                                  |
 | Geocoding       | Mapbox Geocoding API                                                 |
+| Media uploads   | Backblaze B2 + `multer` en memoria + AWS SDK S3-compatible           |
 | Auth social     | `expo-auth-session/providers/google` + `expo-web-browser`            |
-| Infraestructura | Docker Compose (PostgreSQL + backend + frontend)                     |
+| Push            | `expo-notifications` + `expo-server-sdk`                             |
+| Infraestructura | Docker Compose + Railway (backend desplegado con `backend/Dockerfile`) |
+
+---
+
+## Actualizaciones recientes
+
+### Cierre fiscal del propietario (Epica Fiscal)
+
+- El modo fiscal del casero esta cerrado documentalmente en `docs/backend/fiscal-cierre-epica.md`, con flujo extremo a extremo, contrato de exportacion, checklist manual, matriz issue -> archivos -> tests y riesgos residuales.
+- El backend expone `GET /api/viviendas/:viviendaId/fiscal/:ejercicio`, `GET /api/viviendas/:viviendaId/fiscal/ocupacion?ejercicio=YYYY` y `GET /api/viviendas/:viviendaId/fiscal/:ejercicio/dossier`; todos son de casero propietario con `mod_gastos` activo.
+- El dossier fiscal exporta CSV con secciones `RESUMEN` y `DETALLE`, minimiza datos personales de inquilinos y marca `FALTA_FACTURA`, `FALTA_CATEGORIA`, `IMPORTE_PENDIENTE`, `PERIODO_INCOMPLETO` y `PRORRATEO_MANUAL`.
+- La pantalla `frontend/app/casero/(tabs)/fiscal.tsx` permite seleccionar vivienda/ejercicio, revisar ocupacion, editar metadatos fiscales y exportar CSV movil con `formato=base64`.
+- `ContratoAlquiler`, `EventoContratoAlquiler` y `PeriodoOcupacion` alimentan trazabilidad contractual y ocupacion fiscal; la firma interna no equivale a firma electronica avanzada/cualificada y debe validarse con proveedor si se requiere.
+
+### Limpieza, inventario legal y cierre funcional (Epica 17)
+
+- El modulo de limpieza se reparte por habitaciones responsables: `ZonaLimpieza` puede vincularse a una habitacion objetivo, `AsignacionLimpiezaFija` guarda `habitacion_id` y `TurnoLimpieza` conserva `habitacion_id` como responsable estable con `usuario_id` solo como snapshot del ocupante al generar.
+- `GET /api/viviendas/:id/limpieza/turnos/export` exporta limpiezas visibles en CSV compatible con Excel; admite `fecha`, `fechaDesde`, `fechaHasta`, `estado` y `formato=base64` para escritura movil.
+- El inventario del inquilino filtra items a vivienda, zonas comunes y habitacion propia. La conformidad guarda `revisado_por_inquilino_id` y `revisado_por_inquilino_en`, y el casero ve el usuario validador cuando existe.
+- El frontend incorpora terminos de uso y politica de privacidad versionados en `frontend/constants/legal.ts`, pantallas `/legal/terminos` y `/legal/privacidad`, y aceptacion explicita en registro manual y selector de rol para altas nuevas de Google.
+- El inventario del casero esta migrado a `useAppTheme()` y `createStyles(theme)` para modo claro/oscuro.
+
+### Pulido de casero en vivienda y gastos comunes (Epica 15)
+
+- Los tabs internos de `casero/vivienda/[id]/(tabs)` usan `useViviendaIdParam()` para aislar el `id` de vivienda y evitar colisiones con otras rutas dinamicas como perfiles o incidencias.
+- El tab `Opciones` concentra la configuracion de modulos de la vivienda; el resumen queda reservado para datos operativos, habitaciones, incidencias y mensualidades.
+- El perfil compartido muestra el rol `CASERO` como `Propietario` y elimina la tarjeta redundante de rol.
+- La pantalla `Gastos` del inquilino separa visualmente las deudas entre companeros de los pendientes con el casero, muestra un estado vacio real cuando no hay pagos pendientes y eleva el FAB para que no tape acciones al final del scroll.
+
+### Arquitectura modular y facturacion flexible (Epicas 13 y 14)
+
+- `Vivienda` incorpora los flags `mod_limpieza`, `mod_gastos` y `mod_inventario` con valor por defecto `true`.
+- El casero configura esos modulos desde el tab `Opciones` de la vivienda con `PATCH /api/viviendas/:id`.
+- El backend usa `protegerModuloVivienda()` para devolver `403` si limpieza, gastos/cobros/mensualidades/deudas o inventario estan desactivados para una vivienda.
+- La navegacion del casero y del inquilino oculta tabs de `Limpieza`, `Gastos`, `Cobros` e `Inventario` segun los flags activos.
+- `Habitacion.precio` guarda el precio mensual privado de dormitorios habitables. El casero lo ve siempre; el inquilino solo ve el precio de su propia habitacion y el backend devuelve `precio: null` para dormitorios ajenos.
+- `Gasto.factura_url` mantiene compatibilidad de lectura, pero las nuevas facturas se suben a Backblaze B2 con referencia portable `factura_provider` + `factura_key`. Los gastos pueden crearse con adjunto, fecha y `repartoManual`; el reparto manual acepta cuotas `0`, y si se omite se reparte automaticamente cuadrando centimos.
+- El casero puede editar concepto, fecha e importe de facturas emitidas; el importe queda bloqueado si alguna deuda hija esta `PAGADA`.
+
+### Cobros, mensualidades y push (Epica 12)
+
+- El backend expone `GET /api/viviendas/:viviendaId/gastos`, `POST /api/viviendas/:viviendaId/gastos`, `GET /api/viviendas/:viviendaId/deudas`, `PATCH /api/viviendas/:viviendaId/deudas/:deudaId/saldar`, `GET/POST/PATCH/DELETE /api/viviendas/:viviendaId/gastos-recurrentes` y `GET /api/viviendas/:viviendaId/cobros`.
+- `GastoRecurrente` guarda mensualidades activas por vivienda y el cron diario de las `02:00` las transforma en `Gasto` normal con reparto automatico entre inquilinos activos.
+- `Deuda` incorpora `justificante_url`; el deudor puede subir imagen con `POST /api/deudas/:deudaId/justificante` usando `multipart/form-data` en el campo `justificante`.
+- El casero dispone de una pestana global `Cobros` con selector de vivienda, resumen mensual de pagado/pendiente y visualizacion del justificante cuando existe.
+- Las mensualidades se gestionan desde el resumen de cada vivienda del casero; el casero puede crear, editar y eliminar gastos fijos, y el inquilino no ve ni crea gastos recurrentes.
+- El frontend del inquilino mantiene la pestana `Gastos` para gastos puntuales, deudas, facturas originales y bottom sheet de justificante antes de marcar una deuda como pagada.
+- El backend expone `PATCH /api/usuarios/me/push-token` y el alias legado `PUT /api/usuarios/push-token` para registrar el `expo_push_token` del usuario autenticado.
+- El frontend sincroniza el token push desde `app/_layout.tsx`, login, registro y selector de rol; en Expo Go el registro se omite y solo funciona en dispositivo fisico o build nativa.
+- El cron mensual `0 12 5 * *` envia recordatorios push a deudores con deudas `PENDIENTE` y token Expo registrado.
+
+### Inventario del casero
+
+- El módulo de inventario expone `POST /api/viviendas/:viviendaId/inventario`, `GET /api/viviendas/:viviendaId/inventario` y `POST /api/inventario/:itemId/fotos`.
+- El flujo del casero crea primero el item y después puede subir una foto con `multipart/form-data` en el campo `foto`.
+- El frontend del casero incorpora una pestaña `Inventario` con selector de vivienda, agrupado por ubicación y alta de items con `expo-image-picker`.
+
+- `ItemInventario` incorpora `revisado_por_inquilino`, `revisado_por_inquilino_id` y `revisado_por_inquilino_en` para auditar la conformidad del inquilino.
+- El backend expone `PATCH /api/inventario/:itemId/conformidad` para que el inquilino marque un item visible como validado; rechaza dormitorios ajenos y evita sobrescribir una validacion de otro inquilino.
+- El frontend del inquilino incorpora la pestaña `Inventario` con agrupado por habitación/zona, galería de fotos y modal de revisión.
+- Si el item no coincide, el flujo redirige al módulo de incidencias mediante un `Alert` nativo.
+
+- El backend desplegado en Railway se construye con `backend/Dockerfile`.
+- Se añadió infraestructura de inventario con `ItemInventario` y `FotoAsset` en Prisma.
+- La subida de fotos del inventario usa el uploader interno con `multer` en memoria, procesado WebP y Backblaze B2.
+- El endpoint disponible es `POST /api/inventario/:itemId/fotos` y espera `multipart/form-data` con el archivo en el campo `foto`.
+- Para backend local y Railway son obligatorias las variables Backblaze B2 cuando `MEDIA_PROVIDER=backblaze`.
 
 ---
 
@@ -90,7 +158,8 @@ Roomies/
 │   │   │               ├── _layout.tsx ← Tab bar vivienda + botón ← en headerLeft
 │   │   │               ├── index.tsx   ← Resumen: habitaciones, inquilinos, códigos
 │   │   │               ├── incidencias.tsx ← incidencias de la vivienda
-│   │   │               └── tablon.tsx  ← tablón de anuncios de esta vivienda
+│   │   │               ├── tablon.tsx  ← tablón de anuncios de esta vivienda
+│   │   │               └── opciones.tsx ← configuracion de modulos de la vivienda
 │   │   ├── inquilino/
 │   │   │   ├── _layout.tsx             ← Stack del inquilino
 │   │   │   ├── nueva-incidencia.tsx
@@ -168,8 +237,9 @@ Roomies/
 | `google_id`     | String? unique | null si el usuario se registró con email/pass |
 | `telefono`           | String?        | obligatorio en registro manual                |
 | `rol`                | RolUsuario     | `CASERO` \| `INQUILINO`                       |
-| `correo_verificado`  | Boolean        | `@default(false)`; el login lo exige en `true` |
-| `token_verificacion` | String?        | token hex-32 generado al registrarse; null tras verificar |
+| `expo_push_token`    | String?        | token Expo opcional para recordatorios de pago y avisos push |
+| `correo_verificado`  | Boolean        | se conserva por compatibilidad; el registro manual lo crea en `true` y el login no lo exige temporalmente |
+| `token_verificacion` | String?        | token historico para magic link; no se genera en el registro manual actual |
 
 ### `Vivienda`
 
@@ -182,6 +252,9 @@ Roomies/
 | `codigo_postal` | String       |
 | `ciudad`        | String       |
 | `provincia`     | String       |
+| `mod_limpieza`  | Boolean      |
+| `mod_gastos`    | Boolean      |
+| `mod_inventario` | Boolean     |
 
 ### `Habitacion`
 
@@ -194,6 +267,7 @@ Roomies/
 | `tipo`              | TipoHabitacion | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` |
 | `es_habitable`      | Boolean        | si true, tiene código de invitación                     |
 | `metros_cuadrados`  | Float?         |                                                         |
+| `precio`            | Float?         | precio mensual privado; solo visible para casero o inquilino asignado |
 | `codigo_invitacion` | String? unique | se genera con `generarCodigoInvitacion()`               |
 
 ### `Incidencia`
@@ -221,6 +295,42 @@ Roomies/
 | `contenido`      | String        |                                           |
 | `fecha_creacion` | DateTime      | `@default(now())`                         |
 
+### `Gasto`
+
+| Campo            | Tipo          | Notas |
+| ---------------- | ------------- | ----- |
+| `id`             | Int PK        | autoincrement |
+| `vivienda_id`    | FK -> Vivienda | gasto asociado a una vivienda |
+| `pagador_id`     | FK -> Usuario  | usuario que adelanta el pago |
+| `concepto`       | String        | descripcion corta del gasto |
+| `importe`        | Float         | importe total |
+| `factura_url`    | String?       | URL persistida de compatibilidad; las nuevas facturas privadas se sirven mediante URL firmada |
+| `fecha_creacion` | DateTime      | `@default(now())` |
+
+### `GastoRecurrente`
+
+| Campo         | Tipo          | Notas |
+| ------------- | ------------- | ----- |
+| `id`          | Int PK        | autoincrement |
+| `concepto`    | String        | nombre de la mensualidad |
+| `importe`     | Float         | importe total a repartir |
+| `dia_del_mes` | Int           | entero entre `1` y `31` |
+| `vivienda_id` | FK -> Vivienda | vivienda donde se genera |
+| `pagador_id`  | FK -> Usuario  | usuario que queda como pagador del gasto generado |
+| `activo`      | Boolean       | `@default(true)` |
+
+### `Deuda`
+
+| Campo              | Tipo                    | Notas |
+| ------------------ | ----------------------- | ----- |
+| `id`               | Int PK                  | autoincrement |
+| `gasto_id`         | FK -> Gasto             | deuda derivada de un gasto |
+| `deudor_id`        | FK -> Usuario           | usuario que debe pagar |
+| `acreedor_id`      | FK -> Usuario           | usuario que debe cobrar |
+| `importe`          | Float                   | importe individual |
+| `estado`           | `PENDIENTE` \| `PAGADA` | estado actual |
+| `justificante_url` | String?                 | URL persistida de compatibilidad; los nuevos comprobantes se sirven mediante URL firmada |
+
 ---
 
 ## API REST (base: `/api`)
@@ -229,9 +339,9 @@ Roomies/
 
 | Método | Ruta             | Auth | Descripción                                                                                           |
 | ------ | ---------------- | ---- | ----------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/register`         | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol`. Devuelve `{ mensaje }`. Envía magic link al email. |
+| POST   | `/auth/register`         | No   | Registro con email/pass. Campos: `nombre`, `apellidos`, `documento_identidad`, `email`, `telefono`, `password`, `rol`. Devuelve `{ token, usuario }` y crea sesion inmediata. |
 | GET    | `/auth/verificar/:token` | No   | Verifica el correo. Si OK → redirect `roomies://verificacion?status=success`. |
-| POST   | `/auth/login`            | No   | Login con email/pass. Devuelve `403` si `correo_verificado` es `false`.      |
+| POST   | `/auth/login`            | No   | Login con email/pass. El guard de `correo_verificado` esta deshabilitado temporalmente por decision de Epica 16 issue 247. |
 | POST   | `/auth/google`   | No   | Login/registro con Google. Body: `{ idToken }`. Devuelve `esNuevo: boolean`                           |
 | GET    | `/auth/me`       | Sí   | Perfil del usuario autenticado                                                                        |
 | PATCH  | `/auth/rol`      | Sí   | Actualiza el rol del usuario y re-emite el JWT. Body: `{ rol: "CASERO" \| "INQUILINO" }`              |
@@ -243,6 +353,7 @@ Roomies/
 | GET    | `/viviendas`                                   | Sí   | Lista viviendas del casero autenticado                                     |
 | POST   | `/viviendas`                                   | Sí   | Crea vivienda (acepta array opcional `habitaciones`)                       |
 | GET    | `/viviendas/:id`                               | Sí   | Detalle con habitaciones e inquilinos                                      |
+| PATCH  | `/viviendas/:id`                               | Sí   | Actualiza `mod_limpieza`, `mod_gastos` y/o `mod_inventario` de la vivienda |
 | POST   | `/viviendas/:id/habitaciones`                  | Sí   | Añade habitación suelta                                                    |
 | PUT    | `/viviendas/:id/habitaciones/:habId`           | Sí   | Edita habitación                                                           |
 | DELETE | `/viviendas/:id/habitaciones/:habId`           | Sí   | Elimina habitación (falla si tiene inquilino)                              |
@@ -275,6 +386,35 @@ Tablón de anuncios por vivienda. Todos los miembros de la vivienda (casero e in
 | POST   | `/anuncios`     | Sí   | Publica anuncio. Body: `{ titulo, contenido, vivienda_id }`                         |
 | DELETE | `/anuncios/:id` | Sí   | Elimina anuncio. Solo el autor o el casero de la vivienda                           |
 
+### Finanzas - `/viviendas/:viviendaId`
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| GET    | `/viviendas/:viviendaId/gastos` | Si | Lista gastos de la vivienda con pagador y `deudas[]` |
+| POST   | `/viviendas/:viviendaId/gastos` | Si | Crea gasto y reparte deuda entre inquilinos activos; acepta `implicadosIds`, `repartoManual`, `fecha` y adjunto `factura` opcionales |
+| PATCH  | `/viviendas/:viviendaId/gastos/:gastoId` | Si | Edita concepto, fecha e importe de un gasto; el importe se bloquea si hay deudas pagadas |
+| POST   | `/viviendas/:viviendaId/gastos/:gastoId/factura` | Si | Sube o reemplaza la factura original de un gasto |
+| GET    | `/viviendas/:viviendaId/deudas` | Si | Lista deudas donde el usuario autenticado es deudor o acreedor |
+| PATCH  | `/viviendas/:viviendaId/deudas/:deudaId/saldar` | Si | Marca una deuda como `PAGADA`; solo el deudor puede hacerlo |
+| GET    | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Lista mensualidades activas o inactivas de la vivienda |
+| POST   | `/viviendas/:viviendaId/gastos-recurrentes` | Si | Crea una mensualidad recurrente con `concepto`, `importe` y `dia_del_mes` |
+| PATCH  | `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId` | Si | Edita `concepto`, `importe`, `dia_del_mes` o `activo` de una mensualidad recurrente |
+| DELETE | `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId` | Si | Elimina una mensualidad recurrente sin afectar gastos ya generados |
+| GET    | `/viviendas/:viviendaId/cobros` | Si | Dashboard mensual del casero con resumen pagado o pendiente y detalle de justificantes |
+
+### Deudas - `/deudas`
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| POST   | `/deudas/:deudaId/justificante` | Si | Sube un justificante de pago a Backblaze B2; campo multipart `justificante` |
+
+### Usuarios - `/usuarios`
+
+| Metodo | Ruta | Auth | Descripcion |
+| ------ | ---- | ---- | ----------- |
+| PATCH  | `/usuarios/me/push-token` | Si | Guarda o limpia (`token: null`) el `expo_push_token` del usuario autenticado |
+| PUT    | `/usuarios/push-token` | Si | Alias legado del mismo flujo |
+
 ---
 
 ## Variables de entorno
@@ -297,21 +437,27 @@ GOOGLE_CLIENT_ID=<Web Client ID de Google Cloud Console>
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/roomies
 JWT_SECRET=roomies_dev_secret_local
 GOOGLE_CLIENT_ID=<mismo que arriba>
+MEDIA_PROVIDER=backblaze
+B2_ENDPOINT=https://s3.<region>.backblazeb2.com
+B2_REGION=<region>
+B2_BUCKET_NAME=roomies-media
+B2_APPLICATION_KEY_ID=<key_id>
+B2_APPLICATION_KEY=<application_key>
 ```
 
 ### `frontend/.env` (leído por Metro en tiempo de compilación)
 
-El proyecto tiene tres entornos de API — descomenta el que quieras usar:
+El flujo de desarrollo usa Docker local. Railway queda reservado para produccion desde `main`:
 
 ```
-# Desarrollo en Railway (por defecto)
-EXPO_PUBLIC_API_URL=https://roomies-dev.up.railway.app/api
+# Desarrollo local con Docker Compose
+EXPO_PUBLIC_API_URL=http://localhost:3001/api
+
+# Expo Go en movil fisico con Docker Compose
+#EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
 
 # Producción en Railway
 #EXPO_PUBLIC_API_URL=https://roomies-production-c884.up.railway.app/api
-
-# Local con Docker Compose
-#EXPO_PUBLIC_API_URL=http://<HOST_IP>:3001/api
 
 EXPO_PUBLIC_MAPBOX_TOKEN=<token Mapbox>
 EXPO_PUBLIC_GOOGLE_CLIENT_ID=<Web Client ID>
@@ -320,39 +466,47 @@ EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=<iOS Client ID o vacío>
 ```
 
 > Las variables `EXPO_PUBLIC_*` se hornean en el bundle de Metro. Cambiarlas requiere reiniciar Metro con `--clear`.
+> El registro de push usa `expo-notifications` y el `projectId` definido en `frontend/app.json` (`expo.extra.eas.projectId`), no una variable `EXPO_PUBLIC_*` adicional.
 
 ### `.env.example` disponibles
 
 Cada subcarpeta tiene su propio `.env.example` con todos los campos documentados:
 - `.env.example` — raíz (Docker Compose)
 - `backend/.env.example` — backend local / Railway
-- `frontend/.env.example` — frontend con los tres entornos de API comentados
+- `frontend/.env.example` — frontend con Docker local por defecto y Railway produccion comentado
 
 ---
 
-## Docker
+## Docker, Expo Go y Railway
 
-```bash
-# Primera vez o tras cambios en dependencias
-docker-compose down -v
-docker-compose build --no-cache backend
-docker-compose up
+El testeo funcional diario se hace con Docker Compose local:
 
-# Uso habitual
-docker-compose up
-docker-compose down
-```
+1. `.env` define PostgreSQL, secretos, `HOST_IP` y `EXPO_PUBLIC_API_URL`.
+2. Se ejecuta `.\dev.bat` desde la raiz, que valida `.env`, para cualquier Metro viejo del contenedor `frontend`, lanza `docker compose up --build -d --force-recreate db backend`, espera a `/ping` y arranca `npx expo start --lan --port 8081 --clear` en `frontend`.
+   - El backend de Compose reinicia la BD con `prisma db push --force-reset` y ejecuta seed antes de `npm run dev`.
+3. La app se abre desde Expo Go usando el QR de Expo local.
 
-El backend en Docker ejecuta al arrancar:
+Railway queda reservado para produccion y debe desplegar desde `main`. `backend/Dockerfile` existe para que Railway construya la imagen del backend.
 
-1. `npx prisma db push --accept-data-loss` — aplica el schema
-2. `npx prisma generate` — regenera el cliente
-3. `npx prisma db seed` — carga datos de prueba
-4. `npm run dev` — arranca el servidor con nodemon
+El `backend/Dockerfile` ejecuta:
+
+1. `npm run build` durante la construccion de la imagen.
+2. `npm start` al arrancar el contenedor.
+
+`npm start` ejecuta `node scripts/start.js`: aplica `npx prisma db push --accept-data-loss` y levanta `node dist/index.js`. Solo ejecuta seed si `ROOMIES_SEED_ON_START=true`.
+
+`docker-compose.yml` es el flujo principal de desarrollo. En ese modo, el servicio backend sobreescribe el comando de la imagen Railway y ejecuta:
+
+1. `npx prisma generate` - regenera el cliente despues del bind mount.
+2. `npx prisma db push --accept-data-loss` - aplica el schema.
+3. `npm run dev` - arranca el servidor con nodemon.
+
+La BD local se reinicia y se siembra siempre al arrancar con `dev.bat`.
 
 **Puertos**: PostgreSQL en `5433:5432`, backend en `3001:3000`, frontend en `8080:8080`.
 
 > El puerto 8080 se usa en lugar de 8081 para evitar conflictos con reglas de firewall de Windows.
+> El frontend del compose lee `EXPO_PUBLIC_API_URL` desde `.env`; para Expo Go en movil fisico debe apuntar a `http://<HOST_IP>:3001/api`.
 
 ---
 
@@ -374,6 +528,16 @@ El backend en Docker ejecuta al arrancar:
 | `radius.full` | `100` | Pills, avatares |
 | `spacing.xxl` | `48` | Separación entre secciones grandes |
 | `typography.subtitle` | `18` | Títulos de sección intermedios |
+
+### Modo oscuro
+
+- `frontend/constants/theme.ts` define paletas `light` y `dark`, tipos `ThemeMode`, `ResolvedThemeMode`, `AppTheme` y el constructor `buildAppTheme()`.
+- `frontend/contexts/ThemeContext.tsx` centraliza `AppThemeProvider`, persistencia de preferencia (`system`, `light`, `dark`) y sincronizacion del fondo del sistema.
+- Las pantallas reales de `frontend/app` deben consumir `useAppTheme()` y pasar `theme` a `createStyles(theme)`.
+- Los estilos de pantalla deben usar `AppTheme` y `theme.colors` en lugar de `Theme.colors` cuando el valor cambia entre claro y oscuro.
+- Inputs y formularios deben usar placeholders, cursores, selections y `keyboardAppearance` desde el tema activo.
+- Los componentes comunes y heredados de Expo deben respetar `AppThemeProvider`; no basta con leer `useColorScheme()` si la app permite selector manual.
+- Las migraciones de pantallas se documentan en `docs/changelog/EpicaDarkMode/`.
 
 ### Patrones recurrentes
 
@@ -457,8 +621,8 @@ El backend en Docker ejecuta al arrancar:
    - Redirige con `router.replace()` al dashboard correspondiente.
    - Si el token es inválido o expirado, lo borra con `eliminarToken()` y deja al usuario en el login.
    - Muestra un `ActivityIndicator` como overlay mientras verifica (el Stack se renderiza siempre para que `router.replace()` tenga destino).
-2. **Registro manual**: `POST /auth/register` → devuelve nada (201). El usuario va al login.
-3. **Login manual**: `POST /auth/login` → devuelve `{ token, usuario }`. Se guarda el token con `guardarToken`. Se navega con `router.replace()` al dashboard según el rol.
+2. **Registro manual**: `POST /auth/register` -> devuelve `{ token, usuario }`, crea `correo_verificado: true`, guarda el token y navega al dashboard segun rol.
+3. **Login manual**: `POST /auth/login` -> devuelve `{ token, usuario }`. Se guarda el token con `guardarToken`. Se navega con `router.replace()` al dashboard segun el rol.
 4. **Google OAuth**:
    - `expo-auth-session` obtiene un `idToken` en el dispositivo.
    - Se envía a `POST /auth/google` → el backend lo verifica con `google-auth-library` → upsert del usuario.
@@ -500,7 +664,9 @@ Usuarios de prueba creados por `prisma db seed`:
 | Email              | Password    | Rol       |
 | ------------------ | ----------- | --------- |
 | casero@test.com    | `casero123` | CASERO    |
-| inquilino@test.com | `casero123` | INQUILINO |
+| inquilino@test.com | `inquilino123` | INQUILINO |
+
+El seed demo crea gastos puntuales, deudas del casero, deudas entre inquilinos y mensualidades de servicios. No crea la mensualidad de alquiler, porque el alquiler por habitacion se gestiona con `Habitacion.precio` y cargos de alquiler propios.
 
 ---
 
@@ -509,3 +675,96 @@ Usuarios de prueba creados por `prisma db seed`:
 - `docs/backend/api.md` — referencia completa de endpoints con ejemplos de body/response.
 - `docs/frontend/setup.md` — guía de configuración del frontend, variables de entorno, estructura de la app, flujo de autenticación y decisiones de arquitectura.
 - `docs/changelog/` — un archivo por issue implementado, con decisiones técnicas.
+
+## Update 2026-04-10 - Arquitectura modular y facturacion flexible (Epicas 13 y 14)
+
+- Backend:
+  - `Vivienda` tiene flags `mod_limpieza`, `mod_gastos` y `mod_inventario`; `PATCH /api/viviendas/:id` permite al casero propietario activarlos o desactivarlos.
+  - `protegerModuloVivienda()` protege limpieza, gastos, deudas, cobros, mensualidades recurrentes e inventario con 403 si el modulo esta desactivado.
+  - `Habitacion.precio` se persiste solo en habitaciones habitables; al convertir una habitacion en no habitable se limpia a `null`.
+  - `Gasto.factura_url` conserva compatibilidad de lectura; las nuevas facturas usan Backblaze B2 y referencias portables.
+  - `POST /api/viviendas/:viviendaId/gastos` acepta `multipart/form-data`, `factura`, `fecha` y `repartoManual`.
+  - `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` edita concepto, fecha e importe; el importe no se puede cambiar si alguna deuda hija esta `PAGADA`.
+- Frontend:
+  - El tab `Opciones` del casero muestra switches de modulos por vivienda mediante `ModulosViviendaManager`.
+  - Las tabs globales y de vivienda se ocultan segun los flags activos.
+  - Los formularios de alta/edicion de habitaciones muestran precio mensual solo en dormitorios habitables.
+  - `Cobros` permite crear facturas puntuales con adjunto, reparto desigual o reparto automatico por centimos, editar facturas emitidas y subir/reemplazar factura original.
+  - El inquilino ve el precio de su propia habitacion y enlaces a factura original cuando una deuda procede de un gasto con adjunto.
+
+## Update 2026-04-11 - Pulido de casero y gastos comunes (Epica 15)
+
+- Frontend:
+  - `useViviendaIdParam()` fija el `id` de vivienda en tabs anidados del casero y evita que rutas hermanas con `[id]` contaminen el contexto abierto.
+  - `casero/vivienda/[id]/(tabs)/opciones.tsx` centraliza la configuracion de modulos de vivienda.
+  - `perfil.tsx` muestra `Propietario` para usuarios `CASERO` y elimina el bloque redundante de rol.
+  - `inquilino/(tabs)/gastos.tsx` separa pendientes entre companeros y pendientes con casero, elimina textos temporales, muestra estado vacio real y ajusta el FAB para no cubrir contenido.
+
+## Update 2026-04-12 - Epica 16 issue 256
+
+- `docker-compose.yml` deja de fijar la API del frontend a produccion y consume `EXPO_PUBLIC_API_URL` desde `.env`.
+- `backend/Dockerfile` queda orientado a Railway: compila con `npm run build` y arranca con `npm start`.
+- `backend/scripts/start.js` aplica el schema al arrancar la imagen Railway de produccion.
+- `docker-compose.yml` mantiene un comando de desarrollo propio para regenerar Prisma Client y arrancar con nodemon solo cuando se use Compose.
+- `.env.example`, `backend/.env.example` y `frontend/.env.example` documentan variables obligatorias, opcionales, URLs locales y tokens por entorno.
+- `docs/infra/setup-despliegue.md` concentra el flujo Docker Compose + Expo Go, Dockerfile Railway de produccion y comandos de build/test/lint.
+
+## Update 2026-04-12 - Epica 16 issue 257
+
+- `backend/tests/release-regression.test.ts` cubre una regresion final de rutas principales protegidas, payloads publicos de auth y cron de recordatorios tolerante a fallos de proveedor externo.
+- `frontend/app/__tests__/navigation-smoke.test.tsx` valida las tabs principales de casero, inquilino y detalle de vivienda, incluyendo ocultacion de modulos desactivados.
+- `docs/release/epica-16-regresion-final.md` centraliza checklist manual de release, matriz archivo -> issue -> estado, cobertura automatica por flujo y riesgos residuales.
+
+## Update 2026-04-18 - Epica Dark Mode
+
+- El frontend soporta modo `Sistema`, `Claro` y `Oscuro` desde Perfil.
+- `AppThemeProvider` gobierna paletas, tabs, componentes comunes, toast y componentes heredados de Expo.
+- Las pantallas funcionales de casero, inquilino, vivienda, incidencias, tablon, limpieza, gastos, inventario, cobros y formularios principales consumen `useAppTheme()` y estilos `createStyles(theme)`.
+- `docs/changelog/EpicaDarkMode/` contiene la documentacion por pantalla migrada y la revision final del frontend.
+
+## Update 2026-04-22 - Epica 17
+
+- Backend:
+  - Limpieza pasa a habitaciones responsables: `ZonaLimpieza.habitacion_id` apunta al espacio objetivo, `AsignacionLimpiezaFija.habitacion_id` fija dormitorios responsables y `TurnoLimpieza.habitacion_id` identifica la habitacion responsable del turno.
+  - `GET /api/viviendas/:id/limpieza/turnos/export` genera CSV con `Espacio`, `Tipo de espacio`, `Habitacion responsable`, `Responsable actual` y `Fecha`; `formato=base64` devuelve bytes compatibles con Excel en movil.
+  - Inventario registra `revisado_por_inquilino_id` y `revisado_por_inquilino_en`; los inquilinos no pueden listar ni validar items de dormitorios ajenos.
+- Frontend:
+  - El casero configura limpieza por espacios objetivo y habitaciones responsables fijas desde el tab `Limpieza`.
+  - El inquilino ve tareas asociadas a su habitacion responsable y contexto de zonas comunes.
+  - Login, registro, rol y perfil muestran documentos legales versionados; registro y selector de rol exigen aceptacion explicita cuando aplica.
+  - Inventario del casero muestra estados de validacion y respeta modo claro/oscuro.
+
+## Update 2026-05-06 - Cierre epica fiscal
+
+- Backend:
+  - El resumen anual, la foto de ocupacion y el dossier fiscal quedan documentados como contrato de propietario en `docs/backend/api.md`.
+  - `docs/backend/fiscal-cierre-epica.md` centraliza checklist manual, matriz de issues #323-#330/#337/#338, pruebas relevantes y riesgos fiscales/legales.
+  - `docs/backend/contrato-fiscal-propietario.md` aclara limites de firma interna, dossier CSV y revision profesional.
+- Frontend:
+  - `docs/frontend/setup.md` documenta la tab `Fiscal`, estados principales, endpoints consumidos y exportacion base64.
+  - El cierre explicita que los inquilinos no tienen tab fiscal ni acceso a metadatos fiscales privados.
+
+## Update 2026-04-10 - Cobros, mensualidades y push (Epica 12)
+
+- Backend:
+  - `GastoRecurrente` soporta mensualidades por vivienda y el cron diario `0 2 * * *` las convierte en gastos repartidos.
+  - `Deuda` guarda `justificante_url` y expone `POST /api/deudas/:deudaId/justificante`.
+  - `GET /api/viviendas/:viviendaId/cobros` resume cobros del mes actual para el casero.
+  - `PATCH /api/usuarios/me/push-token` registra el `expo_push_token` del usuario autenticado.
+- Frontend:
+  - El casero tiene pestanas globales `Cobros` e `Inventario`.
+  - El inquilino tiene pestanas `Limpieza`, `Gastos` e `Inventario`; en `Gastos` puede crear gastos puntuales, saldar deudas y subir justificantes.
+  - `app/_layout.tsx`, login, registro y selector de rol sincronizan el push token cuando existe sesion.
+- Automatizaciones:
+  - El cron `0 12 5 * *` envia recordatorios push de deudas pendientes a usuarios con token Expo registrado.
+
+## Update 2026-04-09 - Inventario Epica 11
+
+- Backend:
+  - `ItemInventario` incluye `revisado_por_inquilino`.
+  - Inventario expone `POST /api/viviendas/:viviendaId/inventario`, `GET /api/viviendas/:viviendaId/inventario`, `POST /api/inventario/:itemId/fotos` y `PATCH /api/inventario/:itemId/conformidad`.
+- Frontend:
+  - El casero tiene una pestana `Inventario` para alta de items y subida de fotos.
+  - El inquilino tiene una pestana `Inventario` para check-in visual y validacion del estado de cada item.
+- UI:
+  - `Theme.colors.successLight` y `Theme.colors.dangerLight` se usan para badges de validacion y acciones destructivas suaves.

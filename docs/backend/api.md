@@ -2,7 +2,23 @@
 
 Base URL: `http://localhost:3000/api`
 
+En Docker Compose, la API queda publicada en `http://localhost:3001/api`.
+
 ---
+
+## Salud (`/`)
+
+### GET `/ping`
+
+Comprueba que el servidor Express esta vivo.
+
+**Auth requerida:** No
+
+**Respuesta `200`:**
+
+```text
+pong
+```
 
 ## Autenticación (`/auth`)
 
@@ -34,17 +50,17 @@ El campo se valida en el middleware `validate(registroSchema)` (Zod) antes de ll
   - **NIE**: prefijo `X/Y/Z` (→ `0/1/2`) + 7 dígitos + letra de control.
 - Cualquier otro string alfanumérico de 6-15 caracteres se acepta como pasaporte internacional.
 
-**Comportamiento:**
-1. Crea el usuario con `correo_verificado: false` y un `token_verificacion` aleatorio (hex-32).
-2. Envía un correo HTML con un botón "Verificar mi cuenta" apuntando a `GET /auth/verificar/:token`.
-3. El envío de correo es asíncrono — no bloquea la respuesta al cliente.
-4. **No devuelve JWT**. El usuario debe verificar su correo antes de poder hacer login.
+**Comportamiento actual (Epica 16):**
+1. Crea el usuario con `correo_verificado: true`.
+2. Devuelve JWT y usuario seguro para iniciar sesion inmediatamente tras el registro.
+3. No devuelve `password_hash` ni `token_verificacion`.
+4. El endpoint historico `GET /auth/verificar/:token` se mantiene por compatibilidad, pero el registro manual ya no depende del magic link.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `201` | Usuario creado. Devuelve `{ mensaje }` indicando que debe revisar el correo. |
+| `201` | Usuario creado. Devuelve `{ token, usuario }`. |
 | `400` | Datos inválidos (validación Zod) — devuelve `{ error, errores: [{ campo, mensaje }] }`. |
 | `400` | El email o documento de identidad ya está registrado. |
 
@@ -64,7 +80,17 @@ El campo se valida en el middleware `validate(registroSchema)` (Zod) antes de ll
 **Ejemplo respuesta 201:**
 ```json
 {
-  "mensaje": "Cuenta creada. Revisa tu correo para verificar tu cuenta antes de iniciar sesión."
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "usuario": {
+    "id": 1,
+    "nombre": "Ana",
+    "apellidos": "Garcia Lopez",
+    "documento_identidad": "12345678Z",
+    "email": "ana@example.com",
+    "telefono": "600123456",
+    "rol": "CASERO",
+    "correo_verificado": true
+  }
 }
 ```
 
@@ -126,7 +152,7 @@ Autentica un usuario y devuelve un JWT.
 |---|---|
 | `200` | Login correcto. Devuelve token JWT + datos del usuario sin `password_hash`. |
 | `401` | Credenciales inválidas (email no existe o contraseña incorrecta). |
-| `403` | El correo del usuario aún no ha sido verificado. |
+| `403` | Reservado para politicas futuras. El guard de `correo_verificado` esta deshabilitado temporalmente por decision documentada en Epica 16 issue 247. |
 
 **Ejemplo respuesta 200:**
 ```json
@@ -253,6 +279,9 @@ Devuelve todas las viviendas del casero logueado, incluyendo sus habitaciones.
     "codigo_postal": "28013",
     "ciudad": "Madrid",
     "provincia": "Madrid",
+    "mod_limpieza": true,
+    "mod_gastos": true,
+    "mod_inventario": true,
     "habitaciones": [
       {
         "id": 1,
@@ -262,6 +291,7 @@ Devuelve todas las viviendas del casero logueado, incluyendo sus habitaciones.
         "tipo": "DORMITORIO",
         "es_habitable": true,
         "metros_cuadrados": 12.5,
+        "precio": 450,
         "codigo_invitacion": "ROOM-AB3X"
       }
     ]
@@ -296,6 +326,7 @@ Crea una nueva vivienda. Solo accesible para usuarios con rol `CASERO`.
 | `tipo` | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` | No (default `DORMITORIO`) |
 | `es_habitable` | boolean | No (default `true`) |
 | `metros_cuadrados` | number | No |
+| `precio` | number/string/null | No | Precio mensual privado. Solo se guarda si `es_habitable: true`; se limpia a `null` en zonas comunes. |
 
 > Las habitaciones se crean en la misma transacción (nested create de Prisma). Si falla una habitación, toda la operación se revierte.
 
@@ -341,6 +372,9 @@ Devuelve el detalle de una vivienda con sus habitaciones e inquilinos asignados.
   "codigo_postal": "28013",
   "ciudad": "Madrid",
   "provincia": "Madrid",
+  "mod_limpieza": true,
+  "mod_gastos": true,
+  "mod_inventario": true,
   "habitaciones": [
     {
       "id": 1,
@@ -348,6 +382,7 @@ Devuelve el detalle de una vivienda con sus habitaciones e inquilinos asignados.
       "tipo": "DORMITORIO",
       "es_habitable": true,
       "metros_cuadrados": 12.5,
+      "precio": 450,
       "codigo_invitacion": "ROOM-AB3X7K",
       "inquilino": {
         "id": 3,
@@ -371,6 +406,36 @@ Devuelve el detalle de una vivienda con sus habitaciones e inquilinos asignados.
 
 ---
 
+### PATCH `/viviendas/:id`
+
+Actualiza la configuracion modular de una vivienda. Solo el casero propietario puede cambiar estos flags.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripcion |
+|---|---|
+| `id` | ID de la vivienda |
+
+**Body (JSON):** al menos uno de estos campos.
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `mod_limpieza` | boolean | No | Activa o desactiva rutas y tabs del modulo de limpieza |
+| `mod_gastos` | boolean | No | Activa o desactiva gastos, deudas, cobros y mensualidades recurrentes |
+| `mod_inventario` | boolean | No | Activa o desactiva inventario, fotos y conformidad |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Vivienda actualizada con habitaciones, inquilinos y contadores de incidencias. |
+| `400` | ID invalido, body vacio o algun flag no booleano. |
+| `403` | El usuario no es casero o la vivienda no le pertenece. |
+
+---
+
 ### POST `/viviendas/:id/habitaciones`
 
 Añade una habitación a una vivienda. Solo el casero propietario de la vivienda puede añadir habitaciones.
@@ -391,6 +456,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
 | `tipo` | `DORMITORIO` \| `BANO` \| `COCINA` \| `SALON` \| `OTRO` | No | Default: `DORMITORIO` |
 | `es_habitable` | boolean | No | Si es habitable por un inquilino. Default: `true` |
 | `metros_cuadrados` | number | No | Superficie en m² |
+| `precio` | number/string/null | No | Precio mensual privado. Solo se guarda para habitaciones habitables. |
 
 **Respuestas:**
 
@@ -414,6 +480,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "tipo": "DORMITORIO",
   "es_habitable": true,
   "metros_cuadrados": 12.5,
+  "precio": 450,
   "codigo_invitacion": "ROOM-AB3X7K"
 }
 ```
@@ -428,6 +495,7 @@ Añade una habitación a una vivienda. Solo el casero propietario de la vivienda
   "tipo": "COCINA",
   "es_habitable": false,
   "metros_cuadrados": null,
+  "precio": null,
   "codigo_invitacion": null
 }
 ```
@@ -447,12 +515,13 @@ Edita una habitación existente. Solo el casero propietario de la vivienda puede
 | `id` | ID de la vivienda |
 | `habId` | ID de la habitación |
 
-**Body (JSON):** Mismos campos que en la creación (`nombre`, `tipo`, `es_habitable`, `metros_cuadrados`), todos opcionales.
+**Body (JSON):** Mismos campos que en la creación (`nombre`, `tipo`, `es_habitable`, `metros_cuadrados`, `precio`), todos opcionales.
 
 **Comportamiento del `codigo_invitacion` al editar:**
 - `es_habitable` cambia `false → true` → se genera un nuevo código
 - `es_habitable` cambia `true → false` → el código se anula (`null`)
 - `es_habitable` no cambia → el código existente se conserva
+- `precio` se conserva o actualiza solo mientras la habitacion sea habitable; si pasa a zona comun se guarda como `null`.
 
 **Respuestas:**
 
@@ -580,6 +649,10 @@ Devuelve la vivienda completa del inquilino logueado, incluyendo todas las habit
 | `403` | El usuario tiene rol `CASERO`. |
 | `404` | El inquilino no tiene ninguna habitación asignada. |
 
+**Privacidad y modulos:**
+- La vivienda incluye `mod_limpieza`, `mod_gastos` y `mod_inventario` para adaptar la navegacion del cliente.
+- Las habitaciones incluyen `precio`, pero el backend solo conserva el importe en la habitacion asignada al usuario autenticado. El resto se serializa como `precio: null`.
+
 **Ejemplo respuesta 200:**
 ```json
 {
@@ -587,17 +660,22 @@ Devuelve la vivienda completa del inquilino logueado, incluyendo todas las habit
   "vivienda": {
     "id": 1,
     "alias_nombre": "Piso Centro",
+    "mod_limpieza": true,
+    "mod_gastos": true,
+    "mod_inventario": true,
     "habitaciones": [
       {
         "id": 2,
         "nombre": "Habitación A",
         "tipo": "DORMITORIO",
+        "precio": null,
         "inquilino": { "id": 5, "nombre": "Ana", "apellidos": "García" }
       },
       {
         "id": 3,
         "nombre": "Habitación B",
         "tipo": "DORMITORIO",
+        "precio": 450,
         "inquilino": null
       },
       {
@@ -1012,9 +1090,871 @@ Elimina un anuncio.
 
 ---
 
+## Gastos y cobros (`/viviendas/:viviendaId`)
+
+Todos los endpoints de esta seccion estan protegidos por `mod_gastos`. Si el modulo esta desactivado en la vivienda, el backend responde `403` con `El modulo gastos esta desactivado para esta vivienda.`.
+
+### GET `/viviendas/:viviendaId/gastos`
+
+Lista los gastos de una vivienda con su pagador y el array de `deudas[]` generado para cada gasto, filtrando por actor y origen del cobro.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Debes pertenecer a la vivienda (`CASERO` propietario o `INQUILINO` con habitacion asignada).
+- El casero solo recibe gastos de facturacion propia: `FACTURA_PUNTUAL`, `FACTURA_MENSUAL` y `CARGO_RECURRENTE`.
+- El inquilino solo recibe gastos donde participa como pagador, deudor o acreedor; las deudas embebidas se reducen a su relacion directa.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de `Gasto[]` ordenado por `fecha_creacion` descendente. |
+| `400` | `viviendaId` invalido. |
+| `403` | No perteneces a la vivienda. |
+
+**Campos relevantes por gasto:**
+- `pagador { id, nombre, apellidos }`
+- `tipo`: `ENTRE_COMPANEROS`, `FACTURA_PUNTUAL`, `FACTURA_MENSUAL` o `CARGO_RECURRENTE`
+- `factura_url` cuando existe factura original subida mediante Backblaze B2
+- `deudas[]` con `id`, `deudor_id`, `acreedor_id`, `importe`, `estado` y `justificante_url`
+
+---
+
+### POST `/viviendas/:viviendaId/gastos`
+
+Crea un gasto puntual y reparte automaticamente la deuda entre los inquilinos activos de la vivienda. Si lo crea un inquilino, se guarda como `ENTRE_COMPANEROS`; si lo crea el casero, se guarda como `FACTURA_PUNTUAL`.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Content-Type:** `application/json` o `multipart/form-data` si se adjunta factura.
+
+**Body:**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | Si | Nombre corto del gasto |
+| `importe` | number | Si | Importe total, debe ser mayor que `0` |
+| `implicadosIds` | number[] | No | IDs concretos a repartir; si se omite se usan todos los inquilinos activos |
+| `repartoManual` | `{ usuario_id, importe }[]` o JSON string | No | Reparto desigual por inquilino activo. La suma en centimos debe coincidir con `importe`. |
+| `fecha` | string ISO | No | Fecha del gasto/factura. Si se omite se usa `now()`. |
+| `factura` | file | No | Imagen o PDF de factura original cuando se usa `multipart/form-data`. |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Gasto creado con sus `deudas[]`. |
+| `400` | Faltan datos, `importe <= 0`, fecha invalida, implicados invalidos o `repartoManual` descuadrado. |
+| `403` | No perteneces a la vivienda. |
+
+**Notas de reparto manual:**
+- Todos los `usuario_id` deben ser inquilinos activos de la vivienda y no pueden repetirse.
+- Los importes pueden ser `0`, pero nunca negativos ni invalidos.
+- Si el pagador aparece en `repartoManual`, no se genera deuda contra si mismo, pero su importe cuenta para cuadrar el total.
+- Si no se envia `repartoManual`, se usa el reparto automatico entre `implicadosIds` o todos los inquilinos activos. El reparto automatico trabaja en centimos y distribuye el resto para que la suma de deudas coincida con el gasto.
+
+---
+
+### PATCH `/viviendas/:viviendaId/gastos/:gastoId`
+
+Edita una factura mensual, factura puntual o cargo recurrente ya generado por el casero. No permite gestionar gastos `ENTRE_COMPANEROS`.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede editar facturas de la vivienda.
+- `concepto` y `fecha` pueden modificarse aunque existan pagos registrados.
+- `importe` solo puede modificarse si ninguna deuda hija esta `PAGADA`.
+- Cuando cambia `importe`, el backend recalcula el `importe` de cada `Deuda` hija repartiendo el nuevo total de forma equitativa.
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | No | Nuevo concepto, no puede quedar vacio |
+| `importe` | number | No | Nuevo importe total, mayor que `0` |
+| `fecha` | string | No | Fecha ISO para actualizar `fecha_creacion` |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Gasto actualizado con `pagador` y `deudas[]`. |
+| `400` | IDs invalidos, body vacio, campos invalidos o intento de cambiar `importe` con deudas `PAGADA`. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto no encontrado en esa vivienda. |
+
+---
+
+### DELETE `/viviendas/:viviendaId/gastos/:gastoId`
+
+Borra una factura puntual creada manualmente por el casero cuando todavia no existe actividad de pago asociada.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede borrar facturas de la vivienda.
+- Solo admite gastos `FACTURA_PUNTUAL`.
+- El borrado se bloquea si alguna `Deuda` hija esta `PAGADA` o si existe `justificante_url` en alguna deuda.
+- Al borrar el `Gasto`, sus `Deuda[]` hijas se eliminan en cascada.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Factura puntual eliminada correctamente. |
+| `400` | IDs invalidos, intento de borrar un tipo no permitido o factura con actividad de pago. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto no encontrado en esa vivienda. |
+
+---
+
+### POST `/viviendas/:viviendaId/gastos/:gastoId/factura`
+
+Sube o reemplaza la imagen de factura adjunta a una factura o cargo del casero. No permite adjuntar facturas a gastos `ENTRE_COMPANEROS`.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Content-Type:** `multipart/form-data`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede subir la foto de la factura.
+- Requiere Backblaze B2 configurado en el servidor.
+- El archivo debe ser una imagen (`jpg`, `jpeg`, `png` o `webp`) en el campo `factura`.
+
+**Body multipart:**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `factura` | file | Si | Imagen de la factura |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Gasto actualizado con `factura_url`, `pagador` y `deudas[]`. |
+| `400` | IDs invalidos o falta el archivo `factura`. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto no encontrado en esa vivienda. |
+| `500` | Backblaze B2 no esta configurado o no devuelve referencia de subida. |
+
+---
+
+### GET `/viviendas/:viviendaId/deudas`
+
+Lista las deudas de la vivienda donde el usuario autenticado participa como deudor o acreedor.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de `Deuda[]` ordenado por `id` descendente. |
+| `400` | `viviendaId` invalido. |
+| `403` | No perteneces a la vivienda. |
+
+**Incluye:**
+- `deudor { id, nombre, apellidos }`
+- `acreedor { id, nombre, apellidos }`
+- `categoria`: `CASERO` para facturas/cargos del propietario y `COMPANEROS` para gastos comunes entre inquilinos
+- `gasto { concepto, tipo, factura_url }`
+
+---
+
+### PATCH `/viviendas/:viviendaId/deudas/:deudaId/saldar`
+
+Marca una deuda como `PAGADA`.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Debes pertenecer a la vivienda.
+- Solo el `deudor` de esa deuda puede saldarla.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Deuda actualizada con `estado: "PAGADA"`. |
+| `400` | `viviendaId` o `deudaId` invalidos. |
+| `403` | No perteneces a la vivienda o no eres el deudor. |
+| `404` | Deuda no encontrada en esa vivienda. |
+| `409` | La deuda ya estaba saldada. |
+
+---
+
+### GET `/viviendas/:viviendaId/gastos-recurrentes`
+
+Lista las mensualidades configuradas para una vivienda. Es un flujo exclusivo del casero.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede ver sus mensualidades.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de `GastoRecurrente[]`, ordenado por `activo`, `dia_del_mes` e `id`. |
+| `400` | `viviendaId` invalido. |
+| `403` | No eres el casero propietario de la vivienda. |
+
+**Incluye:**
+- `pagador { id, nombre, apellidos }`
+
+**Nota automatica:**
+- El cron `0 2 * * *` revisa cada dia las mensualidades activas cuyo `dia_del_mes` coincide con la fecha actual y las convierte en `Gasto`. El casero queda como pagador/acreedor y el importe se reparte entre inquilinos activos.
+
+---
+
+### POST `/viviendas/:viviendaId/gastos-recurrentes`
+
+Crea una mensualidad recurrente para la vivienda como `FACTURA_MENSUAL`. Es un flujo de casero; el inquilino no puede crear ni listar gastos recurrentes.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | Si | Nombre de la mensualidad |
+| `importe` | number | Si | Importe total, mayor que `0` |
+| `dia_del_mes` | number | Si | Entero entre `1` y `31` |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Mensualidad creada. |
+| `400` | Datos invalidos o `dia_del_mes` fuera de rango. |
+| `403` | No eres el casero propietario de la vivienda. |
+
+---
+
+### PATCH `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId`
+
+Actualiza una mensualidad recurrente de la vivienda. Es un flujo exclusivo del casero propietario.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+Todos los campos son opcionales, pero debe enviarse al menos uno.
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `concepto` | string | No | Nuevo nombre de la mensualidad; no puede estar vacio |
+| `importe` | number | No | Importe total, mayor que `0` |
+| `dia_del_mes` | number | No | Entero entre `1` y `31` |
+| `activo` | boolean | No | Activa o desactiva la generacion automatica |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Mensualidad actualizada, incluyendo `pagador { id, nombre, apellidos }`. |
+| `400` | Parametros invalidos, payload invalido o sin campos actualizables. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto fijo no encontrado en esa vivienda. |
+
+---
+
+### DELETE `/viviendas/:viviendaId/gastos-recurrentes/:gastoRecurrenteId`
+
+Elimina una mensualidad recurrente de la vivienda. No borra gastos ya generados por el cron; solo impide nuevas generaciones desde esa plantilla.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | `{ "ok": true, "gasto_recurrente_id": number }`. |
+| `400` | `viviendaId` o `gastoRecurrenteId` invalidos. |
+| `403` | No eres el casero propietario de la vivienda. |
+| `404` | Gasto fijo no encontrado en esa vivienda. |
+
+---
+
+### GET `/viviendas/:viviendaId/cobros`
+
+Devuelve el dashboard financiero mensual del casero para una vivienda.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede consultar este endpoint.
+
+**Comportamiento:**
+- Filtra deudas del mes actual donde el usuario autenticado es el acreedor y el gasto pertenece al flujo del casero (`FACTURA_PUNTUAL`, `FACTURA_MENSUAL`, `CARGO_RECURRENTE`).
+- Calcula `total_pagado_mes`, `total_pendiente` y `total_deudas`.
+- Devuelve detalle por deuda con `deudor`, `categoria: CASERO`, `gasto` (`id`, `concepto`, `importe`, `tipo`, `factura_url`, `fecha_creacion`) y `justificante_url`.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Resumen mensual de cobros de la vivienda. |
+| `400` | `viviendaId` invalido. |
+| `403` | No tienes acceso a los cobros de esta vivienda. |
+| `404` | Vivienda no encontrada. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "vivienda": {
+    "id": 3,
+    "alias_nombre": "Piso Centro",
+    "direccion": "Calle Mayor 10, 3B"
+  },
+  "periodo": {
+    "inicio": "2026-04-01T00:00:00.000Z",
+    "fin": "2026-05-01T00:00:00.000Z"
+  },
+  "resumen": {
+    "total_pagado_mes": 620,
+    "total_pendiente": 310,
+    "total_deudas": 5
+  },
+  "deudas": [
+    {
+      "id": 14,
+      "importe": 310,
+      "estado": "PAGADA",
+      "justificante_url": "https://s3.<region>.backblazeb2.com/.../payment-proof/deuda-14.webp",
+      "gasto": {
+        "id": 8,
+        "concepto": "Alquiler abril",
+        "importe": 930,
+        "factura_url": "https://s3.<region>.backblazeb2.com/.../expense-invoice/factura-8.webp",
+        "fecha_creacion": "2026-04-01T00:00:00.000Z"
+      },
+      "deudor": {
+        "id": 6,
+        "nombre": "Marta",
+        "apellidos": "Lopez",
+        "avatar": null
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Contratos de alquiler (`/viviendas/:viviendaId/contratos`)
+
+Todos los endpoints de esta seccion estan protegidos por `mod_gastos`, porque alimentan el modo fiscal y la trazabilidad de ocupacion.
+
+### GET `/viviendas/:viviendaId/contratos`
+
+Lista contratos visibles para el usuario autenticado. El casero propietario ve los contratos de la vivienda; el inquilino solo ve los contratos donde aparece como parte.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Array de contratos con vivienda, habitacion, inquilino y eventos. |
+| `403` | Sin acceso a la vivienda o modulo desactivado. |
+
+### POST `/viviendas/:viviendaId/contratos`
+
+Sube un PDF o imagen del contrato y crea una nueva version para la habitacion e inquilino indicados. Por defecto queda en `PENDIENTE_FIRMA`.
+
+**Auth requerida:** Si - rol `CASERO`
+
+**Body multipart:**
+
+| Campo | Tipo | Obligatorio | Notas |
+|---|---|---|---|
+| `contrato` | file | Si | PDF o imagen. |
+| `habitacion_id` | number | Si | Debe pertenecer a la vivienda y tener el inquilino asignado. |
+| `inquilino_id` | number | Si | Parte que firmara el contrato. |
+| `renta_mensual` | number | Si | Importe pactado para uso fiscal. |
+| `fecha_inicio` | string | Si | Fecha ISO del inicio del contrato. |
+| `fecha_fin` | string | No | Fecha ISO de fin si existe. |
+| `notas` | string | No | Notas internas del casero. |
+
+### PATCH `/viviendas/:viviendaId/contratos/:contratoId/firmar`
+
+Firma internamente un contrato pendiente. Solo puede hacerlo el inquilino implicado y registra usuario, fecha, version, hash, documento de identidad si existe y origen tecnico disponible.
+
+### PATCH `/viviendas/:viviendaId/contratos/:contratoId/rechazar`
+
+Rechaza un contrato pendiente. Solo puede hacerlo el inquilino implicado.
+
+### PATCH `/viviendas/:viviendaId/contratos/:contratoId/anular`
+
+Anula un contrato pendiente o rechazado. Solo puede hacerlo el casero propietario; no se anulan contratos ya firmados.
+
+---
+
+## Fiscal (`/viviendas/:viviendaId`)
+
+El flujo fiscal completo y el checklist manual de cierre estan documentados en `docs/backend/fiscal-cierre-epica.md`. Todos los endpoints de esta seccion son superficies de propietario: no exponen metadatos fiscales privados a inquilinos y dependen del modulo de gastos de la vivienda.
+
+### GET `/viviendas/:viviendaId/fiscal/:ejercicio`
+
+Devuelve el resumen fiscal anual del propietario para una vivienda concreta, con totales auditables, detalle linea a linea y advertencias de revision.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede consultar este endpoint.
+- `ejercicio` es obligatorio en la ruta y representa un ano natural.
+- Los importes se suman en centimos y se devuelven normalizados a euros.
+
+**Comportamiento:**
+- Los ingresos parten de `Deuda` donde el acreedor es el casero y el `Gasto.tipo` pertenece al flujo del propietario (`ALQUILER_HABITACION`, `FACTURA_MENSUAL`, `CARGO_RECURRENTE`, `FACTURA_PUNTUAL`).
+- Se separan ingresos `emitido`, `cobrado`, `pendiente` y `anulado`, con desglose por tipo de gasto.
+- Los gastos potencialmente deducibles se agrupan por `categoria_fiscal`, factura disponible y deducibilidad prevista.
+- Las lineas incompletas no rompen el endpoint: se devuelven en `advertencias` con codigos `FALTA_FACTURA`, `FALTA_CATEGORIA`, `IMPORTE_PENDIENTE`, `PERIODO_INCOMPLETO` o `PRORRATEO_MANUAL`.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Resumen fiscal anual de la vivienda. |
+| `400` | `viviendaId` o `ejercicio` invalidos. |
+| `403` | El usuario no es casero. |
+| `404` | Vivienda no encontrada para ese casero. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "ejercicio": 2026,
+  "generado_en": "2026-05-06T10:00:00.000Z",
+  "vivienda": {
+    "id": 3,
+    "alias_nombre": "Piso Centro",
+    "direccion": "Calle Mayor 10",
+    "codigo_postal": "28013",
+    "ciudad": "Madrid",
+    "provincia": "Madrid"
+  },
+  "totales": {
+    "ingresos": {
+      "emitido": 900,
+      "cobrado": 450,
+      "pendiente": 450,
+      "anulado": 0,
+      "por_tipo": { "ALQUILER_HABITACION": 900 }
+    },
+    "gastos": {
+      "potencialmente_deducible": 120,
+      "deducible_previsto": 120,
+      "no_deducible_previsto": 0,
+      "pendiente_clasificacion": 0,
+      "con_factura": 120,
+      "sin_factura": 0,
+      "por_categoria": { "SEGUROS": 120 }
+    }
+  },
+  "lineas": [
+    {
+      "id": "deuda-41",
+      "naturaleza": "INGRESO",
+      "concepto": "Alquiler Habitacion azul 2026-01",
+      "categoria": "ALQUILER_HABITACION",
+      "importe": 450,
+      "estado_pago": "COBRADO",
+      "factura_url": "https://cdn.example/factura.pdf",
+      "advertencias": []
+    }
+  ],
+  "advertencias": []
+}
+```
+
+### GET `/viviendas/:viviendaId/fiscal/:ejercicio/dossier`
+
+Descarga un dossier fiscal anual en CSV compatible con Excel para revisar o enviar a gestoria.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede exportar este dossier.
+- `ejercicio` es obligatorio en la ruta y representa un ano natural.
+- El nombre del archivo sigue el formato `dossier-fiscal-{vivienda}-{ejercicio}-{fecha-generacion}.csv`.
+
+**Query params:**
+
+| Parametro | Valor | Descripcion |
+|---|---|---|
+| `formato` | `base64` | Devuelve JSON con el CSV codificado en base64 y bytes compatibles con Excel para escritura movil. |
+
+**Contenido del CSV:**
+- Seccion `RESUMEN`, con columnas estables: `Clave`, `Valor`, `Moneda`, `Notas`.
+- Seccion `DETALLE`, con columnas estables: `Linea ID`, `Naturaleza`, `Modelo origen`, `Gasto ID`, `Deuda ID`, `Concepto`, `Categoria`, `Deducibilidad`, `Importe`, `Moneda`, `Fecha`, `Periodo facturacion`, `Estado pago`, `Factura URL`, `Justificante URL`, `Habitacion ID`, `Habitacion`, `Inquilino ID`, `Inquilino`, `Advertencias`.
+- El CSV minimiza datos personales de inquilinos: conserva referencia interna y nombre para trazabilidad de cobros, pero no exporta `documento_identidad`, email ni telefono.
+- Las lineas con importes pendientes, facturas ausentes, categorias fiscales pendientes, periodos incompletos o prorrateos manuales quedan marcadas en la columna `Advertencias`.
+- Las referencias documentales se incluyen como URL (`factura_url` y `justificante_url`) sin duplicar archivos pesados.
+
+**Limites del dossier:**
+- Roomies prepara un dossier revisable, no un modelo tributario oficial.
+- Las categorias, deducibilidad y prorrateos deben confirmarse con asesor fiscal o normativa oficial actualizada.
+- La firma interna de contratos aporta trazabilidad operativa, pero no sustituye un proveedor de firma electronica avanzada/cualificada.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Devuelve `text/csv; charset=utf-8` con `Content-Disposition` de descarga. |
+| `200` | Con `formato=base64`, devuelve `{ nombreArchivo, mimeType, columnas, contenidoBase64 }`. |
+| `400` | `viviendaId` o `ejercicio` invalidos. |
+| `403` | El usuario no es casero. |
+| `404` | Vivienda no encontrada para ese casero. |
+
+### GET `/viviendas/:viviendaId/fiscal/ocupacion?ejercicio=YYYY`
+
+Devuelve la foto anual de ocupacion fiscal de una vivienda, con detalle por habitacion y prorrateos deterministas para gastos del ejercicio.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+- Solo el `CASERO` propietario de la vivienda puede consultar este endpoint.
+- `ejercicio` es obligatorio y representa un ano natural.
+
+**Comportamiento:**
+- Usa `PeriodoOcupacion` como fuente preferente para calcular dias alquilados, meses equivalentes y porcentaje de ocupacion.
+- Si una habitacion no tiene periodos explicitos, cae a contratos firmados y despues a cargos `ALQUILER_HABITACION` con `periodo_facturacion` mensual (`YYYY-MM`) como compatibilidad heredada.
+- Distingue viviendas y habitaciones `SIN_ACTIVIDAD`, `PARCIAL` y `TODO_EL_ANO`.
+- Marca `requiere_revision` cuando faltan periodos de facturacion, hay ocupacion actual sin periodos/cargos del ejercicio, una habitacion con actividad no conserva precio valido o el periodo explicito procede de una migracion/inferencia revisable.
+- Prorratea gastos del flujo del casero por porcentaje manual (`prorrateo_fiscal`) cuando existe; si no, usa el porcentaje anual de ocupacion de la vivienda.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Foto anual de ocupacion fiscal. |
+| `400` | `viviendaId` o `ejercicio` invalidos. |
+| `403` | El usuario no es casero o no puede consultar fiscalidad de la vivienda. |
+| `404` | Vivienda no encontrada. |
+
+**Ejemplo respuesta 200:**
+```json
+{
+  "ejercicio": 2026,
+  "periodo": { "inicio": "2026-01-01", "fin": "2027-01-01", "dias": 365 },
+  "vivienda": {
+    "id": 3,
+    "alias_nombre": "Piso Centro",
+    "direccion": "Calle Mayor 10",
+    "codigo_postal": "28013",
+    "ciudad": "Madrid",
+    "provincia": "Madrid"
+  },
+  "resumen": {
+    "dias_alquilados": 90,
+    "meses_equivalentes": 2.96,
+    "porcentaje_ocupacion": 24.6575,
+    "estado": "PARCIAL",
+    "habitaciones_con_actividad": 1,
+    "habitaciones_requieren_revision": 0,
+    "requiere_revision": false
+  },
+  "habitaciones": [
+    {
+      "id": 7,
+      "nombre": "Habitacion azul",
+      "dias_alquilados": 90,
+      "meses_equivalentes": 2.96,
+      "porcentaje_ocupacion": 24.6575,
+      "estado": "PARCIAL",
+      "requiere_revision": false,
+      "periodos": [
+        {
+          "inicio": "2026-01-01",
+          "fin": "2026-02-01",
+          "dias": 31,
+          "periodo_facturacion": "2026-01",
+          "gasto_id": 18,
+          "importe": 450
+        }
+      ]
+    }
+  ],
+  "gastos_prorrateados": [
+    {
+      "id": 24,
+      "concepto": "Seguro hogar",
+      "importe": 120,
+      "tipo": "FACTURA_PUNTUAL",
+      "fecha": "2026-02-10",
+      "prorrateo": {
+        "modo": "OCUPACION",
+        "porcentaje": 24.6575,
+        "importe_prorrateado": 29.59
+      }
+    }
+  ]
+}
+```
+
+---
+
+## Deudas (`/deudas`)
+
+### POST `/deudas/:deudaId/justificante`
+
+Sube un justificante de pago a Backblaze B2 y guarda la referencia portable en la deuda.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Content-Type:** `multipart/form-data`
+
+**Params:**
+
+| Param | Descripcion |
+|---|---|
+| `deudaId` | ID de la deuda |
+
+**Body multipart:**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `justificante` | file | Si | Imagen (`jpg`, `jpeg`, `png`, `webp`) |
+
+**Reglas de acceso:**
+- Debes pertenecer a la vivienda asociada a la deuda.
+- Solo el `deudor` de la deuda puede subir el justificante.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `201` | Deuda actualizada con `justificante_url`. |
+| `400` | `deudaId` invalido o falta la imagen. |
+| `403` | No perteneces a la vivienda o no eres el deudor. |
+| `404` | Deuda no encontrada. |
+| `500` | Backblaze B2 no esta configurado o no se pudo obtener la referencia subida. |
+
+---
+
+## Usuarios (`/usuarios`)
+
+### PATCH `/usuarios/me/push-token`
+
+Guarda o limpia el `expo_push_token` del usuario autenticado.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `token` | string \| null | Si | Token Expo valido, o `null` para eliminarlo |
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | `{ "mensaje": "Push token actualizado." }` |
+| `400` | `token` no es string no vacio ni `null`. |
+
+**Alias legacy disponibles:**
+- `PUT /usuarios/push-token`
+- `PATCH /users/me/push-token`
+- `PUT /users/push-token`
+
+**Nota automatica:**
+- El cron `0 12 5 * *` envia recordatorios push de deudas `PENDIENTE` a usuarios con este token registrado.
+
+---
+
+## Inventario (`/inventario`)
+
+Los endpoints de inventario estan protegidos por `mod_inventario`. Si el modulo esta desactivado en la vivienda, el backend responde `403` antes de crear, listar, subir fotos o marcar conformidad.
+
+> Epica 17: la conformidad conserva auditoria del inquilino validador con `revisado_por_inquilino_id`, `revisado_por_inquilino_en` y, para casero, `revisado_por_inquilino_user`. El listado de inquilino solo devuelve items globales de vivienda, zonas comunes y habitacion propia; no devuelve dormitorios ajenos.
+
+### POST `/viviendas/:viviendaId/inventario`
+
+Crea un nuevo `ItemInventario` para una vivienda. Pensado para el flujo de configuración del casero.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `viviendaId` | ID de la vivienda |
+
+**Body (JSON):**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `nombre` | string | Sí | Nombre del ítem |
+| `descripcion` | string | No | Texto libre opcional |
+| `estado` | `NUEVO` \| `BUENO` \| `DESGASTADO` \| `ROTO` | No | Default: `BUENO` |
+| `habitacion_id` | number | Condicional | Obligatorio si no se envía `vivienda_id` |
+| `vivienda_id` | number | Condicional | Obligatorio si no se envía `habitacion_id` |
+
+**Validaciones:**
+
+- Solo el `CASERO` propietario puede crear items.
+- Debe llegar exactamente uno de estos campos: `habitacion_id` o `vivienda_id`.
+- Si se usa `vivienda_id`, debe coincidir con `:viviendaId`.
+- Si se usa `habitacion_id`, esa habitación debe pertenecer a la vivienda.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Item creado con `habitacion` y `fotos[]`. |
+| `400` | Datos inválidos, estado incorrecto o violación de la regla XOR entre `habitacion_id` y `vivienda_id`. |
+| `403` | El usuario no es el casero propietario de la vivienda. |
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "id": 5,
+  "nombre": "Sofá chaise longue",
+  "descripcion": "Tapicería beige, lado derecho",
+  "estado": "BUENO",
+  "habitacion_id": null,
+  "vivienda_id": 2,
+  "fecha_registro": "2026-04-09T22:30:00.000Z",
+  "habitacion": null,
+  "fotos": []
+}
+```
+
+---
+
+### GET `/viviendas/:viviendaId/inventario`
+
+Lista todos los items de inventario de una vivienda, incluyendo habitación asociada si existe y el array de fotos.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Reglas de acceso:**
+
+- `CASERO`: debe ser propietario de la vivienda.
+- `INQUILINO`: debe tener habitación asignada en esa vivienda.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Array de `ItemInventario[]`. Puede ser `[]`. |
+| `400` | `viviendaId` inválido. |
+| `403` | El usuario no tiene acceso al inventario de esa vivienda. |
+
+**Ejemplo respuesta 200:**
+```json
+[
+  {
+    "id": 5,
+    "nombre": "Sofá chaise longue",
+    "descripcion": "Tapicería beige, lado derecho",
+    "estado": "BUENO",
+    "habitacion_id": null,
+    "vivienda_id": 2,
+    "fecha_registro": "2026-04-09T22:30:00.000Z",
+    "habitacion": null,
+    "fotos": [
+      {
+        "id": 11,
+        "url": "https://s3.<region>.backblazeb2.com/.../inventory-photo/sofa.webp",
+        "item_id": 5,
+        "fecha_subida": "2026-04-09T22:31:00.000Z"
+      }
+    ]
+  }
+]
+```
+
+---
+
+### PATCH `/inventario/:itemId/conformidad`
+
+Marca un `ItemInventario` como revisado por el inquilino autenticado.
+
+**Auth requerida:** Si - `Authorization: Bearer <token>`
+
+**Body:** no requiere body.
+
+**Reglas de acceso:**
+
+- Solo usuarios `INQUILINO`.
+- El inquilino debe tener habitacion asignada en la vivienda del item.
+- Puede validar items globales de vivienda, items de zonas comunes y items de su propia habitacion.
+- No puede validar items de dormitorios ajenos aunque pertenezcan a la misma vivienda.
+- La llamada es idempotente si el mismo inquilino ya habia validado el item.
+- Si un item comun ya fue validado por otro inquilino, responde `409` para no sobrescribir la auditoria.
+
+**Respuestas:**
+
+| Codigo | Descripcion |
+|---|---|
+| `200` | Item actualizado o item ya validado por el mismo inquilino. |
+| `400` | `itemId` invalido o item sin vivienda resoluble. |
+| `403` | Usuario no inquilino, sin acceso a la vivienda o intentando validar habitacion ajena. |
+| `404` | Item de inventario no encontrado. |
+| `409` | Item ya validado por otro inquilino. |
+
+---
+
+### POST `/inventario/:itemId/fotos`
+
+Sube una foto de inventario a Backblaze B2 y crea un `FotoAsset` vinculado al item.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Content-Type:** `multipart/form-data`
+
+**Params:**
+
+| Param | Descripción |
+|---|---|
+| `itemId` | ID del `ItemInventario` |
+
+**Body multipart:**
+
+| Campo | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `foto` | file | Sí | Imagen (`jpg`, `jpeg`, `png`, `webp`) |
+
+**Reglas de acceso:**
+
+- `CASERO`: debe ser propietario de la vivienda a la que pertenece el item.
+- `INQUILINO`: debe tener habitación asignada en la vivienda a la que pertenece el item.
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `201` | Foto subida y asset creado. |
+| `400` | `itemId` inválido, falta imagen o el item no tiene vivienda resoluble. |
+| `403` | El usuario no tiene permiso sobre el item. |
+| `404` | Item de inventario no encontrado. |
+| `500` | Backblaze B2 no esta configurado en el servidor o no se obtiene la referencia subida. |
+
+**Ejemplo respuesta 201:**
+```json
+{
+  "id": 14,
+  "url": "https://s3.<region>.backblazeb2.com/.../inventory-photo/item.webp",
+  "item_id": 3,
+  "fecha_subida": "2026-04-09T21:15:00.000Z"
+}
+```
+
+---
+
 ## Limpieza — `/viviendas/:id/limpieza`
 
-Todos los endpoints requieren que el usuario autenticado sea el **casero propietario** de la vivienda.
+Los endpoints de limpieza estan protegidos por `mod_limpieza`. Si el modulo esta desactivado en la vivienda, el backend responde `403` antes de gestionar zonas, asignaciones o turnos.
+
+Las operaciones de configuracion de zonas, asignaciones y generacion de turnos requieren que el usuario autenticado sea el **casero propietario**. La lectura de turnos, exportacion y marcado como hecho tambien permite al inquilino con habitacion en la vivienda, con filtrado por su habitacion responsable y espacios comunes.
+
+> Epica 17: la limpieza se reparte por **habitacion responsable**. `usuario_id` en `TurnoLimpieza` queda como snapshot opcional del ocupante al generar el turno; la entidad estable del reparto es `habitacion_id`.
 
 ### POST `/viviendas/:id/limpieza/zonas`
 
@@ -1032,8 +1972,9 @@ Crea una nueva zona limpiable en la vivienda.
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `nombre` | string | Sí | Nombre descriptivo (ej. "Cocina", "Baño 1") |
-| `peso` | number | Sí | Esfuerzo relativo positivo (ej. `10`) |
+| `nombre` | string | Condicional | Nombre descriptivo. Obligatorio si no se envia `habitacion_id`; si se vincula habitacion y se omite, toma el nombre de esa habitacion. |
+| `peso` | number | Si | Esfuerzo relativo positivo (ej. `10`) |
+| `habitacion_id` | number \| null | No | Habitacion objetivo que representa el espacio a limpiar. Puede ser dormitorio o zona comun. |
 
 **Respuestas:**
 
@@ -1114,6 +2055,7 @@ Actualiza el nombre, peso o estado activo de una zona.
 | `nombre` | string | Nuevo nombre de la zona |
 | `peso` | number | Nuevo peso (debe ser positivo) |
 | `activa` | boolean | `false` excluye la zona del reparto |
+| `habitacion_id` | number \| null | Vincula la zona a una habitacion objetivo o la desvincula con `null` |
 
 **Respuestas:**
 
@@ -1128,7 +2070,7 @@ Actualiza el nombre, peso o estado activo de una zona.
 
 ### POST `/viviendas/:id/limpieza/zonas/:zonaId/asignacion`
 
-Sincroniza la lista de inquilinos fijos de una zona (operación destructiva: reemplaza el conjunto completo). Enviar `usuario_ids: []` equivale a quitar todas las asignaciones.
+Sincroniza la lista de habitaciones responsables fijas de una zona (operacion destructiva: reemplaza el conjunto completo). Enviar `habitacion_ids: []` equivale a quitar todas las asignaciones.
 
 **Auth requerida:** Sí — `Authorization: Bearer <token>`
 
@@ -1143,18 +2085,18 @@ Sincroniza la lista de inquilinos fijos de una zona (operación destructiva: ree
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `usuario_ids` | number[] | Sí | IDs de los inquilinos a asignar (puede ser `[]`) |
+| `habitacion_ids` | number[] | Si | IDs de dormitorios habitables que pueden ser responsables fijos (puede ser `[]`) |
 
 **Validaciones:**
-- Cada ID debe corresponder a un inquilino con habitación en la vivienda.
+- Cada ID debe corresponder a una habitacion de la vivienda con `tipo: DORMITORIO` y `es_habitable: true`.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `200` | Asignaciones sincronizadas. Devuelve el array `AsignacionLimpiezaFija[]` actualizado, cada una con `usuario { id, nombre, apellidos }` embebido. |
-| `400` | `usuario_ids` no es un array. |
-| `403` | La vivienda no pertenece al casero, o algún ID no es inquilino de la vivienda. |
+| `200` | Asignaciones sincronizadas. Devuelve `AsignacionLimpiezaFija[]` con `habitacion` y `responsable_actual`. |
+| `400` | `habitacion_ids` no es un array. |
+| `403` | La vivienda no pertenece al casero, o alguna habitacion no puede ser responsable fija. |
 | `404` | Zona no encontrada en esa vivienda. |
 
 **Ejemplo respuesta 200:**
@@ -1213,16 +2155,16 @@ Ejecuta el algoritmo de reparto y genera los turnos de limpieza para la siguient
 - El casero puede pulsar N veces para generar N semanas consecutivas.
 
 **Algoritmo:**
-1. **Fase A** — Zonas con asignación fija: de los co-responsables activos, se elige al de menor carga efectiva (`carga_semanal + balance_limpieza`).
-2. **Fase B** — Zonas rotativas (sin asignados activos): greedy decreciente por peso, asignado al usuario con menor carga efectiva.
-3. **Fase C** — Actualización de karma: `nuevo_balance = balance + (carga_asignada − cuota_ideal)`.
+1. **Fase A** - Zonas con asignacion fija: de las habitaciones responsables con ocupante activo, se elige la de menor carga efectiva (`carga_semanal + balance_limpieza` del ocupante).
+2. **Fase B** - Zonas rotativas: greedy decreciente por peso, asignando a la habitacion ocupada activa con menor carga efectiva.
+3. **Fase C** - Actualizacion de balance: `nuevo_balance = balance + (carga_asignada - cuota_ideal)` para el ocupante actual de cada habitacion responsable.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
 | `201` | Turnos generados correctamente. |
-| `400` | No hay inquilinos activos, no hay zonas activas, u otro error de dominio. |
+| `400` | No hay habitaciones habitables, no hay habitaciones ocupadas activas, no hay zonas activas u otro error de dominio. |
 | `403` | La vivienda no pertenece al casero autenticado. |
 
 **Ejemplo respuesta 201:**
@@ -1250,7 +2192,7 @@ Devuelve los turnos de la semana indicada (o de la semana actual si no se especi
 
 | Código | Descripción |
 |---|---|
-| `200` | Array de `TurnoLimpieza[]` con `zona` y `usuario` embebidos, ordenados por usuario y peso desc. Puede ser `[]`. |
+| `200` | Array de turnos con `zona`, `habitacion`, `responsable_actual` y snapshot `usuario`. Puede ser `[]`. |
 | `403` | El usuario no pertenece a la vivienda. |
 
 **Ejemplo respuesta 200:**
@@ -1271,6 +2213,40 @@ Devuelve los turnos de la semana indicada (o de la semana actual si no se especi
 
 ---
 
+### GET `/viviendas/:id/limpieza/turnos/export`
+
+Exporta los turnos de limpieza visibles para el usuario autenticado en CSV compatible con Excel.
+
+**Auth requerida:** Sí — `Authorization: Bearer <token>`
+
+**Acceso:** Casero de la vivienda **o** inquilino con habitación en ella.
+
+**Query params opcionales:**
+
+| Param | Tipo | Descripcion |
+|---|---|---|
+| `fecha` | `YYYY-MM-DD` | Exporta la semana de esa fecha (lunes a domingo). |
+| `fechaDesde` | `YYYY-MM-DD` | Inicio de rango histórico. |
+| `fechaHasta` | `YYYY-MM-DD` | Fin de rango histórico. |
+| `estado` | `PENDIENTE` \| `HECHO` \| `NO_HECHO` | Filtra por estado. |
+| `formato` | `base64` | Devuelve JSON con el archivo CSV codificado en base64 y bytes compatibles con Excel para preservar acentos en móvil. |
+
+**Respuestas:**
+
+| Código | Descripción |
+|---|---|
+| `200` | Devuelve `text/csv; charset=utf-8` con `Content-Disposition` de descarga. |
+| `200` | Con `formato=base64`, devuelve `{ nombreArchivo, mimeType, contenidoBase64 }`. |
+| `400` | Filtros no válidos. |
+| `403` | El usuario no pertenece a la vivienda o el módulo está desactivado. |
+| `404` | No hay limpiezas para exportar con los filtros actuales. |
+
+**Cabeceras del CSV:**
+
+`Espacio`, `Tipo de espacio`, `Habitacion responsable`, `Responsable actual`, `Fecha`.
+
+---
+
 ### PATCH `/viviendas/:id/limpieza/turnos/:turnoId/hecho`
 
 Marca un turno como `HECHO`. No tiene body.
@@ -1284,12 +2260,31 @@ Marca un turno como `HECHO`. No tiene body.
 | `id` | ID de la vivienda |
 | `turnoId` | ID del turno |
 
-**Reglas de acceso:** Solo puede marcar el turno el **usuario asignado** (`turno.usuario_id`) o el **casero** de la vivienda.
+**Reglas de acceso:** Solo puede marcar el turno el **inquilino que ocupa actualmente la habitacion responsable** (`turno.habitacion.inquilino_id`) o el **casero** de la vivienda.
 
 **Respuestas:**
 
 | Código | Descripción |
 |---|---|
-| `200` | Turno actualizado. Devuelve el `TurnoLimpieza` con `zona` y `usuario` embebidos. |
-| `403` | El usuario no es el asignado ni el casero. |
+| `200` | Turno actualizado. Devuelve el turno con `zona`, `habitacion`, `responsable_actual` y snapshot `usuario`. |
+| `403` | El usuario no ocupa la habitacion responsable ni es el casero. |
 | `404` | Turno no encontrado en esa vivienda. |
+
+## Update 2026-04-11 - Consistencia de datos
+
+- Un usuario inquilino solo puede estar asignado a una `Habitacion` a la vez (`Habitacion.inquilino_id` unico cuando no es `null`).
+- Una `Deuda` queda acotada a una pareja `gasto_id` + `deudor_id`; el backend no debe crear dos deudas del mismo gasto para el mismo usuario.
+- Las deudas se eliminan en cascada al borrar su `Gasto`; las fotos de inventario al borrar su `ItemInventario`; y los turnos/asignaciones al borrar su `ZonaLimpieza`.
+- Los importes siguen saliendo como numeros (`Float`) por compatibilidad de API. La logica de negocio reparte y compara en centimos antes de persistir.
+
+## Update 2026-04-22 - Epica 17
+
+- Inventario guarda quien valido cada item y cuando lo hizo. El listado de casero incluye `revisado_por_inquilino_user`; el de inquilino queda filtrado a vivienda, zonas comunes y habitacion propia.
+- Limpieza usa habitaciones responsables para asignaciones fijas y turnos; `usuario_id` en turnos es un snapshot opcional del ocupante al generar.
+- La exportacion CSV de limpieza puede devolverse como `formato=base64` para escritura nativa movil compatible con Excel.
+
+## Update 2026-05-06 - Cierre epica fiscal
+
+- `GET /api/viviendas/:viviendaId/fiscal/:ejercicio`, `GET /api/viviendas/:viviendaId/fiscal/ocupacion` y `GET /api/viviendas/:viviendaId/fiscal/:ejercicio/dossier` quedan documentados como flujo fiscal completo de propietario.
+- `docs/backend/fiscal-cierre-epica.md` centraliza contrato de exportacion, columnas, checklist manual, matriz issue-archivos-tests y riesgos residuales.
+- El dossier CSV se declara soporte de revision para gestor, no declaracion oficial ni sustituto de asesor fiscal.

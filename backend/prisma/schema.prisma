@@ -43,6 +43,70 @@ enum EstadoTurno {
   NO_HECHO
 }
 
+enum EstadoDeuda {
+  PENDIENTE
+  PAGADA
+}
+
+enum TipoGasto {
+  ENTRE_COMPANEROS
+  FACTURA_PUNTUAL
+  FACTURA_MENSUAL
+  CARGO_RECURRENTE
+  ALQUILER_HABITACION
+}
+
+enum CategoriaFiscalGasto {
+  FINANCIACION_INTERESES
+  CONSERVACION_REPARACION
+  COMUNIDAD
+  IBI_TASAS
+  SEGUROS
+  SUMINISTROS
+  SERVICIOS_PROFESIONALES
+  LIMPIEZA
+  MOBILIARIO_ENSERES
+  AMORTIZACION
+  OTROS
+  SIN_CLASIFICAR
+}
+
+enum EstadoItem {
+  NUEVO
+  BUENO
+  DESGASTADO
+  ROTO
+}
+
+enum EstadoContratoAlquiler {
+  BORRADOR
+  PENDIENTE_FIRMA
+  FIRMADO
+  RECHAZADO
+  ANULADO
+}
+
+enum TipoEventoContratoAlquiler {
+  CREADO
+  ENVIADO_FIRMA
+  FIRMADO
+  RECHAZADO
+  ANULADO
+}
+
+enum EstadoPeriodoOcupacion {
+  ACTIVO
+  FINALIZADO
+  PENDIENTE_REVISION
+}
+
+enum OrigenPeriodoOcupacion {
+  CONTRATO_FIRMADO
+  ALTA_MANUAL
+  INFERIDO_CARGO_ALQUILER
+  MIGRADO
+}
+
 model Usuario {
   id                 Int                      @id @default(autoincrement())
   nombre             String
@@ -59,40 +123,67 @@ model Usuario {
   balance_limpieza   Float                    @default(0)
   estado_presencia   EstadoPresencia          @default(ACTIVO)
   viviendas          Vivienda[]
-  habitaciones       Habitacion[]
+  habitacion         Habitacion?
   incidencias        Incidencia[]
   anuncios           Anuncio[]
   turnos_limpieza    TurnoLimpieza[]
-  asignaciones_fijas AsignacionLimpiezaFija[]
+  gastos_pagados     Gasto[]
+  gastos_modificados Gasto[]                  @relation("ModificadorGasto")
+  gastos_recurrentes_pagados GastoRecurrente[]
+  cargos_habitacion Gasto[]                  @relation("InquilinoCargoHabitacion")
+  deudas_a_pagar     Deuda[]                  @relation("DeudorDeuda")
+  deudas_a_cobrar    Deuda[]                  @relation("AcreedorDeuda")
+  items_inventario_validados ItemInventario[] @relation("ValidadorInventario")
+  contratos_casero   ContratoAlquiler[]       @relation("CaseroContrato")
+  contratos_inquilino ContratoAlquiler[]      @relation("InquilinoContrato")
+  contratos_firmados ContratoAlquiler[]       @relation("FirmanteContrato")
+  eventos_contrato   EventoContratoAlquiler[]
+  periodos_ocupacion PeriodoOcupacion[]       @relation("InquilinoPeriodoOcupacion")
 }
 
 model Vivienda {
-  id             Int            @id @default(autoincrement())
-  casero_id      Int
-  casero         Usuario        @relation(fields: [casero_id], references: [id])
-  alias_nombre   String
-  direccion      String
-  codigo_postal  String
-  ciudad         String
-  provincia      String
-  habitaciones   Habitacion[]
-  incidencias    Incidencia[]
-  anuncios       Anuncio[]
-  zonas_limpieza ZonaLimpieza[]
+  id               Int              @id @default(autoincrement())
+  casero_id        Int
+  casero           Usuario          @relation(fields: [casero_id], references: [id])
+  alias_nombre     String
+  direccion        String
+  codigo_postal    String
+  ciudad           String
+  provincia        String
+  mod_limpieza     Boolean          @default(true)
+  mod_gastos       Boolean          @default(true)
+  mod_inventario   Boolean          @default(true)
+  habitaciones     Habitacion[]
+  incidencias      Incidencia[]
+  anuncios         Anuncio[]
+  zonas_limpieza   ZonaLimpieza[]
+  gastos           Gasto[]
+  gastos_recurrentes GastoRecurrente[]
+  items_inventario ItemInventario[]
+  contratos_alquiler ContratoAlquiler[]
+  periodos_ocupacion PeriodoOcupacion[]
 }
 
 model Habitacion {
-  id                Int            @id @default(autoincrement())
+  id                Int              @id @default(autoincrement())
   vivienda_id       Int
-  vivienda          Vivienda       @relation(fields: [vivienda_id], references: [id])
-  inquilino_id      Int?
-  inquilino         Usuario?       @relation(fields: [inquilino_id], references: [id])
+  vivienda          Vivienda         @relation(fields: [vivienda_id], references: [id])
+  inquilino_id      Int?             @unique
+  inquilino         Usuario?         @relation(fields: [inquilino_id], references: [id], onDelete: SetNull)
   nombre            String
-  tipo              TipoHabitacion @default(DORMITORIO)
-  es_habitable      Boolean        @default(true)
+  tipo              TipoHabitacion   @default(DORMITORIO)
+  es_habitable      Boolean          @default(true)
   metros_cuadrados  Float?
-  codigo_invitacion String?        @unique
+  precio            Float?
+  codigo_invitacion String?          @unique
   incidencias       Incidencia[]
+  items_inventario  ItemInventario[]
+  cargos_alquiler   Gasto[]          @relation("CargoHabitacion")
+  contratos_alquiler ContratoAlquiler[]
+  zonas_limpieza_objetivo ZonaLimpieza[] @relation("ZonaLimpiezaObjetivoHabitacion")
+  asignaciones_limpieza_fijas AsignacionLimpiezaFija[] @relation("AsignacionLimpiezaFijaHabitacion")
+  turnos_limpieza_responsable TurnoLimpieza[] @relation("TurnoLimpiezaHabitacionResponsable")
+  periodos_ocupacion PeriodoOcupacion[]
 }
 
 model Incidencia {
@@ -102,7 +193,7 @@ model Incidencia {
   creador_id     Int
   creador        Usuario             @relation(fields: [creador_id], references: [id])
   habitacion_id  Int?
-  habitacion     Habitacion?         @relation(fields: [habitacion_id], references: [id])
+  habitacion     Habitacion?         @relation(fields: [habitacion_id], references: [id], onDelete: SetNull)
   titulo         String
   descripcion    String
   estado         EstadoIncidencia    @default(PENDIENTE)
@@ -121,12 +212,202 @@ model Anuncio {
   fecha_creacion DateTime @default(now())
 }
 
+// ── Módulo de gastos y balances ───────────────────────────────────────────────
+
+model Gasto {
+  id                 Int       @id @default(autoincrement())
+  concepto           String
+  importe            Float
+  tipo               TipoGasto @default(ENTRE_COMPANEROS)
+  factura_url        String?
+  factura_provider   String?
+  factura_key        String?
+  factura_variant    String?
+  factura_mime_type  String?
+  factura_size       Int?
+  categoria_fiscal   CategoriaFiscalGasto @default(SIN_CLASIFICAR)
+  deducible_previsto Boolean?
+  notas_fiscales     String?
+  prorrateo_fiscal   Float?
+  fecha_creacion     DateTime  @default(now())
+  fecha_modificacion DateTime?
+  pagador_id         Int
+  pagador            Usuario   @relation(fields: [pagador_id], references: [id])
+  modificado_por_id  Int?
+  modificado_por     Usuario?  @relation("ModificadorGasto", fields: [modificado_por_id], references: [id], onDelete: SetNull)
+  periodo_facturacion String?
+  habitacion_cargo_id Int?
+  habitacion_cargo    Habitacion? @relation("CargoHabitacion", fields: [habitacion_cargo_id], references: [id], onDelete: SetNull)
+  inquilino_cargo_id  Int?
+  inquilino_cargo     Usuario? @relation("InquilinoCargoHabitacion", fields: [inquilino_cargo_id], references: [id], onDelete: SetNull)
+  vivienda_id        Int
+  vivienda           Vivienda  @relation(fields: [vivienda_id], references: [id])
+  deudas             Deuda[]
+
+  @@unique([tipo, periodo_facturacion, habitacion_cargo_id, inquilino_cargo_id])
+}
+
+model GastoRecurrente {
+  id          Int      @id @default(autoincrement())
+  concepto    String
+  importe     Float
+  tipo        TipoGasto @default(FACTURA_MENSUAL)
+  dia_del_mes Int
+  vivienda_id Int
+  vivienda    Vivienda @relation(fields: [vivienda_id], references: [id])
+  pagador_id  Int
+  pagador     Usuario  @relation(fields: [pagador_id], references: [id])
+  activo      Boolean  @default(true)
+}
+
+model Deuda {
+  id          Int         @id @default(autoincrement())
+  gasto_id    Int
+  gasto       Gasto       @relation(fields: [gasto_id], references: [id], onDelete: Cascade)
+  deudor_id   Int
+  deudor      Usuario     @relation("DeudorDeuda", fields: [deudor_id], references: [id])
+  acreedor_id Int
+  acreedor    Usuario     @relation("AcreedorDeuda", fields: [acreedor_id], references: [id])
+  importe     Float
+  estado      EstadoDeuda @default(PENDIENTE)
+  justificante_url String?
+  justificante_provider String?
+  justificante_key String?
+  justificante_variant String?
+  justificante_mime_type String?
+  justificante_size Int?
+  justificante_width Int?
+  justificante_height Int?
+
+  @@unique([gasto_id, deudor_id])
+}
+
+model ItemInventario {
+  id                          Int         @id @default(autoincrement())
+  nombre                      String
+  descripcion                 String?
+  estado                      EstadoItem  @default(BUENO)
+  revisado_por_inquilino      Boolean     @default(false)
+  revisado_por_inquilino_id   Int?
+  revisado_por_inquilino_en   DateTime?
+  revisado_por_inquilino_user Usuario?    @relation("ValidadorInventario", fields: [revisado_por_inquilino_id], references: [id], onDelete: SetNull)
+  habitacion_id               Int?
+  habitacion                  Habitacion? @relation(fields: [habitacion_id], references: [id])
+  vivienda_id                 Int?
+  vivienda                    Vivienda?   @relation(fields: [vivienda_id], references: [id])
+  fecha_registro              DateTime    @default(now())
+  fotos                       FotoAsset[]
+}
+
+model FotoAsset {
+  id           Int            @id @default(autoincrement())
+  provider     String         @default("backblaze")
+  key          String
+  url          String?
+  variant      String         @default("original")
+  mime_type    String?
+  size         Int?
+  width        Int?
+  height       Int?
+  item_id      Int
+  item         ItemInventario @relation(fields: [item_id], references: [id], onDelete: Cascade)
+  fecha_subida DateTime       @default(now())
+
+  @@index([provider, key])
+}
+
+model ContratoAlquiler {
+  id                        Int                    @id @default(autoincrement())
+  vivienda_id               Int
+  vivienda                  Vivienda               @relation(fields: [vivienda_id], references: [id], onDelete: Cascade)
+  habitacion_id             Int?
+  habitacion                Habitacion?            @relation(fields: [habitacion_id], references: [id], onDelete: SetNull)
+  casero_id                 Int
+  casero                    Usuario                @relation("CaseroContrato", fields: [casero_id], references: [id])
+  inquilino_id              Int
+  inquilino                 Usuario                @relation("InquilinoContrato", fields: [inquilino_id], references: [id])
+  version                   Int
+  estado                    EstadoContratoAlquiler @default(BORRADOR)
+  documento_url             String
+  documento_provider        String?
+  documento_key             String?
+  documento_variant         String?
+  documento_nombre          String?
+  documento_mime            String?
+  documento_size            Int?
+  documento_hash            String
+  renta_mensual             Float
+  fecha_inicio              DateTime
+  fecha_fin                 DateTime?
+  notas                     String?
+  enviado_en                DateTime?
+  firmado_en                DateTime?
+  rechazado_en              DateTime?
+  anulado_en                DateTime?
+  firma_usuario_id          Int?
+  firma_usuario             Usuario?               @relation("FirmanteContrato", fields: [firma_usuario_id], references: [id], onDelete: SetNull)
+  firma_documento_identidad String?
+  firma_origen_tecnico      String?
+  fecha_creacion            DateTime               @default(now())
+  fecha_actualizacion       DateTime               @updatedAt
+  eventos                   EventoContratoAlquiler[]
+  periodos_ocupacion        PeriodoOcupacion[]
+
+  @@index([vivienda_id, estado])
+  @@index([inquilino_id, estado])
+  @@unique([vivienda_id, habitacion_id, inquilino_id, version])
+}
+
+model EventoContratoAlquiler {
+  id             Int                         @id @default(autoincrement())
+  contrato_id    Int
+  contrato       ContratoAlquiler            @relation(fields: [contrato_id], references: [id], onDelete: Cascade)
+  usuario_id     Int
+  usuario        Usuario                     @relation(fields: [usuario_id], references: [id])
+  tipo           TipoEventoContratoAlquiler
+  estado_desde   EstadoContratoAlquiler?
+  estado_hasta   EstadoContratoAlquiler?
+  origen_tecnico String?
+  metadata       Json?
+  fecha          DateTime                    @default(now())
+
+  @@index([contrato_id, fecha])
+}
+
+model PeriodoOcupacion {
+  id                Int                     @id @default(autoincrement())
+  vivienda_id       Int
+  vivienda          Vivienda                @relation(fields: [vivienda_id], references: [id], onDelete: Cascade)
+  habitacion_id     Int?
+  habitacion        Habitacion?             @relation(fields: [habitacion_id], references: [id], onDelete: SetNull)
+  inquilino_id      Int
+  inquilino         Usuario                 @relation("InquilinoPeriodoOcupacion", fields: [inquilino_id], references: [id])
+  contrato_id       Int?
+  contrato          ContratoAlquiler?       @relation(fields: [contrato_id], references: [id], onDelete: SetNull)
+  fecha_inicio      DateTime
+  fecha_fin         DateTime?
+  estado            EstadoPeriodoOcupacion  @default(ACTIVO)
+  origen            OrigenPeriodoOcupacion
+  renta_mensual     Float?
+  requiere_revision Boolean                 @default(false)
+  notas             String?
+  fecha_creacion    DateTime                @default(now())
+  fecha_actualizacion DateTime              @updatedAt
+
+  @@index([vivienda_id, fecha_inicio])
+  @@index([habitacion_id, fecha_inicio])
+  @@index([inquilino_id, fecha_inicio])
+  @@index([contrato_id])
+}
+
 // ── Módulo de limpieza ────────────────────────────────────────────────────────
 
 model ZonaLimpieza {
   id                 Int                      @id @default(autoincrement())
   vivienda_id        Int
   vivienda           Vivienda                 @relation(fields: [vivienda_id], references: [id])
+  habitacion_id      Int?
+  habitacion         Habitacion?              @relation("ZonaLimpiezaObjetivoHabitacion", fields: [habitacion_id], references: [id], onDelete: SetNull)
   nombre             String
   peso               Float
   activa             Boolean                  @default(true)
@@ -134,25 +415,30 @@ model ZonaLimpieza {
   asignaciones_fijas AsignacionLimpiezaFija[]
 }
 
-/// Tabla de asignaciones fijas: una zona siempre la limpia el mismo usuario,
-/// sin participar en la rotación global. Su peso SÍ cuenta para el balance.
+/// Tabla de asignaciones fijas: una zona siempre la limpia la misma habitacion
+/// responsable, sin participar en la rotacion global. Su peso si cuenta para el
+/// balance del ocupante actual cuando exista.
 model AsignacionLimpiezaFija {
   id         Int          @id @default(autoincrement())
   zona_id    Int
-  zona       ZonaLimpieza @relation(fields: [zona_id], references: [id])
-  usuario_id Int
-  usuario    Usuario      @relation(fields: [usuario_id], references: [id])
+  zona       ZonaLimpieza @relation(fields: [zona_id], references: [id], onDelete: Cascade)
+  habitacion_id Int
+  habitacion Habitacion   @relation("AsignacionLimpiezaFijaHabitacion", fields: [habitacion_id], references: [id], onDelete: Cascade)
 
-  @@unique([zona_id, usuario_id])
+  @@unique([zona_id, habitacion_id])
 }
 
 /// Registro semanal del reparto. Generado por el algoritmo al inicio de cada semana.
+/// La entidad principal es la habitacion responsable; usuario guarda un snapshot
+/// opcional del ocupante en el momento de generar el turno.
 model TurnoLimpieza {
   id           Int          @id @default(autoincrement())
-  usuario_id   Int
-  usuario      Usuario      @relation(fields: [usuario_id], references: [id])
+  usuario_id   Int?
+  usuario      Usuario?     @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+  habitacion_id Int
+  habitacion   Habitacion   @relation("TurnoLimpiezaHabitacionResponsable", fields: [habitacion_id], references: [id], onDelete: Cascade)
   zona_id      Int
-  zona         ZonaLimpieza @relation(fields: [zona_id], references: [id])
+  zona         ZonaLimpieza @relation(fields: [zona_id], references: [id], onDelete: Cascade)
   fecha_inicio DateTime
   fecha_fin    DateTime
   estado       EstadoTurno  @default(PENDIENTE)

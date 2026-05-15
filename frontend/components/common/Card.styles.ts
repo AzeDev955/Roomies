@@ -1,15 +1,15 @@
 import { StyleSheet } from 'react-native';
-import { Theme } from '@/constants/theme';
+import { AppTheme, DefaultAppTheme } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
   card: {
-    backgroundColor: Theme.colors.surface,
-    borderRadius: Theme.radius.lg,
-    padding: Theme.spacing.lg,
-    marginBottom: Theme.spacing.base,
-    shadowColor: Theme.colors.shadow,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.base,
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: theme.isDark ? 0.2 : 0.08,
     shadowRadius: 12,
     elevation: 4,
   },
@@ -18,3 +18,5 @@ export const styles = StyleSheet.create({
     transform: [{ scale: 0.985 }],
   },
 });
+
+export const styles = createStyles();

@@ -1,25 +1,86 @@
-import { Tabs } from "expo-router";
+import { useCallback, useState } from "react";
+import { Tabs, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Theme } from "@/constants/theme";
+import api from "@/services/api";
+import { useAppTheme } from "@/contexts/ThemeContext";
+import { useTutorial } from "@/contexts/TutorialContext";
+import { buildInquilinoTutorialSteps } from "@/tutorial/definitions";
+
+type ViviendaModulos = {
+  mod_limpieza: boolean;
+  mod_gastos: boolean;
+  mod_inventario: boolean;
+};
 
 export default function InquilinoTabsLayout() {
+  const { theme } = useAppTheme();
+  const { setRoleTutorialSteps } = useTutorial();
+  const [modulos, setModulos] = useState({
+    limpieza: false,
+    gastos: false,
+    inventario: false,
+  });
+  const [tieneVivienda, setTieneVivienda] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let activo = true;
+
+      const cargarModulos = async () => {
+        try {
+          const { data } = await api.get<{ vivienda: ViviendaModulos }>("/inquilino/vivienda");
+          if (!activo) return;
+
+          setTieneVivienda(true);
+          setModulos({
+            limpieza: data.vivienda.mod_limpieza,
+            gastos: data.vivienda.mod_gastos,
+            inventario: data.vivienda.mod_inventario,
+          });
+        } catch {
+          if (activo) {
+            setTieneVivienda(false);
+            setModulos({ limpieza: false, gastos: false, inventario: false });
+          }
+        }
+      };
+
+      cargarModulos();
+      return () => {
+        activo = false;
+      };
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setRoleTutorialSteps(
+        'INQUILINO',
+        buildInquilinoTutorialSteps({
+          hasVivienda: tieneVivienda,
+          hasGastos: modulos.gastos,
+        }),
+      );
+    }, [modulos.gastos, setRoleTutorialSteps, tieneVivienda]),
+  );
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Theme.colors.primary,
-        tabBarInactiveTintColor: Theme.colors.textTertiary,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: Theme.colors.surface,
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 0,
           elevation: 12,
-          shadowColor: Theme.colors.shadow,
+          shadowColor: theme.colors.shadow,
           shadowOffset: { width: 0, height: -3 },
-          shadowOpacity: 0.07,
+          shadowOpacity: theme.isDark ? 0.2 : 0.07,
           shadowRadius: 12,
         },
         tabBarLabelStyle: {
-          fontSize: Theme.typography.caption,
+          fontSize: theme.typography.caption,
           fontWeight: "600",
         },
       }}
@@ -27,7 +88,7 @@ export default function InquilinoTabsLayout() {
       <Tabs.Screen
         name="inicio"
         options={{
-          title: "Mi vivienda",
+          title: "Vivienda",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -37,6 +98,7 @@ export default function InquilinoTabsLayout() {
         name="tablon"
         options={{
           title: "Tablón",
+          href: tieneVivienda ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="newspaper-outline" size={size} color={color} />
           ),
@@ -46,8 +108,39 @@ export default function InquilinoTabsLayout() {
         name="limpieza"
         options={{
           title: "Limpieza",
+          href: modulos.limpieza ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sparkles-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="gastos"
+        options={{
+          title: "Gastos",
+          href: modulos.gastos ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="contratos"
+        options={{
+          title: "Contrato",
+          href: modulos.gastos ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="inventario"
+        options={{
+          title: "Invent.",
+          href: modulos.inventario ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="images-outline" size={size} color={color} />
           ),
         }}
       />

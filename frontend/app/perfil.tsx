@@ -1,11 +1,16 @@
 import { View, Text, ScrollView, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
-import { useEffect, useState } from 'react';
+import { LegalNotice } from '@/components/common/LegalNotice';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import api from '@/services/api';
 import { eliminarToken } from '@/services/auth.service';
-import { styles } from '@/styles/perfil.styles';
+import { createStyles } from '@/styles/perfil.styles';
+import { ThemeMode } from '@/constants/theme';
+import { useAppTheme } from '@/contexts/ThemeContext';
+import { useTutorial, useTutorialTarget } from '@/contexts/TutorialContext';
 
 type Perfil = {
   id: number;
@@ -18,6 +23,11 @@ type Perfil = {
 
 export default function PerfilScreen() {
   const router = useRouter();
+  const { mode, setMode, theme } = useAppTheme();
+  const { startRoleTutorial } = useTutorial();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const aparienciaTarget = useTutorialTarget('perfil.apariencia');
+  const tutorialTarget = useTutorialTarget('perfil.tutorial');
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,12 +50,26 @@ export default function PerfilScreen() {
     router.replace('/');
   };
 
+  const relanzarTutorial = () => {
+    if (!perfil) {
+      return;
+    }
+
+    const started = startRoleTutorial(perfil.rol);
+    if (!started) {
+      Toast.show({
+        type: 'info',
+        text1: 'El tutorial aun se esta preparando.',
+      });
+    }
+  };
+
   if (loading) return <LoadingScreen />;
 
   if (!perfil) {
     return (
       <View style={styles.loaderContainer}>
-        <Text>No se pudo cargar el perfil.</Text>
+        <Text style={styles.loaderText}>No se pudo cargar el perfil.</Text>
       </View>
     );
   }
@@ -63,7 +87,7 @@ export default function PerfilScreen() {
         <Text style={styles.nombreCompleto}>{perfil.nombre} {perfil.apellidos}</Text>
 
         <View style={[styles.badge, esCasero ? styles.badgeCasero : styles.badgeInquilino]}>
-          <Text style={styles.badgeTexto}>{esCasero ? 'Casero' : 'Inquilino'}</Text>
+          <Text style={styles.badgeTexto}>{esCasero ? 'Propietario' : 'Inquilino'}</Text>
         </View>
 
         <View style={styles.tarjeta}>
@@ -78,10 +102,62 @@ export default function PerfilScreen() {
           </View>
         ) : null}
 
-        <View style={styles.tarjeta}>
-          <Text style={styles.tarjetaLabel}>Rol</Text>
-          <Text style={styles.tarjetaValor}>{esCasero ? 'Propietario / Casero' : 'Inquilino'}</Text>
+        <View ref={aparienciaTarget.ref} onLayout={aparienciaTarget.onLayout} style={styles.themeSection}>
+          <Text style={styles.themeTitle}>Apariencia</Text>
+          <View style={styles.themeOptions}>
+            {[
+              ['system', 'Sistema'],
+              ['light', 'Claro'],
+              ['dark', 'Oscuro'],
+            ].map(([value, label]) => {
+              const selected = mode === value;
+              return (
+                <Pressable
+                  key={value}
+                  style={({ pressed }) => [
+                    styles.themeOption,
+                    selected && styles.themeOptionActive,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => void setMode(value as ThemeMode)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Usar modo ${label.toLowerCase()}`}
+                  accessibilityState={{ selected }}
+                >
+                  <Text style={[styles.themeOptionText, selected && styles.themeOptionTextActive]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
+
+        <View ref={tutorialTarget.ref} onLayout={tutorialTarget.onLayout} style={styles.helpSection}>
+          <View style={styles.helpIconBox}>
+            <Ionicons name="sparkles-outline" size={22} color={theme.colors.primary} />
+          </View>
+          <View style={styles.helpContent}>
+            <Text style={styles.helpTitle}>Tutorial guiado</Text>
+            <Text style={styles.helpDescription}>
+              Recorre otra vez las funciones principales de Roomies con una guia breve y visual.
+            </Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [
+              styles.helpButton,
+              pressed && styles.pressed,
+            ]}
+            onPress={relanzarTutorial}
+          >
+            <Text style={styles.helpButtonText}>Ver guia</Text>
+          </Pressable>
+        </View>
+
+        <LegalNotice
+          title="Documentacion legal"
+          body="Puedes volver a consultar en cualquier momento los terminos de uso y la politica de privacidad publicados para esta version de Roomies."
+        />
 
         <Pressable
           style={({ pressed }) => [styles.botonLogout, pressed && styles.pressed]}

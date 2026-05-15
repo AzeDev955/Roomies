@@ -1,22 +1,27 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { AntDesign } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 // import * as Linking from 'expo-linking'; // Deep link deshabilitado temporalmente — verificación SMTP pendiente
-import { styles } from '@/styles/index.styles';
+import { createStyles } from '@/styles/index.styles';
 import { guardarToken } from '@/services/auth.service';
 import api from '@/services/api';
 import { CustomButton } from '@/components/common/CustomButton';
 import { CustomInput } from '@/components/common/CustomInput';
+import { LegalNotice } from '@/components/common/LegalNotice';
+import { useAppTheme } from '@/contexts/ThemeContext';
 import { syncPushToken } from '@/utils/notifications';
+import { getDashboardRoute } from '@/utils/authRoutes';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,21 +41,11 @@ export default function LoginScreen() {
     scopes: ['openid', 'email', 'profile'],
   });
 
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const idToken =
-        googleResponse.authentication?.idToken ??
-        (googleResponse.params as Record<string, string>)?.['id_token'];
-      if (idToken) handleGoogleLogin(idToken);
-    }
-  }, [googleResponse]);
+  const irAlDashboard = useCallback((rol: string) => {
+    router.replace(getDashboardRoute(rol));
+  }, [router]);
 
-  const irAlDashboard = (rol: string) => {
-    const destino = rol === 'CASERO' ? '/casero/viviendas' : '/inquilino/inicio';
-    router.replace(destino);
-  };
-
-  const handleGoogleLogin = async (idToken: string) => {
+  const handleGoogleLogin = useCallback(async (idToken: string) => {
     setLoading(true);
     try {
       const { data } = await api.post<{ token: string; usuario: { rol: string }; esNuevo: boolean }>(
@@ -58,7 +53,7 @@ export default function LoginScreen() {
         { idToken }
       );
       await guardarToken(data.token);
-      syncPushToken();
+      void syncPushToken();
       if (data.esNuevo) {
         router.replace('/rol');
       } else {
@@ -69,7 +64,16 @@ export default function LoginScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [irAlDashboard, router]);
+
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const idToken =
+        googleResponse.authentication?.idToken ??
+        (googleResponse.params as Record<string, string>)?.['id_token'];
+      if (idToken) void handleGoogleLogin(idToken);
+    }
+  }, [googleResponse, handleGoogleLogin]);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -79,7 +83,7 @@ export default function LoginScreen() {
         { email, password }
       );
       await guardarToken(data.token);
-      syncPushToken();
+      void syncPushToken();
       irAlDashboard(data.usuario.rol);
     } catch (err: any) {
       const mensaje = err.response?.data?.error ?? 'Credenciales inválidas o sin conexión al servidor.';
@@ -90,7 +94,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.logo}>Roomies</Text>
       <Text style={styles.subtitulo}>Gestión de pisos compartidos</Text>
 
@@ -131,17 +139,27 @@ export default function LoginScreen() {
         style={({ pressed }) => [styles.botonGoogle, pressed && styles.pressed]}
         onPress={() => googlePromptAsync()}
         disabled={loading}
+        accessibilityRole="button"
+        accessibilityLabel="Continuar con Google"
+        accessibilityState={{ disabled: loading, busy: loading }}
       >
-        <AntDesign name="google" size={20} color="#DB4437" />
+        <AntDesign name="google" size={20} color={theme.colors.google} />
         <Text style={styles.botonGoogleTexto}>Continuar con Google</Text>
       </Pressable>
+
+      <LegalNotice
+        variant="inline"
+        body="Antes de registrarte o continuar usando Roomies puedes revisar la informacion legal de la app."
+      />
 
       <Pressable
         style={({ pressed }) => [styles.enlaceRegistro, pressed && styles.pressed]}
         onPress={() => router.push('/registro')}
+        accessibilityRole="link"
+        accessibilityLabel="Crear una cuenta"
       >
         <Text style={styles.enlaceRegistroTexto}>¿No tienes cuenta? Regístrate</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
