@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   crearItemInventario,
+  eliminarItemInventario,
   listarInventarioVivienda,
   marcarConformidadInventario,
   subirFotoInventario,
@@ -40,6 +41,13 @@ router.post(
   inventarioActivoPorItem,
   uploadInventarioFoto.single('foto'),
   subirFotoInventario,
+);
+
+router.delete(
+  '/inventario/:itemId',
+  verificarToken,
+  inventarioActivoPorItem,
+  eliminarItemInventario,
 );
 
 export default router;

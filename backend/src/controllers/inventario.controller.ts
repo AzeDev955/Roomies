@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import {
   construirCamposFotoAsset,
 } from '../services/media-reference.service';
+import { cleanupMediaReferences } from '../services/media-cleanup.service';
 import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 import { mediaProviderErrorToHttp, uploadImageMedia } from '../services/media-upload.service';
 
@@ -523,4 +524,69 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
   });
 
   res.status(201).json(await resolverFotoInventario(asset));
+};
+
+export const eliminarItemInventario: express.RequestHandler = async (req, res) => {
+  const itemId = Number(req.params['itemId']);
+  const usuarioId = req.usuario!.id;
+  const rol = req.usuario!.rol;
+
+  if (!Number.isInteger(itemId) || itemId <= 0) {
+    res.status(400).json({ error: 'itemId invÃƒÂ¡lido.' });
+    return;
+  }
+
+  if (rol !== RolUsuario.CASERO) {
+    res.status(403).json({ error: 'Solo el casero puede eliminar items de inventario.' });
+    return;
+  }
+
+  const item = await prisma.itemInventario.findUnique({
+    where: { id: itemId },
+    include: {
+      habitacion: { select: { vivienda_id: true } },
+      vivienda: { select: { id: true, casero_id: true } },
+      fotos: {
+        select: {
+          provider: true,
+          key: true,
+          variant: true,
+        },
+      },
+    },
+  });
+
+  if (!item) {
+    res.status(404).json({ error: 'Item de inventario no encontrado.' });
+    return;
+  }
+
+  const viviendaId = item.vivienda_id ?? item.habitacion?.vivienda_id;
+
+  if (!viviendaId) {
+    res.status(400).json({ error: 'El item de inventario no estÃƒÂ¡ vinculado a una vivienda vÃƒÂ¡lida.' });
+    return;
+  }
+
+  const vivienda =
+    item.vivienda?.id === viviendaId
+      ? item.vivienda
+      : await prisma.vivienda.findFirst({ where: { id: viviendaId }, select: { id: true, casero_id: true } });
+
+  if (!vivienda || vivienda.casero_id !== usuarioId) {
+    res.status(403).json({ error: 'No tienes permiso para eliminar este item de inventario.' });
+    return;
+  }
+
+  await prisma.itemInventario.delete({ where: { id: itemId } });
+  const cleanup = await cleanupMediaReferences(item.fotos, {
+    includeImageVariants: true,
+    context: `inventario:${itemId}:delete`,
+  });
+
+  res.status(200).json({
+    ok: true,
+    item_id: itemId,
+    ...(cleanup.failed.length > 0 ? { media_cleanup_pending: true } : {}),
+  });
 };

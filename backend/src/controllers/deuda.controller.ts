@@ -4,6 +4,7 @@ import { usuarioPerteneceAVivienda } from '../services/gasto.service';
 import {
   construirCamposMediaDocumento,
 } from '../services/media-reference.service';
+import { cleanupMediaReferences } from '../services/media-cleanup.service';
 import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 import { mediaProviderErrorToHttp, uploadImageMedia } from '../services/media-upload.service';
 
@@ -83,6 +84,14 @@ export const subirJustificanteDeuda: express.RequestHandler = async (req, res) =
   const deudaActualizada = await prisma.deuda.update({
     where: { id: deudaId },
     data: construirCamposMediaDocumento('justificante', justificanteMedia),
+  });
+  await cleanupMediaReferences([{
+    provider: deuda.justificante_provider,
+    key: deuda.justificante_key,
+    variant: deuda.justificante_variant,
+  }], {
+    includeImageVariants: true,
+    context: `deuda:${deuda.id}:replace-justificante`,
   });
 
   const {
