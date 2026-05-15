@@ -1,7 +1,7 @@
 import express from 'express';
 import { prisma } from '../lib/prisma';
 import { TIPOS_GASTO_CASERO } from '../services/gasto.service';
-import { resolveOptionalMediaUrl } from '../services/media-url.service';
+import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -113,24 +113,37 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
     deudas.filter((deuda) => deuda.estado === 'PENDIENTE').map((deuda) => deuda.importe),
   );
   const deudasConUrls = await Promise.all(
-    deudas.map(async (deuda) => ({
-      ...deuda,
-      justificante_url: await resolveOptionalMediaUrl({
-        url: deuda.justificante_url,
-        provider: deuda.justificante_provider,
-        key: deuda.justificante_key,
-        visibility: 'private',
-      }),
-      gasto: {
-        ...deuda.gasto,
-        factura_url: await resolveOptionalMediaUrl({
-          url: deuda.gasto.factura_url,
-          provider: deuda.gasto.factura_provider,
-          key: deuda.gasto.factura_key,
-          visibility: 'private',
+    deudas.map(async (deuda) => {
+      const {
+        justificante_provider: _justificanteProvider,
+        justificante_key: _justificanteKey,
+        ...deudaPublica
+      } = deuda;
+      const {
+        factura_provider: _facturaProvider,
+        factura_key: _facturaKey,
+        ...gastoPublico
+      } = deuda.gasto;
+
+      return {
+        ...deudaPublica,
+        justificante_url: await resolveOptionalMediaUrl({
+          url: deuda.justificante_url,
+          provider: deuda.justificante_provider,
+          key: deuda.justificante_key,
+          purpose: 'payment-proof',
         }),
-      },
-    })),
+        gasto: {
+          ...gastoPublico,
+          factura_url: await resolveOptionalMediaUrl({
+            url: deuda.gasto.factura_url,
+            provider: deuda.gasto.factura_provider,
+            key: deuda.gasto.factura_key,
+            purpose: 'expense-invoice',
+          }),
+        },
+      };
+    }),
   );
 
   res.status(200).json({
@@ -153,8 +166,6 @@ export const listarCobrosVivienda: express.RequestHandler = async (req, res) => 
       importe: deuda.importe,
       estado: deuda.estado,
       justificante_url: deuda.justificante_url,
-      justificante_provider: deuda.justificante_provider,
-      justificante_key: deuda.justificante_key,
       justificante_variant: deuda.justificante_variant,
       justificante_mime_type: deuda.justificante_mime_type,
       justificante_size: deuda.justificante_size,

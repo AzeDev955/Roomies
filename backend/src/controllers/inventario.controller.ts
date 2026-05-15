@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import {
   construirCamposFotoAsset,
 } from '../services/media-reference.service';
+import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 import { mediaProviderErrorToHttp, uploadImageMedia } from '../services/media-upload.service';
 
 const ESTADOS_ITEM_VALIDOS = new Set<EstadoItem>([
@@ -34,6 +35,35 @@ const usuarioTieneAccesoAVivienda = async (
 
   return habitacion !== null;
 };
+
+type FotoInventarioRespuesta = {
+  provider?: string | null;
+  key?: string | null;
+  url?: string | null;
+};
+
+const resolverFotoInventario = async <T extends FotoInventarioRespuesta>(foto: T) => {
+  const {
+    provider: _provider,
+    key: _key,
+    ...fotoPublica
+  } = foto;
+
+  return {
+    ...fotoPublica,
+    url: await resolveOptionalMediaUrl({
+      url: foto.url,
+      provider: foto.provider,
+      key: foto.key,
+      purpose: 'inventory-photo',
+    }),
+  };
+};
+
+const resolverFotosInventario = async <T extends { fotos: FotoInventarioRespuesta[] }>(item: T) => ({
+  ...item,
+  fotos: await Promise.all(item.fotos.map((foto) => resolverFotoInventario(foto))),
+});
 
 const obtenerHabitacionDelInquilinoEnVivienda = async (usuarioId: number, viviendaId: number) =>
   prisma.habitacion.findFirst({
@@ -284,7 +314,7 @@ export const listarInventarioVivienda: express.RequestHandler = async (req, res)
     ],
   });
 
-  res.status(200).json(items);
+  res.status(200).json(await Promise.all(items.map((item) => resolverFotosInventario(item))));
 };
 
 export const marcarConformidadInventario: express.RequestHandler = async (req, res) => {
@@ -384,7 +414,7 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
   }
 
   if (item.revisado_por_inquilino && item.revisado_por_inquilino_id === usuarioId) {
-    res.status(200).json(item);
+    res.status(200).json(await resolverFotosInventario(item));
     return;
   }
 
@@ -412,7 +442,7 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
     },
   });
 
-  res.status(200).json(itemActualizado);
+  res.status(200).json(await resolverFotosInventario(itemActualizado));
 };
 
 export const subirFotoInventario: express.RequestHandler = async (req, res) => {
@@ -469,7 +499,7 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
     fotoMedia = await uploadImageMedia({
       file: req.file,
       purpose: 'inventory-photo',
-      visibility: 'public',
+      visibility: 'private',
       ownerId: usuarioId,
       viviendaId,
       preferredVariant: 'medium',
@@ -492,5 +522,5 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
     },
   });
 
-  res.status(201).json(asset);
+  res.status(201).json(await resolverFotoInventario(asset));
 };

@@ -15,7 +15,7 @@ import {
   construirCamposMediaDocumento,
 } from '../services/media-reference.service';
 import { mediaProviderErrorToHttp, uploadDocumentMedia, uploadImageMedia } from '../services/media-upload.service';
-import { resolveOptionalMediaUrl } from '../services/media-url.service';
+import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -190,19 +190,63 @@ async function resolverFacturaGasto<T extends {
   factura_provider?: string | null;
   factura_key?: string | null;
 }>(gasto: T): Promise<T> {
-  if (!gasto.factura_url && !gasto.factura_provider && !gasto.factura_key) {
-    return gasto;
+  const {
+    factura_provider: _facturaProvider,
+    factura_key: _facturaKey,
+    ...gastoPublico
+  } = gasto;
+  const tieneFactura = Boolean(gasto.factura_url || gasto.factura_provider || gasto.factura_key);
+
+  const gastoConFactura = {
+    ...gastoPublico,
+    factura_url: tieneFactura
+      ? await resolveOptionalMediaUrl({
+          url: gasto.factura_url,
+          provider: gasto.factura_provider,
+          key: gasto.factura_key,
+          purpose: 'expense-invoice',
+        })
+      : gasto.factura_url ?? null,
+  };
+
+  const deudas = (gasto as unknown as {
+    deudas?: Array<{
+      justificante_url?: string | null;
+      justificante_provider?: string | null;
+      justificante_key?: string | null;
+    }>;
+  }).deudas;
+
+  if (Array.isArray(deudas)) {
+    return {
+      ...gastoConFactura,
+      deudas: await Promise.all(deudas.map((deuda) => resolverJustificanteDeuda(deuda))),
+    } as unknown as T;
   }
 
+  return gastoConFactura as T;
+}
+
+async function resolverJustificanteDeuda<T extends {
+  justificante_url?: string | null;
+  justificante_provider?: string | null;
+  justificante_key?: string | null;
+}>(deuda: T): Promise<T> {
+  const {
+    justificante_provider: _justificanteProvider,
+    justificante_key: _justificanteKey,
+    ...deudaPublica
+  } = deuda;
+
   return {
-    ...gasto,
-    factura_url: await resolveOptionalMediaUrl({
-      url: gasto.factura_url,
-      provider: gasto.factura_provider,
-      key: gasto.factura_key,
-      visibility: 'private',
+    ...deudaPublica,
+    justificante_url: await resolveOptionalMediaUrl({
+      url: deuda.justificante_url,
+      provider: deuda.justificante_provider,
+      key: deuda.justificante_key,
+      purpose: 'payment-proof',
     }),
-  };
+  } as T;
 }
 
 async function resolverFacturaDeuda<T extends {
@@ -216,13 +260,7 @@ async function resolverFacturaDeuda<T extends {
   };
 }>(deuda: T): Promise<T> {
   return {
-    ...deuda,
-    justificante_url: await resolveOptionalMediaUrl({
-      url: deuda.justificante_url,
-      provider: deuda.justificante_provider,
-      key: deuda.justificante_key,
-      visibility: 'private',
-    }),
+    ...(await resolverJustificanteDeuda(deuda)),
     gasto: await resolverFacturaGasto(deuda.gasto),
   };
 }
@@ -375,7 +413,21 @@ export const saldarDeuda: express.RequestHandler = async (req, res) => {
     data:  { estado: 'PAGADA' },
   });
 
-  res.status(200).json(actualizada);
+  const {
+    justificante_provider: _justificanteProvider,
+    justificante_key: _justificanteKey,
+    ...actualizadaPublica
+  } = actualizada;
+
+  res.status(200).json({
+    ...actualizadaPublica,
+    justificante_url: await resolveOptionalMediaUrl({
+      url: actualizada.justificante_url,
+      provider: actualizada.justificante_provider,
+      key: actualizada.justificante_key,
+      purpose: 'payment-proof',
+    }),
+  });
 };
 
 export const crearGasto: express.RequestHandler = async (req, res) => {
@@ -490,7 +542,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
       metadataFiscal,
     });
 
-    res.status(201).json(gasto);
+    res.status(201).json(await resolverFacturaGasto(gasto));
   } catch (error) {
     const mapped = mediaProviderErrorToHttp(error);
     if (mapped.status !== 500) {
@@ -654,7 +706,7 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     });
   });
 
-  res.status(200).json(gastoActualizado);
+  res.status(200).json(await resolverFacturaGasto(gastoActualizado));
 };
 
 export const eliminarGasto: express.RequestHandler = async (req, res) => {
@@ -796,5 +848,5 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
     },
   });
 
-  res.status(201).json(gastoActualizado);
+  res.status(201).json(await resolverFacturaGasto(gastoActualizado));
 };

@@ -4,6 +4,7 @@ import { usuarioPerteneceAVivienda } from '../services/gasto.service';
 import {
   construirCamposMediaDocumento,
 } from '../services/media-reference.service';
+import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 import { mediaProviderErrorToHttp, uploadImageMedia } from '../services/media-upload.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
@@ -84,5 +85,19 @@ export const subirJustificanteDeuda: express.RequestHandler = async (req, res) =
     data: construirCamposMediaDocumento('justificante', justificanteMedia),
   });
 
-  res.status(201).json(deudaActualizada);
+  const {
+    justificante_provider: _justificanteProvider,
+    justificante_key: _justificanteKey,
+    ...deudaPublica
+  } = deudaActualizada;
+
+  res.status(201).json({
+    ...deudaPublica,
+    justificante_url: await resolveOptionalMediaUrl({
+      url: deudaActualizada.justificante_url,
+      provider: deudaActualizada.justificante_provider,
+      key: deudaActualizada.justificante_key,
+      purpose: 'payment-proof',
+    }),
+  });
 };

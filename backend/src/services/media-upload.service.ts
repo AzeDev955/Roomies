@@ -3,6 +3,7 @@ import {
   type PortableMediaReference,
 } from './media-reference.service';
 import { processImageForUpload, type MediaImageVariant } from './media-image.processor';
+import { getUploadVisibilityForPurpose } from './media-serving.service';
 import { createMediaStorageProvider } from './media.service';
 import { MediaProviderError, type MediaPurpose, type MediaVisibility } from './media.types';
 
@@ -53,16 +54,17 @@ function buildLegacyReference(
 export async function uploadDocumentMedia({
   file,
   purpose,
-  visibility,
   ownerId,
   viviendaId,
 }: UploadMediaOptions): Promise<PortableMediaReference | null> {
+  const effectiveVisibility = getUploadVisibilityForPurpose(purpose);
+
   if (!file) {
     return null;
   }
 
   if (hasLegacyProviderUrl(file)) {
-    return buildLegacyReference(file, purpose, visibility);
+    return buildLegacyReference(file, purpose, effectiveVisibility);
   }
 
   const provider = createMediaStorageProvider();
@@ -72,7 +74,7 @@ export async function uploadDocumentMedia({
     mimeType: file.mimetype,
     size: file.size,
     purpose,
-    visibility,
+    visibility: effectiveVisibility,
     ownerId,
     viviendaId,
     metadata: {
@@ -80,7 +82,7 @@ export async function uploadDocumentMedia({
     },
   });
 
-  if (visibility === 'private' && media.provider === 'backblaze') {
+  if (effectiveVisibility === 'private' && media.provider === 'backblaze') {
     const signedUrl = await provider.getSignedUrl({ provider: media.provider, key: media.key });
     return { ...media, url: signedUrl };
   }
@@ -91,17 +93,18 @@ export async function uploadDocumentMedia({
 export async function uploadImageMedia({
   file,
   purpose,
-  visibility,
   ownerId,
   viviendaId,
   preferredVariant = 'medium',
 }: UploadImageOptions): Promise<PortableMediaReference | null> {
+  const effectiveVisibility = getUploadVisibilityForPurpose(purpose);
+
   if (!file) {
     return null;
   }
 
   if (hasLegacyProviderUrl(file)) {
-    return buildLegacyReference(file, purpose, visibility);
+    return buildLegacyReference(file, purpose, effectiveVisibility);
   }
 
   const provider = createMediaStorageProvider();
@@ -123,7 +126,7 @@ export async function uploadImageMedia({
         mimeType: variant.mimeType,
         size: variant.size,
         purpose,
-        visibility,
+        visibility: effectiveVisibility,
         ownerId,
         viviendaId,
         key: variant.suggestedKey,
@@ -134,7 +137,7 @@ export async function uploadImageMedia({
       });
 
       const url =
-        visibility === 'private' && uploaded.provider === 'backblaze'
+        effectiveVisibility === 'private' && uploaded.provider === 'backblaze'
           ? await provider.getSignedUrl({ provider: uploaded.provider, key: uploaded.key })
           : uploaded.url;
 

@@ -55,7 +55,7 @@ type MediaObject = {
   width?: number | null;
   height?: number | null;
   visibility: 'public' | 'private';
-  purpose: 'inventory-photo' | 'expense-invoice' | 'payment-proof' | 'rental-contract';
+  purpose: 'listing-photo' | 'inventory-photo' | 'expense-invoice' | 'payment-proof' | 'rental-contract';
   metadata?: Record<string, string | number | boolean | null>;
 };
 ```
@@ -105,12 +105,37 @@ Issue #348 implementa el proveedor Backblaze B2 mediante API S3-compatible. Esta
 | `B2_REGION` | Region S3-compatible usada para firmar peticiones. |
 | `B2_PUBLIC_BASE_URL` | Base URL solo para assets publicos si se habilita CDN o bucket publico. |
 | `MEDIA_SIGNED_URL_TTL_SECONDS` | TTL por defecto de URLs firmadas privadas. |
+| `MEDIA_SHARED_SIGNED_URL_TTL_SECONDS` | TTL de URLs firmadas para media compartida dentro de una vivienda; por defecto `900`. |
+| `MEDIA_PRIVATE_SIGNED_URL_TTL_SECONDS` | TTL de URLs firmadas para documentos sensibles; por defecto `300`. |
 | `MEDIA_CACHE_CONTROL` | Cabecera `Cache-Control` aplicada al subir objetos. |
 | `MEDIA_IMAGE_MAX_SIZE_BYTES` | Tamano maximo por imagen antes de procesar; por defecto `10485760` (10 MiB). |
 | `MEDIA_IMAGE_WEBP_QUALITY` | Calidad WebP de las variantes generadas; por defecto `82`, acotada de 1 a 100. |
 | `MEDIA_IMAGE_KEEP_ORIGINAL` | Si vale `true`, el procesador devuelve tambien la variante `original`; por defecto no conserva originales. |
 
 La implementacion vive en `backend/src/services/backblaze-b2-media.provider.ts` y traduce errores S3 a `MediaProviderError` para no filtrar detalles de Backblaze a capas superiores.
+
+## Serving publico, compartido y privado
+
+Issue #352 fija la estrategia inicial con un unico bucket privado por defecto y URLs publicas solo para `purpose` explicitamente publico. Si en una fase posterior se activan anuncios publicos o CDN/Cloudflare, deben usar `listing-photo` con `visibility: public`, `B2_PUBLIC_BASE_URL` y cache agresiva. El resto de objetos se suben como privados y se sirven desde endpoints protegidos con URLs firmadas.
+
+| Tipo | Purpose | Visibilidad en bucket | Serving API | TTL inicial |
+| --- | --- | --- | --- | ---: |
+| Publico | `listing-photo` | `public` | URL publica basada en `B2_PUBLIC_BASE_URL` o CDN. | No aplica |
+| Compartido | `inventory-photo` | `private` | URL firmada solo tras validar acceso a la vivienda. | `MEDIA_SHARED_SIGNED_URL_TTL_SECONDS` (`900`) |
+| Privado | `expense-invoice` | `private` | URL firmada desde endpoints de gastos/cobros/fiscal autorizados. | `MEDIA_PRIVATE_SIGNED_URL_TTL_SECONDS` (`300`) |
+| Privado | `payment-proof` | `private` | URL firmada para deudor, acreedor/casero o vivienda autorizada. | `MEDIA_PRIVATE_SIGNED_URL_TTL_SECONDS` (`300`) |
+| Privado | `rental-contract` | `private` | URL firmada para casero propietario o inquilino implicado. | `MEDIA_PRIVATE_SIGNED_URL_TTL_SECONDS` (`300`) |
+
+`backend/src/services/media-serving.service.ts` centraliza esta matriz. Las respuestas API deben exponer `url` lista para consumir y no deben obligar al frontend a construir URLs ni a conocer `provider`/`key` internos. Para Backblaze privado, si la firma falla no se reutiliza una URL persistida antigua: se devuelve `null` en el modo tolerante para evitar exponer enlaces caducados o publicos por accidente.
+
+Checklist de acceso para recursos privados:
+
+| Recurso | Permitido | Denegado |
+| --- | --- | --- |
+| `expense-invoice` | Casero propietario, deudor/acreedor o miembro autorizado por endpoints de gastos y cobros. | Usuario fuera de la vivienda recibe `403` antes de resolver URL firmada. |
+| `payment-proof` | Deudor que lo sube y casero/acreedor con acceso al cobro. | Usuario ajeno a la vivienda o no deudor no puede subir ni obtener la referencia. |
+| `rental-contract` | Casero propietario e inquilino implicado. | Otro usuario o inquilino no implicado recibe `403` en contratos. |
+| `inventory-photo` | Casero propietario e inquilino autorizado para vivienda/zona/habitacion visible. | Inquilino de otra habitacion no ve items privados de dormitorio ajeno. |
 
 ## Procesado de imagenes
 
