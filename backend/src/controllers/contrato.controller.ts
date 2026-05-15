@@ -6,7 +6,7 @@ import {
   construirCamposMediaDocumento,
 } from '../services/media-reference.service';
 import { mediaProviderErrorToHttp, uploadDocumentMedia } from '../services/media-upload.service';
-import { resolveOptionalMediaUrl } from '../services/media-url.service';
+import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 import { registrarPeriodoContratoFirmado } from '../services/ocupacion.service';
 
 const ESTADOS_CONTRATO = {
@@ -168,15 +168,21 @@ async function resolverDocumentoContrato<T extends {
     return contrato;
   }
 
+  const {
+    documento_provider: _documentoProvider,
+    documento_key: _documentoKey,
+    ...contratoPublico
+  } = contrato;
+
   return {
-    ...contrato,
+    ...contratoPublico,
     documento_url: await resolveOptionalMediaUrl({
       url: contrato.documento_url,
       provider: contrato.documento_provider,
       key: contrato.documento_key,
-      visibility: 'private',
+      purpose: 'rental-contract',
     }),
-  };
+  } as T;
 }
 
 export const listarContratosVivienda: express.RequestHandler = async (req, res) => {
@@ -428,7 +434,7 @@ export const firmarContratoAlquiler: express.RequestHandler = async (req, res) =
     return actualizado;
   });
 
-  res.status(200).json(contratoActualizado);
+  res.status(200).json(await resolverDocumentoContrato(contratoActualizado));
 };
 
 export const rechazarContratoAlquiler: express.RequestHandler = async (req, res) => {
@@ -480,7 +486,7 @@ export const rechazarContratoAlquiler: express.RequestHandler = async (req, res)
     });
   });
 
-  res.status(200).json(contratoActualizado);
+  res.status(200).json(await resolverDocumentoContrato(contratoActualizado));
 };
 
 export const anularContratoAlquiler: express.RequestHandler = async (req, res) => {
@@ -530,5 +536,5 @@ export const anularContratoAlquiler: express.RequestHandler = async (req, res) =
     });
   });
 
-  res.status(200).json(contratoActualizado);
+  res.status(200).json(await resolverDocumentoContrato(contratoActualizado));
 };

@@ -32,6 +32,14 @@ function obtenerKeyArchivo(file: UploadedFileWithProviderData, url: string | nul
   return file.public_id ?? file.filename ?? url;
 }
 
+function obtenerUrlPersistible(media: PortableMediaReference | null): string | null {
+  if (!media) {
+    return null;
+  }
+
+  return media.provider === 'backblaze' && media.visibility === 'private' ? null : media.url ?? null;
+}
+
 export function construirReferenciaMediaDesdeArchivo({
   file,
   purpose,
@@ -76,7 +84,7 @@ export function construirCamposMediaDocumento(
   const mimeField = prefix === 'documento' ? 'documento_mime' : `${prefix}_mime_type`;
 
   return {
-    [`${prefix}_url`]: media?.url ?? null,
+    [`${prefix}_url`]: obtenerUrlPersistible(media),
     [`${prefix}_provider`]: media?.provider ?? null,
     [`${prefix}_key`]: media?.key ?? null,
     [`${prefix}_variant`]: media?.variant ?? null,
@@ -95,7 +103,7 @@ export function construirCamposFotoAsset(media: PortableMediaReference) {
   return {
     provider: media.provider,
     key: media.key,
-    url: media.url,
+    url: obtenerUrlPersistible(media),
     variant: media.variant,
     mime_type: media.mimeType,
     size: media.size,

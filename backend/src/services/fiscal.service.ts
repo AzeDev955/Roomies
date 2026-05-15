@@ -7,6 +7,7 @@ import {
   TIPOS_GASTO_CASERO,
   TipoGastoRoomies,
 } from './gasto.service';
+import { resolveOptionalMediaUrl } from './media-serving.service';
 
 type InquilinoFiscal = {
   id: number;
@@ -30,6 +31,8 @@ type GastoFiscal = {
   importe: number;
   tipo: string;
   factura_url?: string | null;
+  factura_provider?: string | null;
+  factura_key?: string | null;
   categoria_fiscal?: CategoriaFiscalGastoRoomies;
   deducible_previsto?: boolean | null;
   notas_fiscales?: string | null;
@@ -194,6 +197,8 @@ type DeudaResumenFiscal = {
   importe: number;
   estado: string;
   justificante_url: string | null;
+  justificante_provider?: string | null;
+  justificante_key?: string | null;
   deudor: InquilinoFiscal;
   gasto: GastoFiscal & {
     habitacion_cargo?: { id: number; nombre: string } | null;
@@ -1095,6 +1100,8 @@ export const obtenerResumenFiscalAnualVivienda = async (
             importe: true,
             tipo: true,
             factura_url: true,
+            factura_provider: true,
+            factura_key: true,
             categoria_fiscal: true,
             deducible_previsto: true,
             notas_fiscales: true,
@@ -1132,6 +1139,8 @@ export const obtenerResumenFiscalAnualVivienda = async (
         importe: true,
         tipo: true,
         factura_url: true,
+        factura_provider: true,
+        factura_key: true,
         categoria_fiscal: true,
         deducible_previsto: true,
         notas_fiscales: true,
@@ -1144,11 +1153,43 @@ export const obtenerResumenFiscalAnualVivienda = async (
     }),
   ]);
 
+  const deudasConUrls = await Promise.all(
+    deudas.map(async (deuda) => ({
+      ...deuda,
+      justificante_url: await resolveOptionalMediaUrl({
+        url: deuda.justificante_url,
+        provider: deuda.justificante_provider,
+        key: deuda.justificante_key,
+        purpose: 'payment-proof',
+      }),
+      gasto: {
+        ...deuda.gasto,
+        factura_url: await resolveOptionalMediaUrl({
+          url: deuda.gasto.factura_url,
+          provider: deuda.gasto.factura_provider,
+          key: deuda.gasto.factura_key,
+          purpose: 'expense-invoice',
+        }),
+      },
+    })),
+  );
+  const gastosConUrls = await Promise.all(
+    gastos.map(async (gasto) => ({
+      ...gasto,
+      factura_url: await resolveOptionalMediaUrl({
+        url: gasto.factura_url,
+        provider: gasto.factura_provider,
+        key: gasto.factura_key,
+        purpose: 'expense-invoice',
+      }),
+    })),
+  );
+
   return construirResumenFiscalAnual({
     ejercicio,
     vivienda,
-    deudas,
-    gastos,
+    deudas: deudasConUrls,
+    gastos: gastosConUrls,
   });
 };
 

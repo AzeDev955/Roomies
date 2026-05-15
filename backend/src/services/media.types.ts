@@ -5,6 +5,7 @@ export type MediaVisibility = 'public' | 'private';
 export type MediaVariant = 'original' | 'thumbnail' | 'preview' | 'download' | 'thumb' | 'medium' | 'large';
 
 export type MediaPurpose =
+  | 'listing-photo'
   | 'inventory-photo'
   | 'expense-invoice'
   | 'payment-proof'

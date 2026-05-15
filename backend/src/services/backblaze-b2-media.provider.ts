@@ -244,6 +244,7 @@ export class BackblazeB2MediaStorageProvider implements MediaStorageProvider {
     const purpose = metadata.purpose;
 
     if (
+      purpose !== 'listing-photo' &&
       purpose !== 'inventory-photo' &&
       purpose !== 'expense-invoice' &&
       purpose !== 'payment-proof' &&
