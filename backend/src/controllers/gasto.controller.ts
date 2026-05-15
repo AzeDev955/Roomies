@@ -12,6 +12,10 @@ import {
   usuarioEsCaseroDeVivienda,
   usuarioPerteneceAVivienda,
 } from '../services/gasto.service';
+import {
+  construirCamposMediaDocumento,
+  construirReferenciaMediaDesdeArchivo,
+} from '../services/media-reference.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -172,15 +176,6 @@ const ocultarMetadataFiscal = <T extends Record<string, unknown>>(gasto: T) => {
   return gastoPublico;
 };
 
-const obtenerUrlArchivo = (file: Express.Multer.File | undefined) => {
-  if (!file) {
-    return null;
-  }
-
-  const posibleCloudinary = file as Express.Multer.File & { path?: string; secure_url?: string };
-  return posibleCloudinary.path ?? posibleCloudinary.secure_url ?? null;
-};
-
 const usuarioPuedeAccederAVivienda = async (viviendaId: number, usuarioId: number) => {
   const [habitacion, vivienda] = await Promise.all([
     usuarioPerteneceAVivienda(viviendaId, usuarioId),
@@ -262,7 +257,18 @@ export const listarDeudas: express.RequestHandler = async (req, res) => {
     include: {
       deudor:   { select: { id: true, nombre: true, apellidos: true } },
       acreedor: { select: { id: true, nombre: true, apellidos: true } },
-      gasto:    { select: { concepto: true, tipo: true, factura_url: true } },
+      gasto:    {
+        select: {
+          concepto: true,
+          tipo: true,
+          factura_url: true,
+          factura_provider: true,
+          factura_key: true,
+          factura_variant: true,
+          factura_mime_type: true,
+          factura_size: true,
+        },
+      },
     },
     orderBy: { id: 'desc' },
   });
@@ -411,11 +417,15 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
   }
 
   try {
-    const facturaUrl = obtenerUrlArchivo(req.file);
+    const facturaMedia = construirReferenciaMediaDesdeArchivo({
+      file: req.file,
+      purpose: 'expense-invoice',
+      visibility: 'public',
+    });
     const tipoGasto = req.usuario!.rol === 'CASERO' ? 'FACTURA_PUNTUAL' : 'ENTRE_COMPANEROS';
 
-    if (req.file && !facturaUrl) {
-      res.status(500).json({ error: 'No se pudo obtener la URL de la factura subida.' });
+    if (req.file && !facturaMedia?.url) {
+      res.status(500).json({ error: 'No se pudo obtener la referencia de la factura subida.' });
       return;
     }
 
@@ -427,7 +437,7 @@ export const crearGasto: express.RequestHandler = async (req, res) => {
       pagadorId,
       implicadosIds,
       repartoManual,
-      facturaUrl,
+      facturaMedia,
       fecha: fechaGasto,
       metadataFiscal,
     });
@@ -467,6 +477,12 @@ export const actualizarGasto: express.RequestHandler = async (req, res) => {
     fecha_creacion?: Date;
     fecha_modificacion?: Date;
     modificado_por_id?: number;
+    factura_url?: string | null;
+    factura_provider?: string | null;
+    factura_key?: string | null;
+    factura_variant?: string | null;
+    factura_mime_type?: string | null;
+    factura_size?: number | null;
     categoria_fiscal?: CategoriaFiscalGastoRoomies;
     deducible_previsto?: boolean | null;
     notas_fiscales?: string | null;
@@ -696,17 +712,21 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const secureUrl = (req.file as Express.Multer.File & { path?: string }).path;
+  const facturaMedia = construirReferenciaMediaDesdeArchivo({
+    file: req.file,
+    purpose: 'expense-invoice',
+    visibility: 'public',
+  });
 
-  if (!secureUrl) {
-    res.status(500).json({ error: 'No se pudo obtener la URL de la factura subida.' });
+  if (!facturaMedia?.url) {
+    res.status(500).json({ error: 'No se pudo obtener la referencia de la factura subida.' });
     return;
   }
 
   const gastoActualizado = await prisma.gasto.update({
     where: { id: gasto.id },
     data: {
-      factura_url: secureUrl,
+      ...construirCamposMediaDocumento('factura', facturaMedia),
       fecha_modificacion: new Date(),
       modificado_por_id: usuarioId,
     },

@@ -37,6 +37,16 @@ const dayOfMonth = (day: number, monthsAgo = 0) => {
   return date;
 };
 
+const referenciaSeed = (url: string | null | undefined) =>
+  url
+    ? {
+        provider: "external",
+        key: url,
+        variant: "original",
+        mimeType: "image/jpeg",
+      }
+    : null;
+
 const assertSeedSeguro = () => {
   const entorno = process.env["NODE_ENV"];
   const railwayEnvironment = (
@@ -85,13 +95,25 @@ async function crearGastoConDeudas({
       pagador_id: pagadorId,
       vivienda_id: viviendaId,
       deudas: {
-        create: deudas.map((deuda) => ({
-          deudor_id: deuda.deudorId,
-          acreedor_id: pagadorId,
-          importe: deuda.importe,
-          estado: deuda.estado ?? EstadoDeuda.PENDIENTE,
-          justificante_url: deuda.justificanteUrl ?? null,
-        })),
+        create: deudas.map((deuda) => {
+          const justificante = referenciaSeed(deuda.justificanteUrl);
+
+          return {
+            ...(justificante
+              ? {
+                  justificante_provider: justificante.provider,
+                  justificante_key: justificante.key,
+                  justificante_variant: justificante.variant,
+                  justificante_mime_type: justificante.mimeType,
+                }
+              : {}),
+            deudor_id: deuda.deudorId,
+            acreedor_id: pagadorId,
+            importe: deuda.importe,
+            estado: deuda.estado ?? EstadoDeuda.PENDIENTE,
+            justificante_url: deuda.justificanteUrl ?? null,
+          };
+        }),
       },
     },
   });

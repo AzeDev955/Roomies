@@ -2,6 +2,10 @@ import crypto from 'node:crypto';
 import express from 'express';
 import { RolUsuario } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
+import {
+  construirCamposMediaDocumento,
+  construirReferenciaMediaDesdeArchivo,
+} from '../services/media-reference.service';
 import { registrarPeriodoContratoFirmado } from '../services/ocupacion.service';
 
 const ESTADOS_CONTRATO = {
@@ -52,12 +56,6 @@ const normalizarBooleano = (valor: unknown, defecto: boolean) => {
     if (['false', '0', 'no', 'n'].includes(normalizado)) return false;
   }
   return defecto;
-};
-
-const obtenerUrlArchivo = (file: Express.Multer.File | undefined) => {
-  if (!file) return null;
-  const posibleCloudinary = file as Express.Multer.File & { path?: string; secure_url?: string };
-  return posibleCloudinary.path ?? posibleCloudinary.secure_url ?? null;
 };
 
 const calcularHashDocumento = (file: Express.Multer.File) => {
@@ -264,9 +262,13 @@ export const crearContratoAlquiler: express.RequestHandler = async (req, res) =>
     return;
   }
 
-  const documentoUrl = obtenerUrlArchivo(req.file);
-  if (!documentoUrl) {
-    res.status(500).json({ error: 'No se pudo obtener la URL del contrato subido.' });
+  const documentoMedia = construirReferenciaMediaDesdeArchivo({
+    file: req.file,
+    purpose: 'rental-contract',
+    visibility: 'public',
+  });
+  if (!documentoMedia?.url) {
+    res.status(500).json({ error: 'No se pudo obtener la referencia del contrato subido.' });
     return;
   }
 
@@ -290,9 +292,8 @@ export const crearContratoAlquiler: express.RequestHandler = async (req, res) =>
         inquilino_id: inquilinoId,
         version: (versionAnterior._max.version ?? 0) + 1,
         estado: estadoInicial,
-        documento_url: documentoUrl,
+        ...construirCamposMediaDocumento('documento', documentoMedia),
         documento_nombre: req.file?.originalname ?? null,
-        documento_mime: req.file?.mimetype ?? null,
         documento_hash: calcularHashDocumento(req.file!),
         renta_mensual: rentaMensual,
         fecha_inicio: fechaInicio,
@@ -311,7 +312,9 @@ export const crearContratoAlquiler: express.RequestHandler = async (req, res) =>
         origen_tecnico: origenTecnico(req),
         metadata: {
           documento_nombre: req.file?.originalname ?? null,
-          documento_mime: req.file?.mimetype ?? null,
+          documento_mime: documentoMedia.mimeType,
+          documento_provider: documentoMedia.provider,
+          documento_key: documentoMedia.key,
           documento_hash: creado.documento_hash,
         },
       },
