@@ -162,15 +162,18 @@ function request({
   usuario,
   params = {},
   body = {},
+  file,
 }: {
   usuario: UsuarioTest;
   params?: Record<string, string>;
   body?: Record<string, unknown>;
+  file?: Partial<Express.Multer.File>;
 }) {
   return {
     usuario,
     params,
     body,
+    file,
   } as unknown as express.Request;
 }
 
@@ -269,6 +272,37 @@ describe('modulo economico', () => {
     assert.equal(ultimoGastoCreate?.data.deducible_previsto, true);
     assert.equal(ultimoGastoCreate?.data.notas_fiscales, 'Poliza anual');
     assert.equal(ultimoGastoCreate?.data.prorrateo_fiscal, 75);
+  });
+
+  test('guarda referencia portable al crear una factura con adjunto', async () => {
+    prisma.vivienda.findFirst = async () => ({ id: 1, casero_id: 99 });
+
+    const res = await invoke(
+      crearGasto,
+      request({
+        usuario: { id: 99, rol: 'CASERO' },
+        params: { viviendaId: '1' },
+        body: {
+          concepto: 'Seguro hogar',
+          importe: 120,
+        },
+        file: {
+          path: 'https://cdn.roomies.test/facturas/seguro.pdf',
+          filename: 'roomies-facturas/seguro',
+          originalname: 'seguro.pdf',
+          mimetype: 'application/pdf',
+          size: 2048,
+        },
+      }),
+    );
+
+    assert.equal(res.statusCode, 201);
+    assert.equal(ultimoGastoCreate?.data.factura_url, 'https://cdn.roomies.test/facturas/seguro.pdf');
+    assert.equal(ultimoGastoCreate?.data.factura_provider, 'cloudinary');
+    assert.equal(ultimoGastoCreate?.data.factura_key, 'roomies-facturas/seguro');
+    assert.equal(ultimoGastoCreate?.data.factura_variant, 'original');
+    assert.equal(ultimoGastoCreate?.data.factura_mime_type, 'application/pdf');
+    assert.equal(ultimoGastoCreate?.data.factura_size, 2048);
   });
 
   test('rechaza metadatos fiscales en gastos creados por inquilinos', async () => {

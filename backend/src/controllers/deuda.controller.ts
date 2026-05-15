@@ -2,6 +2,10 @@ import express from 'express';
 import { cloudinaryEstaConfigurado } from '../config/cloudinary.config';
 import { prisma } from '../lib/prisma';
 import { usuarioPerteneceAVivienda } from '../services/gasto.service';
+import {
+  construirCamposMediaDocumento,
+  construirReferenciaMediaDesdeArchivo,
+} from '../services/media-reference.service';
 
 const obtenerParamNumerico = (valor: string | string[] | undefined) => {
   const normalizado = Array.isArray(valor) ? valor[0] : valor;
@@ -60,18 +64,20 @@ export const subirJustificanteDeuda: express.RequestHandler = async (req, res) =
     return;
   }
 
-  const secureUrl = (req.file as Express.Multer.File & { path?: string }).path;
+  const justificanteMedia = construirReferenciaMediaDesdeArchivo({
+    file: req.file,
+    purpose: 'payment-proof',
+    visibility: 'public',
+  });
 
-  if (!secureUrl) {
-    res.status(500).json({ error: 'No se pudo obtener la URL del justificante subido.' });
+  if (!justificanteMedia?.url) {
+    res.status(500).json({ error: 'No se pudo obtener la referencia del justificante subido.' });
     return;
   }
 
   const deudaActualizada = await prisma.deuda.update({
     where: { id: deudaId },
-    data: {
-      justificante_url: secureUrl,
-    },
+    data: construirCamposMediaDocumento('justificante', justificanteMedia),
   });
 
   res.status(201).json(deudaActualizada);

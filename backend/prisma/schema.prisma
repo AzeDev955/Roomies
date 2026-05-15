@@ -220,6 +220,11 @@ model Gasto {
   importe            Float
   tipo               TipoGasto @default(ENTRE_COMPANEROS)
   factura_url        String?
+  factura_provider   String?
+  factura_key        String?
+  factura_variant    String?
+  factura_mime_type  String?
+  factura_size       Int?
   categoria_fiscal   CategoriaFiscalGasto @default(SIN_CLASIFICAR)
   deducible_previsto Boolean?
   notas_fiscales     String?
@@ -266,6 +271,13 @@ model Deuda {
   importe     Float
   estado      EstadoDeuda @default(PENDIENTE)
   justificante_url String?
+  justificante_provider String?
+  justificante_key String?
+  justificante_variant String?
+  justificante_mime_type String?
+  justificante_size Int?
+  justificante_width Int?
+  justificante_height Int?
 
   @@unique([gasto_id, deudor_id])
 }
@@ -289,10 +301,19 @@ model ItemInventario {
 
 model FotoAsset {
   id           Int            @id @default(autoincrement())
-  url          String
+  provider     String         @default("cloudinary")
+  key          String
+  url          String?
+  variant      String         @default("original")
+  mime_type    String?
+  size         Int?
+  width        Int?
+  height       Int?
   item_id      Int
   item         ItemInventario @relation(fields: [item_id], references: [id], onDelete: Cascade)
   fecha_subida DateTime       @default(now())
+
+  @@index([provider, key])
 }
 
 model ContratoAlquiler {
@@ -308,8 +329,12 @@ model ContratoAlquiler {
   version                   Int
   estado                    EstadoContratoAlquiler @default(BORRADOR)
   documento_url             String
+  documento_provider        String?
+  documento_key             String?
+  documento_variant         String?
   documento_nombre          String?
   documento_mime            String?
+  documento_size            Int?
   documento_hash            String
   renta_mensual             Float
   fecha_inicio              DateTime

@@ -2,6 +2,10 @@ import express from 'express';
 import { cloudinaryEstaConfigurado } from '../config/cloudinary.config';
 import { EstadoItem, RolUsuario } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
+import {
+  construirCamposFotoAsset,
+  construirReferenciaMediaDesdeArchivo,
+} from '../services/media-reference.service';
 
 const ESTADOS_ITEM_VALIDOS = new Set<EstadoItem>([
   EstadoItem.NUEVO,
@@ -248,7 +252,14 @@ export const listarInventarioVivienda: express.RequestHandler = async (req, res)
       fotos: {
         select: {
           id: true,
+          provider: true,
+          key: true,
           url: true,
+          variant: true,
+          mime_type: true,
+          size: true,
+          width: true,
+          height: true,
           fecha_subida: true,
         },
         orderBy: {
@@ -318,7 +329,14 @@ export const marcarConformidadInventario: express.RequestHandler = async (req, r
       fotos: {
         select: {
           id: true,
+          provider: true,
+          key: true,
           url: true,
+          variant: true,
+          mime_type: true,
+          size: true,
+          width: true,
+          height: true,
           fecha_subida: true,
         },
         orderBy: {
@@ -452,15 +470,19 @@ export const subirFotoInventario: express.RequestHandler = async (req, res) => {
     return;
   }
 
-  const secureUrl = (req.file as Express.Multer.File & { path?: string }).path;
-  if (!secureUrl) {
-    res.status(500).json({ error: 'No se pudo obtener la URL de la imagen subida.' });
+  const fotoMedia = construirReferenciaMediaDesdeArchivo({
+    file: req.file,
+    purpose: 'inventory-photo',
+    visibility: 'public',
+  });
+  if (!fotoMedia?.url) {
+    res.status(500).json({ error: 'No se pudo obtener la referencia de la imagen subida.' });
     return;
   }
 
   const asset = await prisma.fotoAsset.create({
     data: {
-      url: secureUrl,
+      ...construirCamposFotoAsset(fotoMedia),
       item_id: itemId,
     },
   });

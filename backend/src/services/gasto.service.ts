@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { construirCamposMediaDocumento, type PortableMediaReference } from './media-reference.service';
 
 export const TIPOS_GASTO_CASERO = [
   'FACTURA_PUNTUAL',
@@ -45,6 +46,7 @@ type CrearGastoDivididoInput = {
   pagadorId: number;
   implicadosIds?: number[];
   facturaUrl?: string | null;
+  facturaMedia?: PortableMediaReference | null;
   fecha?: Date;
   repartoManual?: {
     usuario_id: number;
@@ -117,6 +119,22 @@ export const construirDatosMetadataFiscal = (metadataFiscal?: MetadataFiscalGast
   prorrateo_fiscal: metadataFiscal?.prorrateoFiscal ?? null,
 });
 
+const construirReferenciaFacturaLegacy = (facturaUrl?: string | null): PortableMediaReference | null =>
+  facturaUrl
+    ? {
+        provider: 'external',
+        key: facturaUrl,
+        url: facturaUrl,
+        variant: 'original',
+        mimeType: 'application/octet-stream',
+        size: 0,
+        width: null,
+        height: null,
+        visibility: 'public',
+        purpose: 'expense-invoice',
+      }
+    : null;
+
 export const repartirImporteEnCentimos = (importe: number, participantesIds: number[]) => {
   const totalCentimos = aCentimos(importe);
   const base = Math.floor(totalCentimos / participantesIds.length);
@@ -136,6 +154,7 @@ export const crearGastoDividido = async ({
   pagadorId,
   implicadosIds,
   facturaUrl,
+  facturaMedia,
   fecha,
   repartoManual,
   periodoFacturacion,
@@ -209,7 +228,7 @@ export const crearGastoDividido = async ({
         concepto,
         importe: importeNormalizado,
         tipo,
-        factura_url: facturaUrl ?? null,
+        ...construirCamposMediaDocumento('factura', facturaMedia ?? construirReferenciaFacturaLegacy(facturaUrl)),
         ...construirDatosMetadataFiscal(metadataFiscal),
         fecha_creacion: fecha,
         pagador_id: pagadorId,
@@ -249,7 +268,7 @@ export const crearGastoDividido = async ({
       concepto,
       importe: importeNormalizado,
       tipo,
-      factura_url: facturaUrl ?? null,
+      ...construirCamposMediaDocumento('factura', facturaMedia ?? construirReferenciaFacturaLegacy(facturaUrl)),
       ...construirDatosMetadataFiscal(metadataFiscal),
       fecha_creacion: fecha,
       pagador_id: pagadorId,
