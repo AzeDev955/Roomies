@@ -106,8 +106,23 @@ Issue #348 implementa el proveedor Backblaze B2 mediante API S3-compatible. Esta
 | `B2_PUBLIC_BASE_URL` | Base URL solo para assets publicos si se habilita CDN o bucket publico. |
 | `MEDIA_SIGNED_URL_TTL_SECONDS` | TTL por defecto de URLs firmadas privadas. |
 | `MEDIA_CACHE_CONTROL` | Cabecera `Cache-Control` aplicada al subir objetos. |
+| `MEDIA_IMAGE_MAX_SIZE_BYTES` | Tamano maximo por imagen antes de procesar; por defecto `10485760` (10 MiB). |
+| `MEDIA_IMAGE_WEBP_QUALITY` | Calidad WebP de las variantes generadas; por defecto `82`, acotada de 1 a 100. |
+| `MEDIA_IMAGE_KEEP_ORIGINAL` | Si vale `true`, el procesador devuelve tambien la variante `original`; por defecto no conserva originales. |
 
 La implementacion vive en `backend/src/services/backblaze-b2-media.provider.ts` y traduce errores S3 a `MediaProviderError` para no filtrar detalles de Backblaze a capas superiores.
+
+## Procesado de imagenes
+
+Issue #349 introduce `backend/src/services/media-image.processor.ts` como paso previo a la subida al proveedor. El servicio acepta buffers de imagen `jpg/jpeg`, `png` o `webp`, rechaza archivos por encima de `MEDIA_IMAGE_MAX_SIZE_BYTES` y normaliza las salidas iniciales a WebP:
+
+| Variante | Ancho maximo | Comportamiento |
+| --- | ---: | --- |
+| `thumb` | 300px | Miniatura para listados y galerias compactas. |
+| `medium` | 800px | Vista intermedia para detalle movil. |
+| `large` | 1600px | Vista amplia sin servir el original pesado. |
+
+Las variantes usan `withoutEnlargement`, por lo que una imagen pequena mantiene sus dimensiones originales y no se escala artificialmente. Cada resultado incluye `buffer`, `suggestedKey`, `width`, `height`, `size`, `mimeType: image/webp`, `variant` y metadata tecnica con nombre, MIME y tamano originales. La variante `original` solo aparece si el flujo llama al servicio con `keepOriginal: true` o se activa `MEDIA_IMAGE_KEEP_ORIGINAL=true`.
 
 ## Plan de migracion recomendado
 
