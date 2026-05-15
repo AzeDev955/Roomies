@@ -91,20 +91,23 @@ Errores normalizados:
 | `ContratoAlquiler.documento_url` | Si, mientras la firma interna depende del documento actual. | Mantener `documento_hash`, `documento_nombre` y `documento_mime`; anadir provider/key y URLs firmadas. |
 | URLs en CSV fiscal | Si, pero con cautela. | Para privados, exportar una referencia interna o URL firmada de corta duracion, no una URL publica permanente. |
 
-## Variables propuestas para Backblaze
+## Variables Backblaze B2
 
-Estas variables no se implementan en este issue; solo fijan el nombre esperado para la epica:
+Issue #348 implementa el proveedor Backblaze B2 mediante API S3-compatible. Estas variables se leen solo en backend cuando `MEDIA_PROVIDER=backblaze`:
 
 | Variable | Proposito |
 | --- | --- |
-| `MEDIA_PROVIDER` | `cloudinary` o `backblaze`; permite activar proveedor sin tocar controladores. |
+| `MEDIA_PROVIDER` | `backblaze`; permite activar el proveedor interno sin tocar controladores futuros. |
 | `B2_APPLICATION_KEY_ID` | Key id de Backblaze B2. |
 | `B2_APPLICATION_KEY` | Application key de Backblaze B2. |
-| `B2_BUCKET_ID` | Id del bucket privado. |
-| `B2_BUCKET_NAME` | Nombre humano del bucket. |
-| `B2_ENDPOINT` | Endpoint S3-compatible o API endpoint si se usa SDK nativo. |
+| `B2_BUCKET_NAME` | Nombre del bucket S3-compatible. |
+| `B2_ENDPOINT` | Endpoint S3-compatible, por ejemplo `https://s3.eu-central-003.backblazeb2.com`. |
+| `B2_REGION` | Region S3-compatible usada para firmar peticiones. |
 | `B2_PUBLIC_BASE_URL` | Base URL solo para assets publicos si se habilita CDN o bucket publico. |
 | `MEDIA_SIGNED_URL_TTL_SECONDS` | TTL por defecto de URLs firmadas privadas. |
+| `MEDIA_CACHE_CONTROL` | Cabecera `Cache-Control` aplicada al subir objetos. |
+
+La implementacion vive en `backend/src/services/backblaze-b2-media.provider.ts` y traduce errores S3 a `MediaProviderError` para no filtrar detalles de Backblaze a capas superiores.
 
 ## Plan de migracion recomendado
 
