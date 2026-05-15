@@ -14,6 +14,7 @@ import {
 import {
   construirCamposMediaDocumento,
 } from '../services/media-reference.service';
+import { cleanupMediaReferences } from '../services/media-cleanup.service';
 import { mediaProviderErrorToHttp, uploadDocumentMedia, uploadImageMedia } from '../services/media-upload.service';
 import { resolveOptionalMediaUrl } from '../services/media-serving.service';
 
@@ -196,17 +197,22 @@ async function resolverFacturaGasto<T extends {
     ...gastoPublico
   } = gasto;
   const tieneFactura = Boolean(gasto.factura_url || gasto.factura_provider || gasto.factura_key);
+  const exponeFacturaUrl = Object.prototype.hasOwnProperty.call(gasto, 'factura_url') || tieneFactura;
 
   const gastoConFactura = {
     ...gastoPublico,
-    factura_url: tieneFactura
-      ? await resolveOptionalMediaUrl({
-          url: gasto.factura_url,
-          provider: gasto.factura_provider,
-          key: gasto.factura_key,
-          purpose: 'expense-invoice',
-        })
-      : gasto.factura_url ?? null,
+    ...(exponeFacturaUrl
+      ? {
+          factura_url: tieneFactura
+            ? await resolveOptionalMediaUrl({
+                url: gasto.factura_url,
+                provider: gasto.factura_provider,
+                key: gasto.factura_key,
+                purpose: 'expense-invoice',
+              })
+            : gasto.factura_url ?? null,
+        }
+      : {}),
   };
 
   const deudas = (gasto as unknown as {
@@ -762,10 +768,19 @@ export const eliminarGasto: express.RequestHandler = async (req, res) => {
   await prisma.gasto.delete({
     where: { id: gasto.id },
   });
+  const cleanup = await cleanupMediaReferences([{
+    provider: gasto.factura_provider,
+    key: gasto.factura_key,
+    variant: gasto.factura_variant,
+  }], {
+    includeImageVariants: true,
+    context: `gasto:${gasto.id}:delete`,
+  });
 
   res.status(200).json({
     ok: true,
     gasto_id: gasto.id,
+    ...(cleanup.failed.length > 0 ? { media_cleanup_pending: true } : {}),
   });
 };
 
@@ -846,6 +861,14 @@ export const subirFacturaGasto: express.RequestHandler = async (req, res) => {
       modificado_por: { select: { id: true, nombre: true, apellidos: true } },
       deudas: true,
     },
+  });
+  await cleanupMediaReferences([{
+    provider: gasto.factura_provider,
+    key: gasto.factura_key,
+    variant: gasto.factura_variant,
+  }], {
+    includeImageVariants: true,
+    context: `gasto:${gasto.id}:replace-factura`,
   });
 
   res.status(201).json(await resolverFacturaGasto(gastoActualizado));

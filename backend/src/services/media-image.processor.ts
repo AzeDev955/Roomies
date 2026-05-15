@@ -30,6 +30,7 @@ export type ProcessedImageVariant = {
     originalFileName: string;
     originalMimeType: string;
     originalSize: number;
+    variantGroupId: string;
     variant: MediaImageVariant;
     width: number;
     height: number;
@@ -105,17 +106,18 @@ function assertSizeAllowed(size: number, maxSizeBytes: number): void {
   }
 }
 
-function buildSuggestedKey(input: ProcessImageInput, variant: MediaImageVariant): string {
+function buildSuggestedKey(input: ProcessImageInput, variantGroupId: string, variant: MediaImageVariant): string {
   const today = new Date().toISOString().slice(0, 10);
   const vivienda = input.viviendaId ? `vivienda-${input.viviendaId}` : 'vivienda-global';
   const baseName = sanitizeKeySegment(path.basename(input.fileName, path.extname(input.fileName))) || 'imagen';
   const originalExtension = sanitizeKeySegment(path.extname(input.fileName).replace('.', '')) || 'imagen';
   const extension = variant === 'original' ? originalExtension : 'webp';
-  return [input.purpose, vivienda, `owner-${input.ownerId}`, today, `${baseName}-${crypto.randomUUID()}-${variant}.${extension}`].join('/');
+  return [input.purpose, vivienda, `owner-${input.ownerId}`, today, `${baseName}-${variantGroupId}-${variant}.${extension}`].join('/');
 }
 
 function buildMetadata(
   input: ProcessImageInput,
+  variantGroupId: string,
   variant: MediaImageVariant,
   width: number,
   height: number,
@@ -125,6 +127,7 @@ function buildMetadata(
     originalFileName: input.fileName,
     originalMimeType: input.mimeType,
     originalSize: input.size,
+    variantGroupId,
     variant,
     width,
     height,
@@ -172,18 +175,19 @@ export async function processImageForUpload(input: ProcessImageInput): Promise<P
   assertSizeAllowed(input.size, maxSizeBytes);
 
   const metadata = await readImageMetadata(input.buffer);
+  const variantGroupId = crypto.randomUUID();
   const variants: ProcessedImageVariant[] = [];
 
   if (keepOriginal) {
     variants.push({
       variant: 'original',
-      suggestedKey: buildSuggestedKey(input, 'original'),
+      suggestedKey: buildSuggestedKey(input, variantGroupId, 'original'),
       buffer: input.buffer,
       width: metadata.width as number,
       height: metadata.height as number,
       size: input.size,
       mimeType: normalizeOriginalMimeType(input.mimeType),
-      metadata: buildMetadata(input, 'original', metadata.width as number, metadata.height as number),
+      metadata: buildMetadata(input, variantGroupId, 'original', metadata.width as number, metadata.height as number),
     });
   }
 
@@ -200,13 +204,13 @@ export async function processImageForUpload(input: ProcessImageInput): Promise<P
 
     variants.push({
       variant,
-      suggestedKey: buildSuggestedKey(input, variant),
+      suggestedKey: buildSuggestedKey(input, variantGroupId, variant),
       buffer: output.data,
       width: output.info.width,
       height: output.info.height,
       size: output.info.size,
       mimeType: 'image/webp',
-      metadata: buildMetadata(input, variant, output.info.width, output.info.height, webpQuality),
+      metadata: buildMetadata(input, variantGroupId, variant, output.info.width, output.info.height, webpQuality),
     });
   }
 
