@@ -2,7 +2,7 @@ export type MediaProvider = 'cloudinary' | 'backblaze' | 'external';
 
 export type MediaVisibility = 'public' | 'private';
 
-export type MediaVariant = 'original' | 'thumbnail' | 'preview' | 'download';
+export type MediaVariant = 'original' | 'thumbnail' | 'preview' | 'download' | 'thumb' | 'medium' | 'large';
 
 export type MediaPurpose =
   | 'inventory-photo'
@@ -58,6 +58,7 @@ export type MediaProviderErrorCode =
   | 'MEDIA_DELETE_FAILED'
   | 'MEDIA_NOT_FOUND'
   | 'MEDIA_UNSUPPORTED_TYPE'
+  | 'MEDIA_FILE_TOO_LARGE'
   | 'MEDIA_PRIVATE_URL_REQUIRED';
 
 export class MediaProviderError extends Error {
