@@ -17,11 +17,11 @@ export type PortableMediaReference = Pick<
   'provider' | 'key' | 'url' | 'variant' | 'mimeType' | 'size' | 'width' | 'height' | 'visibility' | 'purpose'
 >;
 
-const MEDIA_PROVIDER_VALUES = new Set<MediaProvider>(['cloudinary', 'backblaze', 'external']);
+const MEDIA_PROVIDER_VALUES = new Set<MediaProvider>(['backblaze', 'external']);
 
 function normalizeProvider(value: string | undefined): MediaProvider {
   const provider = value?.trim().toLowerCase();
-  return MEDIA_PROVIDER_VALUES.has(provider as MediaProvider) ? (provider as MediaProvider) : 'cloudinary';
+  return MEDIA_PROVIDER_VALUES.has(provider as MediaProvider) ? (provider as MediaProvider) : 'backblaze';
 }
 
 function obtenerUrlArchivo(file: UploadedFileWithProviderData): string | null {

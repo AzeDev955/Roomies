@@ -11,7 +11,7 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 - Limpieza por habitaciones responsables, asignaciones fijas y exportacion CSV compatible con Excel.
 - Pestanas globales de `Mis viviendas`, `Cobros`, `Fiscal`, `Contratos`, `Inventario`, `Tablon` y `Perfil`.
 - Dashboard de cobros mensuales con detalle de deudas pagadas, pendientes y justificantes.
-- Inventario por vivienda con subida de imagenes a Cloudinary y estado de validacion del inquilino.
+- Inventario por vivienda con subida de imagenes mediante Backblaze B2 y estado de validacion del inquilino.
 - Modo fiscal con resumen anual, ocupacion, revision de metadatos, contratos/historico como soporte y exportacion CSV para gestoria.
 
 ### Inquilino
@@ -43,7 +43,7 @@ Aplicacion movil para gestionar pisos compartidos. Conecta a caseros e inquilino
 | Backend | Node.js + Express 5 + TypeScript |
 | ORM | Prisma 7 (PostgreSQL) |
 | Auth | JWT + bcrypt + Google OAuth |
-| Media | Cloudinary + multer |
+| Media | Backblaze B2 + AWS SDK S3-compatible + multer |
 | Push | `expo-notifications` + `expo-server-sdk` |
 | Infraestructura | Docker Compose + Railway |
 

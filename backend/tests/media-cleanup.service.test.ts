@@ -41,7 +41,7 @@ describe('media cleanup service', () => {
     });
 
     const result = await cleanupMediaReferences([
-      { provider: 'cloudinary', key: 'legacy/public-id' },
+      { provider: 'external', key: 'legacy/public-id' },
       { provider: 'backblaze', key: 'payment-proof/vivienda-7/owner-2/2026-05-15/ticket-abc-medium.webp' },
     ], { includeImageVariants: true });
 

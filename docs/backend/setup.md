@@ -20,9 +20,12 @@ Crea `backend/.env` con:
 DATABASE_URL="prisma+postgres://localhost:<PUERTO>/?api_key=<TU_API_KEY>"
 JWT_SECRET=<cadena_aleatoria_larga>
 GOOGLE_CLIENT_ID=<web_client_id_de_google>
-CLOUDINARY_CLOUD_NAME=<tu_cloud_name>
-CLOUDINARY_API_KEY=<tu_api_key>
-CLOUDINARY_API_SECRET=<tu_api_secret>
+MEDIA_PROVIDER=backblaze
+B2_ENDPOINT=https://s3.<region>.backblazeb2.com
+B2_REGION=<region>
+B2_BUCKET_NAME=roomies-media
+B2_APPLICATION_KEY_ID=<tu_key_id>
+B2_APPLICATION_KEY=<tu_application_key>
 ```
 
 > `DATABASE_URL` la proporciona el proceso `npx prisma dev` al arrancar.
@@ -80,7 +83,7 @@ GET http://localhost:3000/ping  ->  pong
 | `GOOGLE_CLIENT_ID` | Si | Web Client ID validado por `google-auth-library`. |
 | `BACKEND_URL` | Si para correos reales | Base publica usada en enlaces de verificacion. Tiene fallback local. |
 | `EMAIL_USER` / `EMAIL_PASS` | Opcional local | SMTP para enviar magic links de verificacion. |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Opcional para arrancar | Requerido para subir inventario, justificantes y facturas. |
+| `MEDIA_PROVIDER` / `B2_*` | Si para subidas reales | Backblaze B2 S3-compatible usado por inventario, justificantes, facturas y contratos. |
 
 ## Tests
 
@@ -118,9 +121,13 @@ En el servicio del backend anade:
 | `DATABASE_URL` | URL interna del servicio PostgreSQL de Railway |
 | `JWT_SECRET` | Cadena aleatoria larga (min. 32 caracteres) |
 | `GOOGLE_CLIENT_ID` | Web Client ID de Google Cloud Console |
-| `CLOUDINARY_CLOUD_NAME` | Cloud name usado por inventario y justificantes |
-| `CLOUDINARY_API_KEY` | API key de Cloudinary |
-| `CLOUDINARY_API_SECRET` | API secret de Cloudinary |
+| `MEDIA_PROVIDER` | `backblaze` |
+| `B2_ENDPOINT` | Endpoint S3-compatible de Backblaze |
+| `B2_REGION` | Region S3-compatible |
+| `B2_BUCKET_NAME` | Bucket de media |
+| `B2_APPLICATION_KEY_ID` | Key id de Backblaze |
+| `B2_APPLICATION_KEY` | Application key de Backblaze |
+| `B2_PUBLIC_BASE_URL` | Base publica/CDN opcional para objetos publicos |
 
 ### 4. Build y arranque automatico
 
@@ -204,10 +211,13 @@ El seed de demo esta pensado para desarrollo local: usa emails `example.test`, c
 ## Update 2026-04-09 - Backend real
 
 - El backend actual usa `backend/Dockerfile` en Railway.
-- Inventario y justificantes requieren:
-  - `CLOUDINARY_CLOUD_NAME`
-  - `CLOUDINARY_API_KEY`
-  - `CLOUDINARY_API_SECRET`
+- Inventario, facturas, justificantes y contratos con adjunto requieren:
+  - `MEDIA_PROVIDER=backblaze`
+  - `B2_ENDPOINT`
+  - `B2_REGION`
+  - `B2_BUCKET_NAME`
+  - `B2_APPLICATION_KEY_ID`
+  - `B2_APPLICATION_KEY`
 - Scripts actuales:
   - `npm run dev` -> `nodemon --exec ts-node src/index.ts`
   - `npm run build` -> `npx prisma generate && tsc`
@@ -218,7 +228,7 @@ El seed de demo esta pensado para desarrollo local: usa emails `example.test`, c
 
 - `GastoRecurrente` forma parte del schema y su cron diario se inicia automaticamente al arrancar el backend.
 - Las mensualidades recurrentes son gestionadas por el casero propietario de la vivienda con `GET/POST/PATCH/DELETE /api/viviendas/:viviendaId/gastos-recurrentes`; al generarse, el casero queda como acreedor y se reparte entre inquilinos activos.
-- `POST /api/deudas/:deudaId/justificante` reutiliza Cloudinary para guardar comprobantes en `roomies-justificantes`.
+- `POST /api/deudas/:deudaId/justificante` usa el contrato interno de media para guardar comprobantes en Backblaze B2.
 - `PATCH /api/usuarios/me/push-token` permite registrar o limpiar el `expo_push_token` del usuario autenticado.
 - El cron mensual del dia 5 a las 12:00 envia recordatorios push de pago pendiente usando `expo-server-sdk`.
 
@@ -227,7 +237,7 @@ El seed de demo esta pensado para desarrollo local: usa emails `example.test`, c
 - `Vivienda` incorpora `mod_limpieza`, `mod_gastos` y `mod_inventario`; `PATCH /api/viviendas/:id` permite al casero propietario activar o desactivar modulos.
 - `protegerModuloVivienda()` protege limpieza, gastos, deudas, cobros, mensualidades recurrentes e inventario con `403` cuando el modulo correspondiente esta desactivado.
 - `Habitacion.precio` guarda el precio mensual privado solo en habitaciones habitables; el backend oculta precios de dormitorios ajenos en `/api/inquilino/vivienda`.
-- `Gasto.factura_url` guarda facturas originales en Cloudinary. Los gastos aceptan `factura`, `fecha`, `implicadosIds` y `repartoManual`; los repartos automaticos se cuadran por centimos y el reparto manual acepta cuotas `0`.
+- `Gasto.factura_url` queda como compatibilidad de lectura; las nuevas facturas se guardan con Backblaze B2 y referencia portable. Los gastos aceptan `factura`, `fecha`, `implicadosIds` y `repartoManual`; los repartos automaticos se cuadran por centimos y el reparto manual acepta cuotas `0`.
 - `PATCH /api/viviendas/:viviendaId/gastos/:gastoId` permite al casero editar concepto, fecha e importe, bloqueando el importe si alguna deuda hija esta `PAGADA`.
 - `POST /api/viviendas/:viviendaId/gastos/:gastoId/factura` sube o reemplaza la factura original del gasto.
 - La epica 15 no introduce cambios de backend; documenta un pulido frontend sobre tabs anidados de vivienda, perfil de propietario y jerarquia visual de gastos comunes.

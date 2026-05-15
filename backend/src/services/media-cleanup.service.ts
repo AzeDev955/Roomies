@@ -17,7 +17,7 @@ const IMAGE_VARIANTS: MediaVariant[] = ['thumb', 'medium', 'large'];
 const KNOWN_ORIGINAL_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
 
 function isMediaProvider(value: string | null | undefined): value is MediaProvider {
-  return value === 'backblaze' || value === 'cloudinary' || value === 'external';
+  return value === 'backblaze' || value === 'external';
 }
 
 function normalizeReference(reference: MediaCleanupReference | null | undefined) {

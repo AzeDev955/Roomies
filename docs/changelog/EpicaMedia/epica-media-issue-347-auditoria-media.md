@@ -15,6 +15,6 @@ Los ficheros financieros, contractuales e inventario se trataran como privados p
 
 ## Pendiente
 
-- Implementar un proveedor Cloudinary detras del contrato.
-- Anadir provider/key y metadata tecnica a Prisma o centralizar los ficheros en una tabla `MediaAsset`.
-- Migrar lecturas privadas a URLs firmadas o proxy protegido.
+- Cerrado por #354: Backblaze B2 queda como unico proveedor activo.
+- Cerrado por #350: las referencias portables guardan `provider`, `key` y metadata tecnica en los modelos afectados.
+- Cerrado por #352: las lecturas privadas se resuelven con URLs firmadas desde el contrato interno.
