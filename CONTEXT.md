@@ -493,7 +493,7 @@ El `backend/Dockerfile` ejecuta:
 1. `npm run build` durante la construccion de la imagen.
 2. `npm start` al arrancar el contenedor.
 
-`npm start` ejecuta `node scripts/start.js`: aplica `npx prisma db push --accept-data-loss` y levanta `node dist/index.js`. Solo ejecuta seed si `ROOMIES_SEED_ON_START=true`.
+`npm start` ejecuta `node scripts/start.js`: aplica `npx prisma db push --accept-data-loss` y levanta `node dist/index.js`. Solo ejecuta seed si `ROOMIES_SEED_ON_START=true` y el entorno no es produccion ni Railway no-dev.
 
 `docker-compose.yml` es el flujo principal de desarrollo. En ese modo, el servicio backend sobreescribe el comando de la imagen Railway y ejecuta:
 

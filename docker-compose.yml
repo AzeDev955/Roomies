@@ -21,6 +21,8 @@ services:
       - "3001:3000"
     command: sh -c "npx prisma generate && until npx prisma db push --force-reset; do echo 'DB not ready, retrying...'; sleep 3; done && npx prisma db seed && npm run dev"
     environment:
+      NODE_ENV: development
+      ROOMIES_APP_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
