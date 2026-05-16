@@ -1,5 +1,6 @@
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import Toast from 'react-native-toast-message';
 import type { AppTheme } from '@/constants/theme';
 import { useState, useCallback, useMemo } from 'react';
@@ -93,6 +94,13 @@ type DatosCasa = {
   habitaciones: HabitacionResumen[];
 };
 
+type FotoVivienda = {
+  id: number;
+  url: string | null;
+  es_portada: boolean;
+  orden: number;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function InquilinoInicioScreen() {
@@ -113,6 +121,9 @@ export default function InquilinoInicioScreen() {
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [companeroModal, setCompaneroModal] = useState<CompañeroDetalle | null>(null);
   const [loadingCompañero, setLoadingCompañero] = useState(false);
+  const [fotosVivienda, setFotosVivienda] = useState<FotoVivienda[]>([]);
+  const [fotoActivaIndex, setFotoActivaIndex] = useState(0);
+  const [galeriaVisible, setGaleriaVisible] = useState(false);
 
   const abrirCompañero = async (inq: InquilinoResumen) => {
     setCompaneroModal(inq);
@@ -127,7 +138,17 @@ export default function InquilinoInicioScreen() {
     }
   };
 
-  const cargarVivienda = async () => {
+  const cargarFotosVivienda = useCallback(async (viviendaId: number) => {
+    try {
+      const { data } = await api.get<FotoVivienda[]>(`/viviendas/${viviendaId}/fotos`);
+      setFotosVivienda(data);
+      setFotoActivaIndex(0);
+    } catch {
+      setFotosVivienda([]);
+    }
+  }, []);
+
+  const cargarVivienda = useCallback(async () => {
     try {
       const { data } = await api.get<{ miHabitacionId: number; vivienda: any }>('/inquilino/vivienda');
       const miHab = data.vivienda.habitaciones.find((h: HabitacionResumen) => h.id === data.miHabitacionId);
@@ -140,12 +161,13 @@ export default function InquilinoInicioScreen() {
         habitaciones: data.vivienda.habitaciones,
       });
       setTieneCasa(true);
+      cargarFotosVivienda(data.vivienda.id);
     } catch {
       // Sin habitación asignada — se queda en onboarding
     }
-  };
+  }, [cargarFotosVivienda]);
 
-  const cargarIncidencias = async () => {
+  const cargarIncidencias = useCallback(async () => {
     setLoadingIncidencias(true);
     try {
       const { data } = await api.get<Incidencia[]>('/incidencias');
@@ -155,7 +177,7 @@ export default function InquilinoInicioScreen() {
     } finally {
       setLoadingIncidencias(false);
     }
-  };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -164,7 +186,7 @@ export default function InquilinoInicioScreen() {
       } else {
         cargarVivienda();
       }
-    }, [tieneCasa])
+    }, [cargarIncidencias, cargarVivienda, tieneCasa])
   );
 
   const handleCanjearCodigo = async () => {
@@ -298,6 +320,9 @@ export default function InquilinoInicioScreen() {
   const formatearPrecio = (precio: number) =>
     precio.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 
+  const portada = fotosVivienda[0];
+  const fotoActiva = fotosVivienda[Math.min(fotoActivaIndex, Math.max(fotosVivienda.length - 1, 0))];
+
   const irAReportarIncidencia = () =>
     router.push({
       pathname: '/inquilino/nueva-incidencia',
@@ -380,6 +405,36 @@ export default function InquilinoInicioScreen() {
               <Ionicons name="card-outline" size={14} color={theme.colors.success} />
               <Text style={styles.precioHabitacionLabel}>Precio mensual</Text>
               <Text style={styles.precioHabitacionValor}>{formatearPrecio(miHabitacion.precio)}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.seccion}>
+          <Text style={styles.seccionLabel}>Fotos de la vivienda</Text>
+          {portada?.url ? (
+            <Pressable
+              style={({ pressed }) => [styles.galleryPreview, pressed && { opacity: 0.88 }]}
+              onPress={() => {
+                setFotoActivaIndex(0);
+                setGaleriaVisible(true);
+              }}
+            >
+              <Image source={{ uri: portada.url }} style={styles.galleryPreviewImage} contentFit="cover" />
+              <View style={styles.galleryOverlay}>
+                <View style={styles.galleryBadge}>
+                  <Ionicons name="images-outline" size={14} color={theme.colors.surface} />
+                  <Text style={styles.galleryBadgeText}>
+                    {fotosVivienda.length} foto{fotosVivienda.length === 1 ? '' : 's'}
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+          ) : (
+            <View style={styles.galleryEmpty}>
+              <Ionicons name="image-outline" size={24} color={theme.colors.textTertiary} />
+              <Text style={styles.galleryEmptyText}>
+                El casero aun no ha subido fotos de la vivienda.
+              </Text>
             </View>
           )}
         </View>
@@ -489,6 +544,58 @@ export default function InquilinoInicioScreen() {
       >
         <Text style={styles.fabTexto}>+</Text>
       </Pressable>
+
+      <Modal
+        visible={galeriaVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGaleriaVisible(false)}
+      >
+        <View style={styles.galleryModalBackdrop}>
+          <Pressable
+            style={styles.galleryModalClose}
+            onPress={() => setGaleriaVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar galeria"
+          >
+            <Ionicons name="close" size={22} color={theme.colors.surface} />
+          </Pressable>
+          {fotoActiva?.url ? (
+            <Image source={{ uri: fotoActiva.url }} style={styles.galleryModalImage} contentFit="contain" />
+          ) : (
+            <View style={styles.galleryModalFallback}>
+              <Ionicons name="image-outline" size={28} color={theme.colors.surface} />
+            </View>
+          )}
+          {fotosVivienda.length > 1 && (
+            <View style={styles.galleryModalControls}>
+              <Pressable
+                style={styles.galleryModalButton}
+                onPress={() =>
+                  setFotoActivaIndex((prev) => (prev === 0 ? fotosVivienda.length - 1 : prev - 1))
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Foto anterior"
+              >
+                <Ionicons name="chevron-back" size={22} color={theme.colors.surface} />
+              </Pressable>
+              <Text style={styles.galleryModalCounter}>
+                {fotoActivaIndex + 1} / {fotosVivienda.length}
+              </Text>
+              <Pressable
+                style={styles.galleryModalButton}
+                onPress={() =>
+                  setFotoActivaIndex((prev) => (prev === fotosVivienda.length - 1 ? 0 : prev + 1))
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Foto siguiente"
+              >
+                <Ionicons name="chevron-forward" size={22} color={theme.colors.surface} />
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </Modal>
 
       {/* ── Modal compañero ── */}
       <Modal

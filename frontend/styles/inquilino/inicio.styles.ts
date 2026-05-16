@@ -226,6 +226,52 @@ export const createStyles = (theme: AppTheme) => StyleSheet.create({
     marginBottom: theme.spacing.md,
     paddingHorizontal: 2,
   },
+  galleryPreview: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    overflow: 'hidden',
+    ...theme.shadows.sm,
+  },
+  galleryPreviewImage: {
+    width: '100%',
+    aspectRatio: 16 / 10,
+    backgroundColor: theme.colors.surface2,
+  },
+  galleryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
+    padding: theme.spacing.base,
+  },
+  galleryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.overlay,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
+  },
+  galleryBadgeText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.surface,
+  },
+  galleryEmpty: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.base,
+    ...theme.shadows.sm,
+  },
+  galleryEmptyText: {
+    flex: 1,
+    fontSize: theme.typography.label,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
 
   // — Compañeros (scroll horizontal) —
   companerosRow: {
@@ -429,6 +475,56 @@ export const createStyles = (theme: AppTheme) => StyleSheet.create({
   },
   modalCargando: {
     marginVertical: theme.spacing.md,
+  },
+  galleryModalBackdrop: {
+    flex: 1,
+    backgroundColor: theme.colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing.lg,
+  },
+  galleryModalClose: {
+    position: 'absolute',
+    top: theme.spacing.xl,
+    right: theme.spacing.lg,
+    zIndex: 2,
+    width: 44,
+    height: 44,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  galleryModalImage: {
+    width: '100%',
+    height: '72%',
+  },
+  galleryModalFallback: {
+    width: '100%',
+    height: '72%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  galleryModalControls: {
+    marginTop: theme.spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.lg,
+  },
+  galleryModalButton: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  galleryModalCounter: {
+    minWidth: 72,
+    textAlign: 'center',
+    fontSize: theme.typography.body,
+    fontWeight: '800',
+    color: theme.colors.surface,
   },
 
   // — FAB —

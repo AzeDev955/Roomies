@@ -53,6 +53,7 @@ const crearUploaderDocumento = () =>
   });
 
 export const uploadInventarioFoto = crearUploaderImagen();
+export const uploadViviendaFoto = crearUploaderImagen();
 export const uploadJustificanteFoto = crearUploaderImagen();
 export const uploadFacturaGasto = crearUploaderDocumento();
 export const uploadFacturaFoto = crearUploaderImagen();

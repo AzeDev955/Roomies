@@ -25,6 +25,11 @@ const MEDIA_SERVING_POLICIES: Record<MediaPurpose, MediaServingPolicy> = {
     access: 'public',
     storageVisibility: 'public',
   },
+  'housing-photo': {
+    access: 'shared',
+    storageVisibility: 'private',
+    signedUrlTtlSeconds: DEFAULT_SHARED_SIGNED_URL_TTL_SECONDS,
+  },
   'inventory-photo': {
     access: 'shared',
     storageVisibility: 'private',

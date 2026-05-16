@@ -22,6 +22,7 @@ Las variables actuales de media son:
 
 | Flujo | Archivo backend | Archivo frontend | Campo o modelo | Purpose/prefijo | Tipo | Privacidad | Estado |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| Fotos de vivienda | `backend/src/routes/vivienda.routes.ts`, `backend/src/controllers/foto-vivienda.controller.ts` | `frontend/app/casero/vivienda/[id]/(tabs)/fotos.tsx`, `frontend/app/inquilino/(tabs)/inicio.tsx` | `FotoVivienda` | `housing-photo/` | Imagen WebP | Privada compartida por vivienda | Migrado; casero gestiona y usuarios vinculados visualizan. |
 | Fotos de inventario | `backend/src/routes/inventario.routes.ts`, `backend/src/controllers/inventario.controller.ts` | `frontend/app/casero/(tabs)/inventario.tsx`, `frontend/app/inquilino/(tabs)/inventario.tsx` | `FotoAsset` | `inventory-photo/` | Imagen WebP | Privada compartida por vivienda | Migrado; devuelve URL firmada. |
 | Facturas de gastos | `backend/src/routes/gasto.routes.ts`, `backend/src/controllers/gasto.controller.ts`, `backend/src/services/gasto.service.ts` | `frontend/app/casero/(tabs)/cobros.tsx`, `frontend/app/inquilino/(tabs)/gastos.tsx`, `frontend/app/casero/(tabs)/fiscal.tsx` | `Gasto.factura_*` | `expense-invoice/` | Imagen o PDF | Privada fiscal/financiera | Migrado; mantiene `factura_url` solo si es persistible. |
 | Justificantes de pago | `backend/src/routes/deuda.routes.ts`, `backend/src/controllers/deuda.controller.ts` | `frontend/app/inquilino/(tabs)/gastos.tsx`, `frontend/app/casero/(tabs)/cobros.tsx`, `frontend/app/casero/(tabs)/fiscal.tsx` | `Deuda.justificante_*` | `payment-proof/` | Imagen WebP | Privada financiera | Migrado; devuelve URL firmada. |
@@ -156,3 +157,18 @@ Las variantes usan `withoutEnlargement`, por lo que una imagen pequena mantiene 
 ## Estado de cierre
 
 La epica deja completados el proveedor Backblaze, el procesado de imagenes, las referencias portables, el serving publico/privado y la limpieza best-effort. Los pendientes reales quedan fuera del cierre: CDN definitivo para objetos publicos, URLs firmadas avanzadas por auditoria, limpieza programada de objetos huerfanos y una migracion legacy si aparecieran datos reales previos.
+
+## Fotos de vivienda
+
+Issue #367 introduce la galeria de vivienda con el purpose `housing-photo`. Estas imagenes se suben como privadas, se procesan a variantes WebP y se sirven con URLs firmadas tras validar permisos. Las keys quedan agrupadas por vivienda con el formato generado por el procesador: `housing-photo/vivienda-<id>/owner-<caseroId>/<fecha>/<nombre>-<grupo>-<variante>.webp`.
+
+Endpoints protegidos:
+
+| Metodo | Ruta | Permiso |
+| --- | --- | --- |
+| `GET` | `/api/viviendas/:id/fotos` | Casero propietario o inquilino vinculado a la vivienda. |
+| `POST` | `/api/viviendas/:id/fotos` | Solo casero propietario; `multipart/form-data` con campo `foto`. |
+| `PATCH` | `/api/viviendas/:id/fotos/:fotoId` | Solo casero propietario; acepta `es_portada` y `orden`. |
+| `DELETE` | `/api/viviendas/:id/fotos/:fotoId` | Solo casero propietario; borra el registro y limpia variantes Backblaze best-effort. |
+
+`FotoVivienda.url` solo conserva URLs persistibles de proveedores externos o publicos. Para Backblaze privado, la API devuelve una URL resuelta en cada respuesta y el frontend no debe persistirla ni construirla a partir de `provider` o `key`.

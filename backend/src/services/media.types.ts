@@ -6,6 +6,7 @@ export type MediaVariant = 'original' | 'thumbnail' | 'preview' | 'download' | '
 
 export type MediaPurpose =
   | 'listing-photo'
+  | 'housing-photo'
   | 'inventory-photo'
   | 'expense-invoice'
   | 'payment-proof'

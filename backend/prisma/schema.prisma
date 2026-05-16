@@ -160,6 +160,7 @@ model Vivienda {
   gastos           Gasto[]
   gastos_recurrentes GastoRecurrente[]
   items_inventario ItemInventario[]
+  fotos           FotoVivienda[]
   contratos_alquiler ContratoAlquiler[]
   periodos_ocupacion PeriodoOcupacion[]
 }
@@ -313,6 +314,26 @@ model FotoAsset {
   item         ItemInventario @relation(fields: [item_id], references: [id], onDelete: Cascade)
   fecha_subida DateTime       @default(now())
 
+  @@index([provider, key])
+}
+
+model FotoVivienda {
+  id           Int       @id @default(autoincrement())
+  vivienda_id  Int
+  vivienda     Vivienda  @relation(fields: [vivienda_id], references: [id], onDelete: Cascade)
+  provider     String    @default("backblaze")
+  key          String
+  url          String?
+  variant      String    @default("medium")
+  mime_type    String?
+  size         Int?
+  width        Int?
+  height       Int?
+  orden        Int       @default(0)
+  es_portada   Boolean   @default(false)
+  fecha_subida DateTime  @default(now())
+
+  @@index([vivienda_id, orden])
   @@index([provider, key])
 }
 

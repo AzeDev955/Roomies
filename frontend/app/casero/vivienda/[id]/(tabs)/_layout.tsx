@@ -139,6 +139,15 @@ export default function ViviendaTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="fotos"
+        options={{
+          title: 'Fotos',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="images-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="opciones"
         options={{
           title: 'Opciones',

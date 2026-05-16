@@ -1,0 +1,168 @@
+import { StyleSheet } from 'react-native';
+import { DefaultAppTheme, type AppTheme } from '@/constants/theme';
+
+export const createStyles = (theme: AppTheme = DefaultAppTheme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  content: {
+    padding: theme.spacing.base,
+    paddingBottom: 48,
+    gap: theme.spacing.base,
+  },
+  headerCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.sm,
+    ...theme.shadows.sm,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: theme.spacing.base,
+  },
+  headerText: {
+    flex: 1,
+    gap: theme.spacing.xs,
+  },
+  title: {
+    fontSize: theme.typography.heading,
+    fontWeight: '800',
+    color: theme.colors.text,
+  },
+  subtitle: {
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
+    lineHeight: 22,
+  },
+  uploadButton: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  uploadButtonDisabled: {
+    backgroundColor: theme.colors.primaryDisabled,
+  },
+  uploadHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  uploadHintText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  loadingBox: {
+    paddingVertical: theme.spacing.xxl,
+  },
+  emptyCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.xl,
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    ...theme.shadows.sm,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: theme.typography.subtitle,
+    fontWeight: '800',
+    color: theme.colors.text,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: theme.typography.body,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  photoCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    overflow: 'hidden',
+    ...theme.shadows.sm,
+  },
+  photo: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    backgroundColor: theme.colors.surface2,
+  },
+  coverBadge: {
+    position: 'absolute',
+    top: theme.spacing.sm,
+    left: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.successLight,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 6,
+  },
+  coverBadgeText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.success,
+  },
+  photoActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+    padding: theme.spacing.base,
+  },
+  actionGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconButtonDisabled: {
+    opacity: 0.45,
+  },
+  deleteButton: {
+    backgroundColor: theme.colors.dangerLight,
+  },
+  setCoverButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: theme.radius.full,
+    paddingHorizontal: theme.spacing.base,
+    paddingVertical: theme.spacing.sm,
+    minHeight: 40,
+  },
+  setCoverText: {
+    fontSize: theme.typography.caption,
+    fontWeight: '800',
+    color: theme.colors.primary,
+  },
+});
