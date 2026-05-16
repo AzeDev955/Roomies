@@ -67,6 +67,7 @@ npx expo start --clear
 `dev.bat` se ejecuta desde la raiz, valida que exista `.env`, para cualquier Metro viejo del contenedor `frontend`, lanza `docker compose up --build -d --force-recreate db backend`, espera a `http://localhost:3001/ping` y despues ejecuta `npx expo start --lan --port 8081 --clear` en `frontend`.
 
 En Compose de desarrollo el backend siempre reinicia la BD con `npx prisma db push --force-reset` y ejecuta `npx prisma db seed` antes de arrancar `npm run dev`.
+El servicio fija `NODE_ENV=development` y `ROOMIES_APP_ENV=development` para mantener habilitado el seed demo local.
 
 3. En `frontend/.env`, apunta a Docker local si usas Metro fuera del contenedor:
 
@@ -150,9 +151,11 @@ Railway queda reservado para produccion y debe desplegar desde `main`. El backen
 
 El Dockerfile ejecuta `npm run build`. Al arrancar, `npm start` aplica `npx prisma db push --accept-data-loss` y levanta `node dist/index.js`.
 
+Para reseteos controlados de la BD de Railway, por ejemplo cuando Prisma no puede añadir una columna obligatoria con filas existentes, define temporalmente `ROOMIES_PRISMA_FORCE_RESET_ON_START=true`. El siguiente arranque ejecutara `npx prisma db push --force-reset --accept-data-loss`, borrara los datos y aplicara el schema actual. Retira la variable despues del despliegue.
+
 No configures servicios Railway contra `dev` para desarrollo diario. Si existe un Railway de pruebas, mantenerlo pausado o desconectado de auto-deploy para evitar costes; Docker local cubre el flujo de cambios en desarrollo.
 
-El seed automatico queda desactivado por defecto en `npm start`. Solo se ejecuta si `ROOMIES_SEED_ON_START=true`, y no debe habilitarse en produccion salvo una carga controlada.
+El seed automatico queda desactivado por defecto en `npm start`. Solo se ejecuta si `ROOMIES_SEED_ON_START=true` y el entorno no es produccion ni Railway no-dev; en produccion se omite aunque la variable haya quedado definida.
 
 ### Frontend EAS
 

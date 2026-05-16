@@ -123,7 +123,7 @@ Credenciales locales tras el seed:
 | CASERO | `casero@test.com` | `casero123` |
 | INQUILINO | `inquilino@test.com` | `inquilino123` |
 
-El `backend/Dockerfile` se usa para que Railway construya la imagen del backend de produccion desde `main`. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, aplica `prisma db push --accept-data-loss` y levanta `dist/index.js`.
+El `backend/Dockerfile` se usa para que Railway construya la imagen del backend de produccion desde `main`. El contenedor compila con `npm run build`; al arrancar ejecuta `npm start`, aplica `prisma db push --accept-data-loss` y levanta `dist/index.js`. Para un reseteo controlado de la BD de Railway, define temporalmente `ROOMIES_PRISMA_FORCE_RESET_ON_START=true`.
 
 Consulta `docs/infra/setup-despliegue.md` para el detalle completo de variables, URLs por entorno y despliegue.
 

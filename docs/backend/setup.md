@@ -145,7 +145,10 @@ npx prisma db push --accept-data-loss
 node dist/index.js
 ```
 
-Solo ejecuta `npx prisma db seed` al arrancar si `ROOMIES_SEED_ON_START=true`; no se debe activar en Railway produccion salvo una carga controlada.
+Si necesitas reiniciar la base de datos del entorno de despliegue porque `db push` no puede aplicar un cambio sobre filas existentes, define temporalmente `ROOMIES_PRISMA_FORCE_RESET_ON_START=true`. Con esa variable, el arranque ejecuta `npx prisma db push --force-reset --accept-data-loss` y elimina los datos de la BD antes de aplicar el schema.
+
+Solo ejecuta `npx prisma db seed` al arrancar si `ROOMIES_SEED_ON_START=true` y el entorno no es produccion ni Railway no-dev. En produccion el seed demo se omite aunque la variable haya quedado definida.
+Docker Compose no depende de `ROOMIES_SEED_ON_START`: ejecuta el seed directamente y fija `NODE_ENV=development` y `ROOMIES_APP_ENV=development`.
 
 ### 5. Cron jobs incluidos en el arranque
 
@@ -206,7 +209,7 @@ npx expo start --clear
 | `ItemInventario.revisado_por_inquilino_id` y `revisado_por_inquilino_en` auditan la conformidad | El casero puede saber quien valido un item y cuando; los inquilinos no pueden validar dormitorios ajenos. |
 | Importes monetarios siguen como `Float` por compatibilidad MVP | La logica de reparto convierte a centimos antes de comparar o dividir. Migrar a `Decimal` o centimos enteros queda pendiente de migracion coordinada con frontend, API y datos existentes. |
 
-El seed de demo esta pensado para desarrollo local: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway salvo que se fuerce con `ROOMIES_ALLOW_PRODUCTION_SEED=true`.
+El seed de demo esta pensado para desarrollo local: usa emails `example.test`, contrasenas obvias documentadas y se bloquea en `NODE_ENV=production` o Railway no-dev.
 
 ## Update 2026-04-09 - Backend real
 
