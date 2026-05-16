@@ -17,7 +17,6 @@ const prisma = new PrismaClient({ adapter });
 const LOCAL_CASERO_PASSWORD = process.env["SEED_CASERO_PASSWORD"]!;
 const LOCAL_INQUILINO_PASSWORD = process.env["SEED_INQUILINO_PASSWORD"]!;
 const DEMO_EMAIL_DOMAIN = process.env["SEED_DEMO_DOMAIN"]!;
-const FORCE_DEMO_SEED = process.env["ROOMIES_ALLOW_PRODUCTION_SEED"] === "true";
 
 type ParticipanteDeuda = {
   deudorId: number;
@@ -62,9 +61,9 @@ const assertSeedSeguro = () => {
     Boolean(railwayEnvironment) && !isRailwayDevelopment;
   const isLocalProduction = entorno === "production" && !isRailwayDevelopment;
 
-  if (!FORCE_DEMO_SEED && (isLocalProduction || isRailwayNonDevelopment)) {
+  if (isLocalProduction || isRailwayNonDevelopment) {
     throw new Error(
-      "Seed demo bloqueado fuera de entorno local o Railway development. Define ROOMIES_ALLOW_PRODUCTION_SEED=true solo para cargas controladas.",
+      "Seed demo bloqueado fuera de entorno local o Railway development.",
     );
   }
 };
